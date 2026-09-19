@@ -67,7 +67,11 @@ def load_keyring(path: str | Path | None = None) -> Keyring:
         raise KeyringError("durable_result_keyring_required")
     descriptor = None
     try:
-        descriptor = os.open(selected, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        nofollow = getattr(os, "O_NOFOLLOW", 0)
+        nonblock = getattr(os, "O_NONBLOCK", 0)
+        if not nofollow or not nonblock:
+            raise ValueError
+        descriptor = os.open(selected, os.O_RDONLY | nofollow | nonblock)
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > MAX_KEYRING_BYTES:
             raise ValueError
