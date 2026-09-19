@@ -78,6 +78,14 @@ class DunningIn(BaseModel): grace_days:int=Field(default=7,ge=1,le=90); suspend_
 
 STATES={"TRIALING":{"ACTIVE","CANCELLED"},"ACTIVE":{"PAST_DUE","CANCEL_AT_PERIOD_END","SUSPENDED"},"PAST_DUE":{"ACTIVE","GRACE_PERIOD","SUSPENDED"},"GRACE_PERIOD":{"ACTIVE","SUSPENDED"},"SUSPENDED":{"ACTIVE","CANCELLED"},"CANCEL_AT_PERIOD_END":{"ACTIVE","CANCELLED"},"CANCELLED":{"ACTIVE","CLOSED"},"CLOSED":set()}
 
+def enqueue_subscription_changed(s,sub,*,causation_id=None):
+    from .business_events import enqueue_named_event
+    enqueue_named_event(s,event_type="klyrow.subscription.changed",tenant_id=sub.tenant_id,
+        aggregate_id=sub.id,causation_id=causation_id or sub.id,
+        correlation_id="sub_"+sub.id,
+        data={"subscription_id":sub.id,"status":sub.status,"plan_id":sub.plan_id,
+              "price_id":sub.price_id,"version":int(sub.version or 1),"effective_at":now()})
+
 def tenant_item(s,model,item_id,tenant):
     item=s.scalar(select(model).where(model.id==item_id,model.tenant_id==tenant))
     if not item:raise HTTPException(404,"not_found")
@@ -103,7 +111,7 @@ def subscribe(x:SubscribeIn,ctx=Depends(auth),s:Session=Depends(db)):
     start=now();end=start+timedelta(days=x.trial_days or (365 if price.billing_cycle=="ANNUAL" else 30));status="TRIALING" if x.trial_days else "ACTIVE"
     sub=existing or BillingSubscription(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],plan_id=plan.id,price_id=price.id,period_end=end)
     sub.plan_id=plan.id;sub.price_id=price.id;sub.status=status;sub.period_start=start;sub.period_end=end;sub.trial_end=end if x.trial_days else None;sub.cancel_at_period_end=False
-    s.add(sub);s.add(BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription.created",reference=sub.id));audit(s,ctx,"billing.subscription.created");s.commit();return {"id":sub.id,"status":sub.status,"price_version":price.version}
+    billing_event=BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription.created",reference=sub.id);s.add(sub);s.add(billing_event);enqueue_subscription_changed(s,sub,causation_id=billing_event.id);audit(s,ctx,"billing.subscription.created");s.commit();return {"id":sub.id,"status":sub.status,"price_version":price.version}
 
 # Literal operations must precede the parameterized state-transition route.
 @router.post("/billing/subscription/change")
@@ -116,7 +124,7 @@ def transition(status:str,ctx=Depends(auth),s:Session=Depends(db)):
     target=status.upper();sub=s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id==ctx["tenant"]).with_for_update())
     if not sub:raise HTTPException(404,"subscription_not_found")
     if target not in STATES.get(sub.status,set()):raise HTTPException(409,"invalid_subscription_transition")
-    sub.status=target;sub.cancel_at_period_end=target=="CANCEL_AT_PERIOD_END";sub.version+=1;s.add(BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription."+target.lower(),reference=sub.id));audit(s,ctx,"billing.subscription."+target.lower());s.commit();return {"id":sub.id,"status":sub.status,"version":sub.version}
+    sub.status=target;sub.cancel_at_period_end=target=="CANCEL_AT_PERIOD_END";sub.version+=1;billing_event=BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription."+target.lower(),reference=sub.id);s.add(billing_event);enqueue_subscription_changed(s,sub,causation_id=billing_event.id);audit(s,ctx,"billing.subscription."+target.lower());s.commit();return {"id":sub.id,"status":sub.status,"version":sub.version}
 
 @router.post("/billing/usage-events",status_code=202)
 def meter(x:UsageIn,ctx=Depends(auth),s:Session=Depends(db)):
@@ -201,7 +209,7 @@ def checkout(x:CheckoutIn,ctx=Depends(auth),s:Session=Depends(db)):
     item=CheckoutSession(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],plan_id=plan.id,price_id=price.id,provider=x.provider,state=state,provider_reference=x.provider_reference)
     start=now();sub=existing or BillingSubscription(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],plan_id=plan.id,price_id=price.id,period_end=start+timedelta(days=30))
     sub.plan_id=plan.id;sub.price_id=price.id;sub.period_start=start;sub.period_end=start+timedelta(days=365 if price.billing_cycle=="ANNUAL" else 30);sub.status="ACTIVE" if state=="COMPLETED" else "TRIALING"
-    s.add_all([item,sub,BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="checkout."+state.lower(),reference=item.id,payload_json=json.dumps({"provider":x.provider,"raw_card_storage":False},sort_keys=True))]);audit(s,ctx,"billing.checkout.created");s.commit()
+    billing_event=BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="checkout."+state.lower(),reference=item.id,payload_json=json.dumps({"provider":x.provider,"raw_card_storage":False},sort_keys=True));s.add_all([item,sub,billing_event]);enqueue_subscription_changed(s,sub,causation_id=billing_event.id);audit(s,ctx,"billing.checkout.created");s.commit()
     return {"id":item.id,"state":state,"subscription_id":sub.id,"payment_instructions_required":x.provider=="MANUAL_OFFLINE","raw_card_storage":False}
 
 @router.post("/billing/subscription-plan-change")
@@ -215,7 +223,7 @@ def change_plan(x:PlanChangeIn,ctx=Depends(auth),s:Session=Depends(db)):
     if delta<0:
         s.add(BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription.downgrade_scheduled",reference=sub.id,payload_json=json.dumps({"next_plan_id":plan.id,"next_price_id":new.id,"effective_at":sub.period_end.isoformat()},sort_keys=True)));audit(s,ctx,"billing.subscription.downgrade_scheduled");s.commit();return {"effective":"NEXT_PERIOD","credit":"0.00","charge":"0.00"}
     sub.plan_id=plan.id;sub.price_id=new.id;sub.version+=1
-    s.add(BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription.upgraded",reference=sub.id,payload_json=json.dumps({"old_price_id":old.id,"new_price_id":new.id,"proration_charge":str(delta)},sort_keys=True)));audit(s,ctx,"billing.subscription.upgraded");s.commit();return {"effective":"IMMEDIATE","charge":str(delta),"credit":"0.00","price_version":new.version}
+    billing_event=BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription.upgraded",reference=sub.id,payload_json=json.dumps({"old_price_id":old.id,"new_price_id":new.id,"proration_charge":str(delta)},sort_keys=True));s.add(billing_event);enqueue_subscription_changed(s,sub,causation_id=billing_event.id);audit(s,ctx,"billing.subscription.upgraded");s.commit();return {"effective":"IMMEDIATE","charge":str(delta),"credit":"0.00","price_version":new.version}
 
 @router.post("/billing/invoices/{invoice_id}/credit-notes",status_code=201)
 def credit_note(invoice_id:str,x:CreditNoteIn,ctx=Depends(auth),s:Session=Depends(db)):

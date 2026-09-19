@@ -5,6 +5,9 @@ message events/batch aliases, template versions, campaign test send,
 webhook delivery introspection/replay/rotate-secret, and the customer-facing
 suppression check. Mirrors the existing test_messaging.py / test_api.py style.
 """
+import socket
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
 import pytest
@@ -139,7 +142,10 @@ def test_suppression_check_reports_reason_and_absence():
 
 def test_webhook_deliveries_replay_and_rotate_secret():
     h = headers("a")
-    webhook = client.post("/v1/webhook-subscriptions", headers=h, json={"url": "https://example.com/m06-events", "events": ["message.delivered"]})
+    # Keep the real URL/IP policy while making this lifecycle test independent of DNS.
+    addresses = [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))]
+    with patch("apps.gateway.app.main.socket.getaddrinfo", return_value=addresses):
+        webhook = client.post("/v1/webhook-subscriptions", headers=h, json={"url": "https://example.com/m06-events", "events": ["message.delivered"]})
     assert webhook.status_code == 201, webhook.text
     wid = webhook.json()["id"]
     original_secret = webhook.json()["secret"]

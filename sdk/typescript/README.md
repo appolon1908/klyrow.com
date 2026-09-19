@@ -23,3 +23,20 @@ Run commands from the repository root. CI regenerates to a temporary file,
 compares the result and compiles the client against it. Existing send/message
 methods keep their current contract; generated types do not imply that every
 target-blueprint endpoint has been implemented.
+
+Usage history reads the metering ledger, with inclusive `from` and exclusive
+`to` UTC dates. Dates are `YYYY-MM-DD`; windows cannot exceed 366 days.
+
+```ts
+const daily = await client.usageDaily({ from: "2026-08-01", to: "2026-09-01", limit: 10 });
+const next = daily.next_cursor
+  ? await client.usageDaily({ cursor: daily.next_cursor, limit: 10 })
+  : undefined;
+const monthly = await client.usageMonthly({ from: "2026-01-01", to: "2026-09-01" });
+```
+
+The default unit is `accepted_message`, which measures accepted messages, not
+recipient deliveries. When paginating a custom unit, pass the same `unit` with
+each cursor. Periods without entries are omitted. Totals can change when late
+ledger records arrive. Project filtering is unavailable until the ledger owns
+project identity; unsupported filters are rejected by the API.

@@ -1,0 +1,63 @@
+{
+  "$id": "https://schemas.codestra.co/events/klyrow-subscription-changed.v1.data.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "effective_at": {
+      "format": "date-time",
+      "title": "Effective At",
+      "type": "string"
+    },
+    "plan_id": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Plan Id"
+    },
+    "price_id": {
+      "anyOf": [
+        {
+          "maxLength": 200,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Price Id"
+    },
+    "status": {
+      "maxLength": 50,
+      "minLength": 1,
+      "title": "Status",
+      "type": "string"
+    },
+    "subscription_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Subscription Id",
+      "type": "string"
+    },
+    "version": {
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "subscription_id",
+    "status",
+    "version",
+    "effective_at"
+  ],
+  "title": "SubscriptionChangedData",
+  "type": "object"
+}

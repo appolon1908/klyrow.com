@@ -26,6 +26,8 @@ from .main import Base, SECRET, Tenant, User, db, sha
 from .tenancy import ROLE_PERMISSIONS, OidcIdentity, TenantMember
 
 SESSION_COOKIE = "__Host-klyrow_session"
+from .identity_profile import canonical_issuer, identity_authority
+
 ISSUER = "https://auth.codestra.co/realms/codestra"
 CANONICAL_APP_ORIGIN = "https://app.klyrow.com"
 _jwks_clients: dict[str, PyJWKClient] = {}
@@ -37,7 +39,7 @@ def _is_production() -> bool:
 
 
 def _public_origin() -> str:
-    configured = os.getenv("KLYROW_PUBLIC_URL", CANONICAL_APP_ORIGIN).strip().rstrip("/")
+    configured = os.getenv("KLYROW_PUBLIC_URL", identity_authority()[1]).strip().rstrip("/")
     parsed = urlsplit(configured)
     valid = (
         parsed.scheme in ({"https"} if _is_production() else {"http", "https"})
@@ -51,7 +53,7 @@ def _public_origin() -> str:
     if not valid:
         raise HTTPException(503, "canonical_app_origin_misconfigured")
     origin = f"{parsed.scheme}://{parsed.netloc}"
-    if _is_production() and origin != CANONICAL_APP_ORIGIN:
+    if _is_production() and origin != identity_authority()[1]:
         raise HTTPException(503, "canonical_app_origin_misconfigured")
     return origin
 
@@ -102,10 +104,7 @@ class BrowserSession(Base):
 
 
 def _canonical_issuer() -> str:
-    configured = os.getenv("KLYROW_OIDC_ISSUER", ISSUER).rstrip("/")
-    if configured != ISSUER:
-        raise HTTPException(503, "canonical_oidc_misconfigured")
-    return configured
+    return canonical_issuer()
 
 
 def _client_id() -> str:
@@ -139,7 +138,7 @@ def _redirect_uri(request: Request) -> str:
     )
     if not valid:
         raise HTTPException(503, "oidc_redirect_uri_misconfigured")
-    if _is_production() and configured != CANONICAL_APP_ORIGIN + "/auth/callback":
+    if _is_production() and configured != identity_authority()[1] + "/auth/callback":
         raise HTTPException(503, "oidc_redirect_uri_misconfigured")
     return configured
 

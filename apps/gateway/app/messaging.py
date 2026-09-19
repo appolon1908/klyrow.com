@@ -220,14 +220,16 @@ def inbound_fixture(x:InboundFixture,ctx=Depends(auth),s:Session=Depends(db)):
 
 @router.post("/webhook-subscriptions",status_code=201)
 def webhook_create(x:WebhookIn,ctx=Depends(auth),s:Session=Depends(db)):
-    url=safe_webhook_url(x.url);raw=secrets.token_urlsafe(32);item=WebhookSubscription(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],url=url,events_json=json.dumps(sorted(set(x.events))),secret_hash=sha(raw),encrypted_secret_ref="secret://webhooks/"+str(uuid.uuid4()));s.add(item);audit(s,ctx,"webhook.created");s.commit();return {"id":item.id,"secret":raw,"events":json.loads(item.events_json)}
+    from .secret_responses import record_secret_response,response_metadata
+    url=safe_webhook_url(x.url);raw=secrets.token_urlsafe(32);item=WebhookSubscription(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],url=url,events_json=json.dumps(sorted(set(x.events))),secret_hash=sha(raw),encrypted_secret_ref="secret://webhooks/"+str(uuid.uuid4()));s.add(item);result={"id":item.id,"secret":raw,"events":json.loads(item.events_json)};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="WEBHOOK_SECRET",resource_id=item.id,action="CREATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"webhook.created");s.commit();return {**result,**response_metadata(secret_response)}
 @router.get("/webhook-subscriptions")
 def webhook_subscriptions(ctx=Depends(auth),s:Session=Depends(db)):
     rows=s.scalars(select(WebhookSubscription).where(WebhookSubscription.tenant_id==ctx["tenant"]).order_by(WebhookSubscription.created_at.desc())).all()
     return [{"id":row.id,"url":row.url,"events":json.loads(row.events_json),"enabled":row.enabled,"created_at":row.created_at,"rotated_at":row.rotated_at} for row in rows]
 @router.post("/webhook-subscriptions/{item_id}/rotate")
 def webhook_rotate(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
-    item=tenant_get(s,WebhookSubscription,item_id,ctx["tenant"]);raw=secrets.token_urlsafe(32);item.secret_hash=sha(raw);item.encrypted_secret_ref="secret://webhooks/"+str(uuid.uuid4());item.rotated_at=now();audit(s,ctx,"webhook.rotated");s.commit();return {"secret":raw,"rotated_at":item.rotated_at}
+    from .secret_responses import record_secret_response,response_metadata
+    item=tenant_get(s,WebhookSubscription,item_id,ctx["tenant"]);raw=secrets.token_urlsafe(32);item.secret_hash=sha(raw);item.encrypted_secret_ref="secret://webhooks/"+str(uuid.uuid4());item.rotated_at=now();result={"secret":raw,"rotated_at":item.rotated_at.isoformat()};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="WEBHOOK_SECRET",resource_id=item.id,action="ROTATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"webhook.rotated");s.commit();return {"secret":raw,"rotated_at":item.rotated_at,**response_metadata(secret_response)}
 @router.post("/webhook-subscriptions/{item_id}/test",status_code=202)
 def webhook_test(item_id:str,x:EventIn,ctx=Depends(auth),s:Session=Depends(db)):
     item=tenant_get(s,WebhookSubscription,item_id,ctx["tenant"])

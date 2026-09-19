@@ -7,6 +7,7 @@ import signal
 import uuid
 from datetime import timedelta
 
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import select
 
 from .delivery_safety import email_activation_status
@@ -21,6 +22,11 @@ from .provider import (
 )
 from .security_smtp_worker import security_smtp_delivery_loop
 from .tenant_postal_delivery import tenant_email_outbox_loop
+from .business_event_worker import dispatch as dispatch_business_events
+from .campaign_dispatcher import dispatch_campaigns
+from .secret_responses import cleanup_secret_responses, refresh_metrics as refresh_secret_metrics
+from .telemetry import configure_tracing
+from .observability import dispatch_observability_outbox
 
 ROLE = os.getenv("KLYROW_WORKER_ROLE", "mail")
 RUNNING = True
@@ -54,9 +60,23 @@ def selected_email_outbox_loop():
 
 async def health(reader, writer):
     try:
-        await reader.read(4096)
+        request = await reader.read(4096)
     except Exception:
-        pass
+        request = b""
+    if request.startswith(b"GET /metrics "):
+        body = generate_latest()
+        writer.write(
+            b"HTTP/1.1 200 OK\r\nContent-Type: "
+            + CONTENT_TYPE_LATEST.encode()
+            + b"\r\nContent-Length: "
+            + str(len(body)).encode()
+            + b"\r\nConnection: close\r\n\r\n"
+            + body
+        )
+        await writer.drain()
+        writer.close()
+        await writer.wait_closed()
+        return
     body = json.dumps(
         {
             "status": "ok",
@@ -139,6 +159,15 @@ def billing_tick(max_attempts=8):
         return 1
 
 
+def secret_response_maintenance_tick() -> int:
+    """Redact expired credentials from the always-on base worker."""
+    with DB() as session:
+        redacted = cleanup_secret_responses(session)
+        refresh_secret_metrics(session)
+        session.commit()
+        return redacted
+
+
 async def loop():
     while RUNNING:
         try:
@@ -150,12 +179,20 @@ async def loop():
                         if not process_one_sandbox(session):
                             break
                 await dispatch_provider_outbox()
+                secret_response_maintenance_tick()
             elif ROLE == "provisioning":
                 await provisioning_tick()
             elif ROLE == "billing":
                 billing_tick()
             elif ROLE == "scheduler":
                 await dispatch_mautic_outbox()
+            elif ROLE == "observability":
+                await dispatch_observability_outbox()
+            elif ROLE == "business":
+                await dispatch_business_events()
+                secret_response_maintenance_tick()
+            elif ROLE == "campaign":
+                dispatch_campaigns()
         except Exception as exc:
             print(
                 json.dumps(
@@ -172,6 +209,7 @@ async def loop():
 
 async def main():
     global RUNNING
+    configure_tracing("klyrow-" + ROLE)
     event = asyncio.Event()
 
     def stop():

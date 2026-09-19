@@ -143,9 +143,10 @@ def export(x:ExportIn,ctx=Depends(auth),s:Session=Depends(db)):
     item=ExportJob(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],requested_by=ctx["sub"],scope_json=json.dumps(sorted(set(x.scopes))));s.add(item);audit(s,ctx,"tenant.export.requested");s.commit();return {"id":item.id,"state":item.state,"asynchronous":True}
 @router.post("/account/closure",status_code=202)
 def closure(x:ClosureIn,ctx=Depends(auth),s:Session=Depends(db)):
+    from .business_events import enqueue_named_event
     locked_retention_tenant(s,ctx["tenant"])
     if s.scalar(select(AccountClosure).where(AccountClosure.tenant_id==ctx["tenant"],AccountClosure.state.notin_(["CANCELLED","CLOSED"]))):raise HTTPException(409,"closure_already_requested")
-    raw=str(uuid.uuid4());item=AccountClosure(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],requested_by=ctx["sub"],confirmation_hash=__import__('hashlib').sha256(raw.encode()).hexdigest(),grace_until=now()+timedelta(days=x.grace_days),retention_policy=x.retention_policy);s.add(item);gate=s.get(TenantSendGate,ctx["tenant"]) or TenantSendGate(tenant_id=ctx["tenant"],updated_by=ctx["sub"]);gate.enabled=False;gate.reason="ACCOUNT_CLOSURE_REQUESTED";gate.updated_by=ctx["sub"];gate.updated_at=now();s.add(gate);audit(s,ctx,"account.closure.requested");s.commit();return {"id":item.id,"confirmation":raw,"state":item.state,"grace_until":item.grace_until,"sending_enabled":False}
+    raw=str(uuid.uuid4());item=AccountClosure(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],requested_by=ctx["sub"],confirmation_hash=__import__('hashlib').sha256(raw.encode()).hexdigest(),grace_until=now()+timedelta(days=x.grace_days),retention_policy=x.retention_policy);s.add(item);gate=s.get(TenantSendGate,ctx["tenant"]) or TenantSendGate(tenant_id=ctx["tenant"],updated_by=ctx["sub"]);gate.enabled=False;gate.reason="ACCOUNT_CLOSURE_REQUESTED";gate.updated_by=ctx["sub"];gate.updated_at=now();s.add(gate);enqueue_named_event(s,event_type="klyrow.account.held",tenant_id=ctx["tenant"],aggregate_id=ctx["tenant"],causation_id=item.id,data={"status":"HELD","reason":gate.reason,"changed_at":gate.updated_at});audit(s,ctx,"account.closure.requested");s.commit();return {"id":item.id,"confirmation":raw,"state":item.state,"grace_until":item.grace_until,"sending_enabled":False}
 @router.post("/account/closure/{item_id}/confirm")
 def closure_confirm(item_id:str,x:ConfirmIn,ctx=Depends(auth),s:Session=Depends(db)):
     import hashlib,hmac
@@ -154,7 +155,8 @@ def closure_confirm(item_id:str,x:ConfirmIn,ctx=Depends(auth),s:Session=Depends(
     item.state="CONFIRMED";item.confirmed_at=now();audit(s,ctx,"account.closure.confirmed");s.commit();return {"state":item.state,"grace_until":item.grace_until,"data_erased":False}
 @router.put("/settings/send-gate")
 def kill_switch(x:KillIn,ctx=Depends(auth),s:Session=Depends(db)):
-    gate=s.get(TenantSendGate,ctx["tenant"]) or TenantSendGate(tenant_id=ctx["tenant"],updated_by=ctx["sub"]);gate.enabled=x.enabled;gate.reason=x.reason;gate.updated_by=ctx["sub"];gate.updated_at=now();s.add(gate);audit(s,ctx,"tenant.send_gate."+("enabled" if x.enabled else "disabled"));s.commit();return {"sending_enabled":gate.enabled,"reason":gate.reason,"effective_immediately":True}
+    from .business_events import enqueue_named_event
+    gate=s.get(TenantSendGate,ctx["tenant"]) or TenantSendGate(tenant_id=ctx["tenant"],updated_by=ctx["sub"]);gate.enabled=x.enabled;gate.reason=x.reason;gate.updated_by=ctx["sub"];gate.updated_at=now();s.add(gate);event_type="klyrow.account.released" if x.enabled else "klyrow.account.held";enqueue_named_event(s,event_type=event_type,tenant_id=ctx["tenant"],aggregate_id=ctx["tenant"],data={"status":"RELEASED" if x.enabled else "HELD","reason":x.reason,"changed_at":gate.updated_at});audit(s,ctx,"tenant.send_gate."+("enabled" if x.enabled else "disabled"));s.commit();return {"sending_enabled":gate.enabled,"reason":gate.reason,"effective_immediately":True}
 @router.get("/settings/send-gate")
 def send_gate(ctx=Depends(auth),s:Session=Depends(db)):
     gate=s.get(TenantSendGate,ctx["tenant"]);return {"sending_enabled":gate.enabled if gate else True,"reason":gate.reason if gate else "ACTIVE"}
@@ -180,6 +182,15 @@ def recover_integration(item_id:str,x:RecoverIn,ctx=Depends(require("platform_ad
     if not item or item.state not in {"RETRY","DEAD_LETTER"}:raise HTTPException(404,"recoverable_integration_not_found")
     require_safe_integration_recovery(s,item)
     item.state="PENDING";item.next_attempt_at=now();item.last_error=None;item.updated_at=now();audit(s,{**ctx,"tenant":item.tenant_id},"integration.delivery_recovered:"+item.target+":"+x.reason);s.commit();return {"state":item.state,"attempts":item.attempts,"target":item.target}
+@router.post("/admin/operations/business-events/{event_id}/replay",status_code=202)
+def replay_business_event(event_id:str,x:RecoverIn,ctx=Depends(require("platform_admin")),s:Session=Depends(db)):
+    from .business_events import replay_dead_letter
+    try:item=replay_dead_letter(s,event_id)
+    except ValueError as exc:
+        if str(exc)=="business_event_not_found":raise HTTPException(404,"business_event_not_found") from None
+        if str(exc)=="business_event_not_dead_letter":raise HTTPException(409,"business_event_not_dead_letter") from None
+        raise HTTPException(409,"business_event_replay_rejected") from None
+    audit(s,{**ctx,"tenant":item.tenant_id},"business_event.replay_requested:"+x.reason);s.commit();return {"event_id":item.event_id,"state":item.state,"attempt_count":item.attempt_count}
 @router.post("/admin/reconciliation",status_code=201)
 def reconcile(ctx=Depends(require("platform_admin")),s:Session=Depends(db)):
     details=[]

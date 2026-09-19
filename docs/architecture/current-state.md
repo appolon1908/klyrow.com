@@ -30,8 +30,8 @@ base Compose file. SQL outboxes and Postal RabbitMQ are the current queues.
 
 The inspected baseline had 378 composed operations, including 29 hidden
 operations: OpenAPI documented 349, of which 225 were PUBLIC. After adding the
-two template-history reads, the generated [API catalog](../api/current-api.md)
-contains 380 composed operations, 351 documented operations and 227 PUBLIC
+two template-history reads and two usage-history reads, the generated [API catalog](../api/current-api.md)
+contains 382 composed operations, 353 documented operations and 229 PUBLIC
 operations. The catalog separately
 records browser, admin, internal, tracking and callback audiences.
 `docs/api/source-handlers.json` includes declarations from secondary apps and

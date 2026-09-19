@@ -1,0 +1,129 @@
+{
+  "$defs": {
+    "DailyUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "quantity": {
+          "minimum": 0,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "snapshot_at": {
+          "format": "date-time",
+          "title": "Snapshot At",
+          "type": "string"
+        },
+        "unit": {
+          "const": "accepted_message",
+          "default": "accepted_message",
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "date",
+        "quantity",
+        "snapshot_at"
+      ],
+      "title": "DailyUsage",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.codestra.co/events/business-event.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "klyrow.usage.daily"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DailyUsage"
+          }
+        }
+      }
+    }
+  ],
+  "properties": {
+    "causation_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Causation Id",
+      "type": "string"
+    },
+    "correlation_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "data": {
+      "additionalProperties": true,
+      "title": "Data",
+      "type": "object"
+    },
+    "id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "pattern": "(?:Z|\\+00:00)$",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "source": {
+      "enum": [
+        "klyrow",
+        "telnexa",
+        "vicidial",
+        "integration"
+      ],
+      "title": "Source",
+      "type": "string"
+    },
+    "tenant_id": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "type": {
+      "maxLength": 120,
+      "pattern": "^[a-z]+\\.[a-z][a-z0-9_.]+$",
+      "title": "Type",
+      "type": "string"
+    },
+    "version": {
+      "const": 1,
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "type",
+    "source",
+    "tenant_id",
+    "correlation_id",
+    "causation_id",
+    "occurred_at",
+    "data"
+  ],
+  "title": "EventEnvelope",
+  "type": "object"
+}

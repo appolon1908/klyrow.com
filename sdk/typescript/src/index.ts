@@ -3,6 +3,9 @@ import type { components } from "./schema";
 export type TemplateVersion = components["schemas"]["TemplateVersionView"];
 export type TemplateVersionPage = components["schemas"]["TemplateVersionPage"];
 
+export type UsageHistoryPage = components["schemas"]["UsageHistoryPage"];
+export type UsageHistoryOptions = { from?: string; to?: string; unit?: string; limit?: number; cursor?: string };
+
 export type Transport = (url: string, init: RequestInit) => Promise<Response>;
 
 export class KlyrowError extends Error {
@@ -42,6 +45,16 @@ export class Klyrow {
     if (options.cursor !== undefined) query.set("cursor", options.cursor);
     const suffix = query.size ? `?${query.toString()}` : "";
     return this.request<TemplateVersionPage>("GET", `/v1/templates/${encodeURIComponent(templateId)}/versions${suffix}`);
+  }
+  usageDaily(options: UsageHistoryOptions = {}) { return this.usageHistory("daily", options); }
+  usageMonthly(options: UsageHistoryOptions = {}) { return this.usageHistory("monthly", options); }
+  private usageHistory(granularity: "daily" | "monthly", options: UsageHistoryOptions) {
+    const query = new URLSearchParams();
+    for (const [name, value] of Object.entries(options)) {
+      if (value !== undefined) query.set(name, String(value));
+    }
+    const suffix = query.size ? `?${query.toString()}` : "";
+    return this.request<UsageHistoryPage>("GET", `/v1/usage/${granularity}${suffix}`);
   }
   templateVersion(templateId: string, versionId: string) {
     return this.request<TemplateVersion>("GET", `/v1/templates/${encodeURIComponent(templateId)}/versions/${encodeURIComponent(versionId)}`);

@@ -1,0 +1,8 @@
+{
+  "name": "klyrow-contract-validation",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {"test": "node validate.mjs"},
+  "devDependencies": {"@asyncapi/parser": "3.6.3", "ajv": "8.20.0", "ajv-formats": "3.0.1"}
+}

@@ -1,0 +1,18 @@
+{
+  "causation_id": "cause_example",
+  "correlation_id": "cor_example",
+  "data": {
+    "accepted": 123,
+    "bounced": 2,
+    "complained": 1,
+    "date": "2026-09-12",
+    "delivered": 120,
+    "snapshot_at": "2026-09-13T00:00:00Z"
+  },
+  "id": "evt_klyrow_kpi_daily",
+  "occurred_at": "2026-09-13T00:00:00Z",
+  "source": "klyrow",
+  "tenant_id": "tnt_example",
+  "type": "klyrow.kpi.daily",
+  "version": 1
+}

@@ -1,0 +1,65 @@
+# Optional canonical Klyrow -> Middleware observability relay.
+#
+# Loading this overlay does not activate delivery. Operators must also enable
+# the profile and set KLYROW_OBSERVABILITY_DELIVERY_ENABLED=true after the
+# release gates in docs/OBSERVABILITY_INTEGRATION.md pass.
+services:
+  gateway:
+    environment: &observability-environment
+      KLYROW_OBSERVABILITY_MIDDLEWARE_URL: ${KLYROW_OBSERVABILITY_MIDDLEWARE_URL:?set the private Middleware observability origin}
+      KLYROW_OBSERVABILITY_DELIVERY_ENABLED: "${KLYROW_OBSERVABILITY_DELIVERY_ENABLED:-false}"
+      KLYROW_MIDDLEWARE_CLIENT_SECRET_FILE: /run/secrets/klyrow_middleware_client_secret
+      CODESTRA_AUTH_ISSUER: ${CODESTRA_AUTH_ISSUER:?set the approved OIDC issuer}
+      CODESTRA_AUTH_AUDIENCE: ${CODESTRA_AUTH_AUDIENCE:-middleware-api}
+      CODESTRA_KEYCLOAK_CLIENT_ID: ${CODESTRA_KEYCLOAK_CLIENT_ID:-klyrow-backend}
+      CODESTRA_DEPLOYMENT: ${CODESTRA_DEPLOYMENT:?set the immutable release identifier}
+    secrets:
+      - source: klyrow_middleware_client_secret
+        target: klyrow_middleware_client_secret
+
+  observability-worker:
+    profiles: [observability]
+    image: '${KLYROW_GATEWAY_IMAGE:?set the exact protected gateway image by digest}'
+    env_file: '${KLYROW_ENV_FILE:-.env}'
+    environment:
+      <<: *observability-environment
+      KLYROW_ENV: production
+      KLYROW_WORKER_ROLE: observability
+      KLYROW_DATABASE_URL: postgresql+psycopg://klyrow_runtime@postgres:5432/klyrow
+      KLYROW_DATABASE_PASSWORD_FILE: /run/secrets/klyrow_database_runtime_password
+      KLYROW_SESSION_SECRET_FILE: /run/secrets/klyrow_session_secret
+      KLYROW_DURABLE_RESULT_KEYRING_FILE: /run/secrets/klyrow_durable_result_keyring
+      KLYROW_SERVER_A_CA_FILE: /run/codestra-mtls/server-a/root-ca.crt
+      KLYROW_SERVER_A_CLIENT_CERT_FILE: /run/codestra-mtls/server-a/client-fullchain.crt
+      KLYROW_SERVER_A_CLIENT_KEY_FILE: /run/codestra-mtls/server-a/client.key
+      KLYROW_SAFE_MODE: "true"
+      KLYROW_PRODUCTION_GATE_APPROVED: "false"
+      LIVE_EMAIL_DELIVERY: "false"
+      EXTERNAL_EMAIL_DELIVERY: "false"
+      PRODUCTION_PROVIDER_ROUTING: "false"
+    command: ["python", "-m", "app.service_worker"]
+    secrets:
+      - klyrow_durable_result_keyring
+      - klyrow_session_secret
+      - klyrow_database_runtime_password
+      - klyrow_middleware_client_secret
+    volumes:
+      - /etc/codestra/mtls/server-a-event-client:/run/codestra-mtls/server-a:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      gateway-migrate: {condition: service_completed_successfully}
+    networks: [frontend, backend]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/')"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+secrets:
+  klyrow_middleware_client_secret:
+    file: '${KLYROW_MIDDLEWARE_CLIENT_SECRET_FILE:?set the root-owned Middleware OIDC client secret path}'

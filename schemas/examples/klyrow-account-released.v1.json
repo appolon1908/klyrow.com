@@ -1,0 +1,15 @@
+{
+  "causation_id": "cause_example",
+  "correlation_id": "cor_example",
+  "data": {
+    "changed_at": "2026-09-13T00:00:00Z",
+    "reason": "REVIEW_COMPLETE",
+    "status": "RELEASED"
+  },
+  "id": "evt_klyrow_account_released",
+  "occurred_at": "2026-09-13T00:00:00Z",
+  "source": "klyrow",
+  "tenant_id": "tnt_example",
+  "type": "klyrow.account.released",
+  "version": 1
+}

@@ -1,0 +1,199 @@
+name: klyrow-staging
+
+x-runtime: &runtime
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  networks: [app, data]
+
+services:
+  edge:
+    image: ${KLYROW_CADDY_IMAGE:?immutable Caddy digest required}
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      KLYROW_STAGING_HOST: ${KLYROW_STAGING_HOST:?required}
+      KLYROW_STAGING_ACME_EMAIL: ${KLYROW_STAGING_ACME_EMAIL:?required}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [edge, app]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      gateway: {condition: service_healthy}
+      web: {condition: service_healthy}
+
+  web:
+    <<: *runtime
+    image: ${KLYROW_WEB_IMAGE:?immutable web digest required}
+    networks: [app]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/healthz]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  gateway:
+    <<: *runtime
+    image: ${KLYROW_GATEWAY_IMAGE:?immutable gateway digest required}
+    environment:
+      KLYROW_ENV: production
+      KLYROW_IDENTITY_PROFILE: staging
+      KLYROW_LOCAL_AUTH_ENABLED: "false"
+      KLYROW_REQUIRED_SCHEMA_VERSION: "2026091001_customer_data_lifecycle.sql"
+      KLYROW_PUBLIC_URL: https://${KLYROW_STAGING_HOST:?required}
+      KLYROW_OIDC_CLIENT_ID: ${KLYROW_OIDC_CLIENT_ID:?required}
+      KLYROW_OIDC_AUDIENCE: ${KLYROW_OIDC_AUDIENCE:?required}
+      KLYROW_OIDC_REDIRECT_URI: https://${KLYROW_STAGING_HOST:?required}/auth/callback
+      KLYROW_PRODUCTION_GATE_APPROVED: "false"
+      KLYROW_SAFE_MODE: "true"
+      LIVE_EMAIL_DELIVERY: "false"
+      EXTERNAL_EMAIL_DELIVERY: "false"
+      PRODUCTION_PROVIDER_ROUTING: "false"
+      KLYROW_DATABASE_URL: postgresql+psycopg://klyrow_runtime@postgres:5432/klyrow
+      KLYROW_DATABASE_PASSWORD_FILE: /run/secrets/database_password
+      KLYROW_SESSION_SECRET_FILE: /run/secrets/session_secret
+      KLYROW_DURABLE_RESULT_KEYRING_FILE: /run/secrets/result_keyring
+      KLYROW_METRICS_TOKEN_FILE: /run/secrets/metrics_token
+      KLYROW_MIDDLEWARE_API_KEY_FILE: /run/secrets/middleware_token
+      KLYROW_WEBHOOK_SECRET_FILE: /run/secrets/webhook_secret
+      KLYROW_SERVER_A_CA_FILE: /run/secrets/middleware_ca
+      KLYROW_SERVER_A_CLIENT_CERT_FILE: /run/secrets/middleware_cert
+      KLYROW_SERVER_A_CLIENT_KEY_FILE: /run/secrets/middleware_key
+      KLYROW_MIDDLEWARE_URL: ${KLYROW_MIDDLEWARE_URL:?required}
+      KLYROW_EMAIL_EVENT_URL: ${KLYROW_EMAIL_EVENT_URL:?required}
+      KLYROW_SEARCH_URL: http://search:7700
+      KLYROW_SEARCH_API_KEY_FILE: /run/secrets/search_key
+      KLYROW_PROVIDER_CREDENTIAL_KEY_FILE: /run/secrets/provider_credential_key
+      KLYROW_OIDC_ISSUER: ${KLYROW_KEYCLOAK_URL:?required}/realms/${KLYROW_KEYCLOAK_REALM:?required}
+    secrets: [database_password, session_secret, result_keyring, metrics_token, middleware_token, search_key, provider_credential_key, webhook_secret, middleware_ca, middleware_cert, middleware_key]
+    depends_on:
+      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+      search: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    image: ${KLYROW_MIGRATE_IMAGE:?immutable migration digest required}
+    restart: "no"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      KLYROW_DATABASE_URL: postgresql+psycopg://klyrow@postgres:5432/klyrow
+      KLYROW_DATABASE_OWNER_PASSWORD_FILE: /run/secrets/database_owner_password
+      KLYROW_DATABASE_RUNTIME_PASSWORD_FILE: /run/secrets/database_password
+    secrets: [database_owner_password, database_password]
+    networks: [data]
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  postgres:
+    image: ${KLYROW_POSTGRES_IMAGE:?immutable PostgreSQL digest required}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: klyrow
+      POSTGRES_USER: klyrow
+      POSTGRES_PASSWORD_FILE: /run/secrets/database_owner_password
+    secrets: [database_owner_password]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U klyrow -d klyrow]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  search:
+    image: ${KLYROW_SEARCH_IMAGE:?immutable search digest required}
+    restart: unless-stopped
+    environment:
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - |
+        export MEILI_MASTER_KEY="$$(cat /run/secrets/search_key)"
+        exec /bin/meilisearch
+    secrets: [search_key]
+    volumes: [search_data:/meili_data]
+    networks: [data]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:7700/health]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  prometheus:
+    image: ${KLYROW_PROMETHEUS_IMAGE:?immutable Prometheus digest required}
+    restart: unless-stopped
+    command: [--config.file=/etc/prometheus/prometheus.yml, --storage.tsdb.retention.time=15d]
+    volumes:
+      - ../../config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../config/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    secrets:
+      - source: metrics_token
+        target: klyrow_metrics_token
+    networks: [observability, app]
+
+  node-exporter:
+    image: ${KLYROW_NODE_EXPORTER_IMAGE:?immutable node-exporter digest required}
+    restart: unless-stopped
+    command: [--path.rootfs=/host]
+    volumes:
+      - /:/host:ro,rslave
+    networks: [observability]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  grafana:
+    image: ${KLYROW_GRAFANA_IMAGE:?immutable Grafana digest required}
+    restart: unless-stopped
+    environment:
+      GF_SERVER_HTTP_ADDR: 0.0.0.0
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_password
+    secrets: [grafana_password]
+    volumes: [grafana_data:/var/lib/grafana]
+    networks: [observability, app]
+
+networks:
+  edge: {}
+  app: {}
+  data: {internal: true}
+  observability: {internal: true}
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
+  postgres_data: {}
+  search_data: {}
+  prometheus_data: {}
+  grafana_data: {}
+
+secrets:
+  database_owner_password: {file: "${KLYROW_STAGING_SECRET_DIR}/database-owner-password"}
+  database_password: {file: "${KLYROW_STAGING_SECRET_DIR}/database-runtime-password"}
+  session_secret: {file: "${KLYROW_STAGING_SECRET_DIR}/session-secret"}
+  result_keyring: {file: "${KLYROW_STAGING_SECRET_DIR}/result-keyring.json"}
+  metrics_token: {file: "${KLYROW_STAGING_SECRET_DIR}/metrics-token"}
+  middleware_token: {file: "${KLYROW_STAGING_SECRET_DIR}/middleware-token"}
+  search_key: {file: "${KLYROW_STAGING_SECRET_DIR}/search-key"}
+  provider_credential_key: {file: "${KLYROW_STAGING_SECRET_DIR}/provider-credential-key"}
+  grafana_password: {file: "${KLYROW_STAGING_SECRET_DIR}/grafana-password"}
+  webhook_secret: {file: "${KLYROW_STAGING_SECRET_DIR}/webhook-secret"}
+  middleware_ca: {file: "${KLYROW_STAGING_SECRET_DIR}/middleware-ca.pem"}
+  middleware_cert: {file: "${KLYROW_STAGING_SECRET_DIR}/middleware-client.pem"}
+  middleware_key: {file: "${KLYROW_STAGING_SECRET_DIR}/middleware-client-key.pem"}

@@ -1,0 +1,16 @@
+{
+  "causation_id": "cause_example",
+  "correlation_id": "cor_example",
+  "data": {
+    "checked_at": "2026-09-13T00:00:00Z",
+    "provider": "postal",
+    "reason_code": null,
+    "status": "HEALTHY"
+  },
+  "id": "evt_klyrow_provider_health",
+  "occurred_at": "2026-09-13T00:00:00Z",
+  "source": "klyrow",
+  "tenant_id": "tnt_example",
+  "type": "klyrow.provider.health",
+  "version": 1
+}

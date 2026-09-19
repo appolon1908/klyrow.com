@@ -77,7 +77,7 @@ gzip -dc "$stage/postal.sql.gz" | docker exec -i "$postal_name" sh -lc 'MYSQL_PW
 docker exec -i "$rabbit_name" rabbitmqctl -q import_definitions <"$stage/rabbitmq-definitions.json"
 
 docker exec "$pg_name" psql -U klyrow -d klyrow -v ON_ERROR_STOP=1 -Atqc \
-  "SELECT 1 FROM klyrow_schema_migrations WHERE version='2026090208_runtime_database_least_privilege.sql'" | grep -qx 1
+  "SELECT 1 FROM klyrow_schema_migrations WHERE version='2026091302_m07_business_event_runtime.sql'" | grep -qx 1
 docker exec "$mautic_name" sh -lc "MYSQL_PWD=restore-verification mariadb -uroot mautic -Nse 'SHOW TABLES' | grep -q ."
 docker exec "$postal_name" sh -lc "MYSQL_PWD=restore-verification mariadb -uroot postal -Nse 'SHOW TABLES' | grep -q ."
 docker exec "$rabbit_name" rabbitmqctl -q list_queues name messages --formatter json >"$stage/restored-rabbitmq-queues.json"
@@ -92,7 +92,7 @@ docker run --detach --name "$gateway_name" --network "container:$pg_name" --read
   -e KLYROW_EMBEDDED_WORKERS=false -e KLYROW_SESSION_SECRET_FILE=/run/secrets/session-secret \
   -e KLYROW_DATABASE_URL=postgresql+psycopg://klyrow_runtime@127.0.0.1:5432/klyrow \
   -e KLYROW_DATABASE_PASSWORD_FILE=/run/secrets/database-runtime-password \
-  -e KLYROW_REQUIRED_SCHEMA_VERSION=2026090208_runtime_database_least_privilege.sql \
+  -e KLYROW_REQUIRED_SCHEMA_VERSION=2026091302_m07_business_event_runtime.sql \
   "$KLYROW_GATEWAY_IMAGE" >/dev/null
 ready 45 docker exec "$gateway_name" python -c \
   "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readiness',timeout=2).read()"

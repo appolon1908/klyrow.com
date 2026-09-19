@@ -22,6 +22,8 @@ def main():
     if args.base_ref and not re.fullmatch(r"[0-9a-f]{40}", args.base_ref):
         parser.error("base-ref must be a full Git commit SHA")
     failures = []
+    for shared in sorted((ROOT / "contracts/openapi").glob("*.yaml")):
+        validate(json.loads(shared.read_text()))
     for path in sorted((ROOT / "schemas/openapi").glob("*.yaml")):
         document = json.loads(path.read_text())
         validate(document)

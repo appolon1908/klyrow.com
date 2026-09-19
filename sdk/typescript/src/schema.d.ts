@@ -313,6 +313,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/api-keys/{kid}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate Key */
+        post: operations["rotate_key_v1_api_keys__kid__rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/audit": {
         parameters: {
             query?: never;
@@ -1116,6 +1133,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/campaigns/{campaign_id}/dispatch-configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Campaign Dispatch Configuration */
+        put: operations["campaign_dispatch_configuration_v1_campaigns__campaign_id__dispatch_configuration_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/campaigns/{campaign_id}/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Campaign Pause */
+        post: operations["campaign_pause_v1_campaigns__campaign_id__pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/campaigns/{campaign_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Campaign Resume */
+        post: operations["campaign_resume_v1_campaigns__campaign_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/campaigns/{campaign_id}/schedule": {
         parameters: {
             query?: never;
@@ -1440,6 +1508,23 @@ export interface paths {
         post?: never;
         /** Api Key Revoke */
         delete: operations["api_key_revoke_v1_developer_api_keys__item_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/developer/api-keys/{item_id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Api Key Rotate */
+        post: operations["api_key_rotate_v1_developer_api_keys__item_id__rotate_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2186,6 +2271,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Members */
+        get: operations["members_v1_members_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/messages": {
         parameters: {
             query?: never;
@@ -2386,6 +2488,23 @@ export interface paths {
         put?: never;
         /** Operation Reconcile */
         post: operations["operation_reconcile_v1_operations__operation_id__reconcile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/organization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Organization */
+        get: operations["organization_v1_organization_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2733,6 +2852,23 @@ export interface paths {
         post?: never;
         /** Remove Subaccount */
         delete: operations["remove_subaccount_v1_reseller_subaccounts__item_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/secret-responses/{response_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Secret Response Get */
+        get: operations["secret_response_get_v1_secret_responses__response_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3208,6 +3344,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/usage/daily": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Daily Usage
+         * @description Daily UTC totals from the authoritative usage ledger. Periods without entries are omitted. Counts describe metered units, not recipient delivery.
+         */
+        get: operations["daily_usage_v1_usage_daily_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/usage/monthly": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Monthly Usage
+         * @description Monthly UTC totals within the requested date window. Boundary months may be partial. Periods without entries are omitted.
+         */
+        get: operations["monthly_usage_v1_usage_monthly_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/webhook-subscriptions": {
         parameters: {
             query?: never;
@@ -3345,6 +3521,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/webhooks/{wid}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Webhook Rotate */
+        post: operations["webhook_rotate_v1_webhooks__wid__rotate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/version": {
         parameters: {
             query?: never;
@@ -3410,6 +3603,15 @@ export interface components {
         BulkMailIn: {
             /** Messages */
             messages: components["schemas"]["MailIn"][];
+        };
+        /** CampaignDispatchConfiguration */
+        CampaignDispatchConfiguration: {
+            /** Segment Id */
+            segment_id?: string | null;
+            /** Sender Id */
+            sender_id: string;
+            /** Template Id */
+            template_id: string;
         };
         /** CampaignPatch */
         CampaignPatch: {
@@ -3805,6 +4007,22 @@ export interface components {
             /** User Id */
             user_id: string;
         };
+        /** MemberPage */
+        MemberPage: {
+            /** Items */
+            items: components["schemas"]["MemberView"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** MemberView */
+        MemberView: {
+            /** Id */
+            id: string;
+            /** Role */
+            role: string;
+            /** User Id */
+            user_id: string;
+        };
         /** MfaEnableIn */
         MfaEnableIn: {
             /** Code */
@@ -3842,6 +4060,17 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /** OrganizationView */
+        OrganizationView: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Status */
+            status: string;
         };
         /** PaymentIn */
         PaymentIn: {
@@ -4211,6 +4440,40 @@ export interface components {
             variables: string[];
             /** Version */
             version: number;
+        };
+        /** UsageBucket */
+        UsageBucket: {
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Quantity */
+            quantity: number;
+        };
+        /** UsageHistoryPage */
+        UsageHistoryPage: {
+            /**
+             * Granularity
+             * @enum {string}
+             */
+            granularity: "day" | "month";
+            /** Items */
+            items: components["schemas"]["UsageBucket"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+            /** Unit */
+            unit: string;
+            /**
+             * Window End
+             * Format: date-time
+             */
+            window_end: string;
+            /**
+             * Window Start
+             * Format: date-time
+             */
+            window_start: string;
         };
         /** UsageIn */
         UsageIn: {
@@ -4987,6 +5250,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rotate_key_v1_api_keys__kid__rotate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                kid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
             };
             /** @description Validation Error */
             422: {
@@ -6797,6 +7095,123 @@ export interface operations {
             };
         };
     };
+    campaign_dispatch_configuration_v1_campaigns__campaign_id__dispatch_configuration_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampaignDispatchConfiguration"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    campaign_pause_v1_campaigns__campaign_id__pause_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    campaign_resume_v1_campaigns__campaign_id__resume_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     campaign_schedule_v1_campaigns__campaign_id__schedule_post: {
         parameters: {
             query?: never;
@@ -7691,6 +8106,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    api_key_rotate_v1_developer_api_keys__item_id__rotate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
             };
             /** @description Validation Error */
             422: {
@@ -9575,6 +10025,47 @@ export interface operations {
             };
         };
     };
+    members_v1_members_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid cursor or limit */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     messages_v1_messages_get: {
         parameters: {
             query?: {
@@ -10076,6 +10567,53 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    organization_v1_organization_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationView"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Organization not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -10999,6 +11537,41 @@ export interface operations {
             };
             path: {
                 item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    secret_response_get_v1_secret_responses__response_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                response_id: string;
             };
             cookie?: never;
         };
@@ -12399,6 +12972,154 @@ export interface operations {
             };
         };
     };
+    daily_usage_v1_usage_daily_get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive UTC date; maximum window is 366 days. */
+                from?: string | null;
+                /** @description Exclusive UTC date; defaults to tomorrow in UTC. */
+                to?: string | null;
+                unit?: string;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageHistoryPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tenant access denied or account suspended */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authenticated tenant resolution failed */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid date window, cursor, filter or pagination limit */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tenant request rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authorization or usage store unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    monthly_usage_v1_usage_monthly_get: {
+        parameters: {
+            query?: {
+                /** @description Inclusive UTC date; maximum window is 366 days. */
+                from?: string | null;
+                /** @description Exclusive UTC date; defaults to tomorrow in UTC. */
+                to?: string | null;
+                unit?: string;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageHistoryPage"];
+                };
+            };
+            /** @description Authentication required */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tenant access denied or account suspended */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authenticated tenant resolution failed */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid date window, cursor, filter or pagination limit */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tenant request rate limit exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authorization or usage store unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     webhook_subscriptions_v1_webhook_subscriptions_get: {
         parameters: {
             query?: never;
@@ -12699,6 +13420,41 @@ export interface operations {
             };
             path: {
                 webhook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    webhook_rotate_v1_webhooks__wid__rotate_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                wid: string;
             };
             cookie?: never;
         };
