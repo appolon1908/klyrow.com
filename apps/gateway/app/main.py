@@ -1204,6 +1204,9 @@ async def bulk(x:BulkMailIn,ctx=Depends(auth),s:Session=Depends(db),idempotency_
     results=[]
     for index,item in enumerate(x.messages): results.append(await send(item,ctx,s,f"{idempotency_key}:{index}"))
     return {"accepted":len(results),"messages":results}
+@app.post("/v1/messages/batch",status_code=202)
+async def messages_batch(x:BulkMailIn,ctx=Depends(auth),s:Session=Depends(db),idempotency_key:Optional[str]=Header(default=None)):
+    return await bulk(x,ctx,s,idempotency_key)
 @app.get("/v1/email/{mid}")
 def message(mid:str,ctx=Depends(auth),s:Session=Depends(db)):
     m=s.scalar(select(Message).where(Message.id==mid,Message.tenant_id==ctx["tenant"]));
@@ -1219,6 +1222,8 @@ def messages(ctx=Depends(auth),s:Session=Depends(db),status:Optional[str]=None,l
     return s.scalars(query.order_by(Message.created_at.desc()).offset(offset).limit(limit)).all()
 @app.get("/v1/email/{mid}/events")
 def events(mid:str,ctx=Depends(auth),s:Session=Depends(db)): return s.scalars(select(Event).where(Event.message_id==mid,Event.tenant_id==ctx["tenant"])).all()
+@app.get("/v1/messages/{mid}/events")
+def message_events_alias(mid:str,ctx=Depends(auth),s:Session=Depends(db)): return events(mid,ctx,s)
 @app.post("/v1/webhooks/postal",status_code=202)
 async def postal_hook(request:Request,x_klyrow_timestamp:str=Header(),x_klyrow_event_id:str=Header(),x_klyrow_signature:str=Header(),s:Session=Depends(db)):
     body=await request.body(); secret=runtime_secret("KLYROW_WEBHOOK_SECRET").encode()

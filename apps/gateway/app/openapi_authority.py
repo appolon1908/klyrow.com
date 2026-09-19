@@ -80,6 +80,7 @@ DURABLE_IDEMPOTENCY = {
     ("post", "/v1/campaigns/{campaign_id}/pause"),
     ("post", "/v1/campaigns/{campaign_id}/resume"),
     ("post", "/v1/campaigns/{campaign_id}/cancel"),
+    ("post", "/v1/campaigns/{campaign_id}/test"),
     ("post", "/v1/operations/{operation_id}/cancel"),
     ("post", "/v1/operations/{operation_id}/reconcile"),
     ("post", "/v1/integrations/mautic/operations/{operation_id}/reconcile"),
@@ -88,6 +89,7 @@ DURABLE_IDEMPOTENCY = {
 }
 NON_ATOMIC_ITEM_IDEMPOTENCY = {
     ("post", "/v1/email/bulk"),
+    ("post", "/v1/messages/batch"),
 }
 OPTIONAL_ITEM_IDEMPOTENCY = {("post", "/v1/events/batch")}
 OPTIONAL_IDEMPOTENCY = {
