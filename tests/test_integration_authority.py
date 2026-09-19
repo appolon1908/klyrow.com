@@ -11,6 +11,8 @@ from apps.gateway.app.operations import trusted_result_auth
 
 RESULT_PERMISSION = "klyrow.integration.result.write"
 COMMAND_PERMISSION = "klyrow.middleware.command.write"
+OBSERVABILITY_READ_PERMISSION = "klyrow.observability.read"
+OBSERVABILITY_WRITE_PERMISSION = "klyrow.observability.write"
 
 
 class Tenants:
@@ -117,7 +119,12 @@ def test_authenticated_legacy_middleware_key_has_explicit_service_authority(monk
     context = core.auth(request, authorization="Bearer " + credential,
                         x_klyrow_tenant_id="tenant-a", x_tenant_id=None, s=Tenants())
     assert context["service"] is True and context["identity_type"] == "SERVICE"
-    assert set(context["permissions"]) == {RESULT_PERMISSION, COMMAND_PERMISSION}
+    assert set(context["permissions"]) == {
+        RESULT_PERMISSION,
+        COMMAND_PERMISSION,
+        OBSERVABILITY_READ_PERMISSION,
+        OBSERVABILITY_WRITE_PERMISSION,
+    }
     assert trusted_result_auth(context) is context
     core.require_middleware_command_scope(context)
     with pytest.raises(HTTPException) as denied:
