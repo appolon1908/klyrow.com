@@ -32,5 +32,10 @@ def test_full_history_suppressions_are_exact_reviewed_fingerprints():
         "6f8bf1f52e8abf4baf50e2ff266e6c33e5f92072:tests/test_m06_api_completion.py:generic-api-key:78",
         "6f8bf1f52e8abf4baf50e2ff266e6c33e5f92072:tests/test_m06_api_completion.py:generic-api-key:79",
         "6f8bf1f52e8abf4baf50e2ff266e6c33e5f92072:tests/test_m06_api_completion.py:generic-api-key:81",
+        # Historical Phase 0 synthetic Stripe-shaped fixture values.
+        "a7cfd683a34cf17c0c99d4c3bcc1968da420e6c8:tests/test_billing_activation_config.py:stripe-access-token:139",
+        "a7cfd683a34cf17c0c99d4c3bcc1968da420e6c8:tests/test_billing_activation_config.py:stripe-access-token:163",
+        "a7cfd683a34cf17c0c99d4c3bcc1968da420e6c8:tests/test_billing_activation_config.py:stripe-access-token:177",
+        "a7cfd683a34cf17c0c99d4c3bcc1968da420e6c8:tests/test_billing_activation_config.py:stripe-access-token:219",
     ]
     assert all(len(line.split(":", 1)[0]) == 40 for line in fingerprints)
