@@ -107,6 +107,8 @@ async def send_with_scoped_legacy_compatibility(
     context: dict[str, Any],
     session: Any,
     idempotency_key: Optional[str],
+    *,
+    _production_authorization: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Execute the existing send flow with action-safe legacy compatibility."""
 
@@ -178,7 +180,8 @@ async def send_with_scoped_legacy_compatibility(
         campaign_id=message.campaign_id,
         topic=message.topic,
     )
-    core.enforce_production_canary(message, session)
+    if _production_authorization is None:
+        core.enforce_production_canary(message, session)
     if message.stream == "marketing" and (
         message.campaign_id or not core.SAFE_MODE
     ):
@@ -314,6 +317,10 @@ async def send_with_scoped_legacy_compatibility(
             "campaign_id": message.campaign_id,
             "stream": message.stream,
         }
+        if _production_authorization is not None:
+            delivery_payload["_codestra_production_authorization"] = (
+                _production_authorization
+            )
         delivery_headers = dict(message.headers)
         if message.stream == "marketing":
             delivery_headers.update(
