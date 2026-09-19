@@ -103,6 +103,24 @@ def test_duplicate_key_identifiers_fail_closed():
         parse_keyring(b'{"schema_version":1,"active_key_id":"a","keys":{"a":"x","a":"y"}}')
 
 
+@pytest.mark.parametrize("flag", ["O_NOFOLLOW", "O_NONBLOCK"])
+@pytest.mark.parametrize("availability", ["missing", "zero"])
+def test_keyring_rejects_unavailable_protection_before_opening(
+    isolated_durable_result_keyring, monkeypatch, flag, availability,
+):
+    if availability == "missing":
+        monkeypatch.delattr(os, flag, raising=False)
+    else:
+        monkeypatch.setattr(os, flag, 0, raising=False)
+
+    def unsafe_open(*args, **kwargs):
+        pytest.fail("key file opened without required filesystem protection")
+
+    monkeypatch.setattr(os, "open", unsafe_open)
+    with pytest.raises(KeyringError, match="^durable_result_keyring_unavailable$"):
+        load_keyring(isolated_durable_result_keyring)
+
+
 def test_legacy_compatibility_is_read_only_and_can_be_disabled(monkeypatch):
     row = SimpleNamespace(tenant_id="a", key="b", request_hash="c", resource_id="d", response_json='{"ok":true}')
     assert read_control_response(row) == {"ok": True}
