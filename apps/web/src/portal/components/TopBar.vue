@@ -30,7 +30,7 @@ onBeforeUnmount(() => { document.removeEventListener('click', onDocumentClick); 
     <button type="button" class="kp-icon-button kp-menu-toggle" :aria-expanded="drawerOpen ? 'true' : 'false'" aria-controls="kp-sidebar" :aria-label="drawerOpen ? 'Close navigation' : 'Open navigation'" @click="emit('toggleDrawer')">
       <span aria-hidden="true">☰</span>
     </button>
-    <a class="kp-brand" :href="admin ? '/admin/system' : '/app/overview'">
+    <a class="kp-brand" :href="admin ? '/admin/system' : '/app/overview'" :aria-label="admin ? 'Klyrow administration home' : 'Klyrow home'">
       <span class="kp-brand__mark" aria-hidden="true">K</span>
       <span class="kp-brand__text">Klyrow</span>
       <span v-if="admin" class="kp-brand__admin">ADMIN</span>
@@ -51,7 +51,9 @@ onBeforeUnmount(() => { document.removeEventListener('click', onDocumentClick); 
     <a class="kp-icon-button" href="/app/support" aria-label="Help and support">?</a>
     <div ref="menu" class="kp-menu">
       <button type="button" class="kp-button" aria-haspopup="menu" :aria-expanded="menuOpen ? 'true' : 'false'" @click="menuOpen = !menuOpen">
-        <span class="kp-visually-hidden">Account menu for </span>{{ displayName }}
+        <span class="kp-visually-hidden">Account menu for </span>
+        <span class="kp-account__initial" aria-hidden="true">{{ displayName.slice(0, 1).toUpperCase() }}</span>
+        <span class="kp-account__name">{{ displayName }}</span>
       </button>
       <div v-if="menuOpen" class="kp-menu__list" role="menu" aria-label="Account">
         <div class="kp-menu__meta"><strong>{{ displayName }}</strong>{{ session.role }} · {{ session.tenant_id }}</div>

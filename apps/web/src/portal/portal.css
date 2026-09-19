@@ -54,7 +54,9 @@
 .kp-org-switcher select { min-height: 38px; max-width: 220px; border: 1px solid var(--kp-border-strong); background: var(--kp-surface-2); color: var(--kp-text); border-radius: 4px; padding: 0 10px; font: inherit; }
 .kp-search { display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 12px; border: 1px solid var(--kp-border-strong); border-radius: 4px; background: var(--kp-surface-2); color: var(--kp-text-3); min-width: 220px; }
 .kp-search input { border: 0; background: transparent; color: var(--kp-text); font: inherit; width: 100%; outline: none; }
-.kp-menu { position: relative; }
+.kp-menu { position: relative; min-width: 0; }
+.kp-account__name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kp-account__initial { display: none; width: 22px; height: 22px; border-radius: 50%; background: var(--kp-surface-3); color: var(--kp-accent); font-weight: 800; place-items: center; }
 .kp-menu__list { position: absolute; right: 0; top: calc(100% + 6px); min-width: 240px; background: var(--kp-surface); border: 1px solid var(--kp-border-strong); border-radius: var(--kp-radius); padding: 8px; box-shadow: 0 18px 50px #000c; display: grid; gap: 2px; z-index: 40; }
 .kp-menu__list a, .kp-menu__list button { display: block; width: 100%; text-align: left; padding: 9px 10px; border: 0; border-radius: 4px; background: transparent; color: var(--kp-text-2); text-decoration: none; cursor: pointer; }
 .kp-menu__list a:hover, .kp-menu__list button:hover { background: var(--kp-surface-3); color: var(--kp-text); }
@@ -197,6 +199,12 @@
   .kp-env { display: none; }
   .kp-main { padding: 18px 16px 60px; }
   .kp-org-switcher select { max-width: 150px; }
+  .kp-topbar { gap: 8px; padding: 0 10px; }
+}
+@media (max-width: 600px) {
+  .kp-account__name { display: none; }
+  .kp-account__initial { display: grid; }
+  .kp-org-switcher select { max-width: 120px; }
 }
 @media (prefers-reduced-motion: reduce) { .kp-sidebar { transition: none; } }
 @media (min-width: 901px) { .kp-menu-toggle { display: none; } }
