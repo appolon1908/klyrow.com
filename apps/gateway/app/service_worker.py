@@ -1,4 +1,10 @@
-"""Dedicated Klyrow worker processes with private health endpoints."""
+"""Dedicated Klyrow worker processes with private health endpoints.
+
+Mission 01: importing `.main` below resolves and fail-closed validates billing
+configuration (`apps.gateway.app.billing_config.load_billing_settings`) before
+this module's own worker loops are ever scheduled, so an invalid enabled
+billing configuration prevents this worker process from starting at all.
+"""
 
 import asyncio
 import json
