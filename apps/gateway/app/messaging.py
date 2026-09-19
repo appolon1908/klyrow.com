@@ -237,6 +237,28 @@ def webhook_test(item_id:str,x:EventIn,ctx=Depends(auth),s:Session=Depends(db)):
     attempt=s.scalar(select(WebhookAttempt).where(WebhookAttempt.subscription_id==item.id,WebhookAttempt.event_id==x.event_id))
     if attempt:return {"id":attempt.id,"duplicate":True,"state":attempt.state}
     attempt=WebhookAttempt(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],subscription_id=item.id,event_id=x.event_id,event_type=x.event_type);s.add(attempt);s.commit();return {"id":attempt.id,"duplicate":False,"state":attempt.state,"signature_contract":"HMAC-SHA256(timestamp.event_id.body)","provider_submission":False}
+@router.get("/webhooks/{webhook_id}/deliveries")
+def webhook_deliveries(webhook_id:str,ctx=Depends(auth),s:Session=Depends(db),limit:int=100):
+    item=tenant_get(s,WebhookSubscription,webhook_id,ctx["tenant"]);limit=max(1,min(limit,500))
+    rows=s.scalars(select(WebhookAttempt).where(WebhookAttempt.subscription_id==item.id,WebhookAttempt.tenant_id==ctx["tenant"]).order_by(WebhookAttempt.created_at.desc()).limit(limit)).all()
+    return {"items":rows}
+@router.get("/webhooks/{webhook_id}/deliveries/{delivery_id}")
+def webhook_delivery_detail(webhook_id:str,delivery_id:str,ctx=Depends(auth),s:Session=Depends(db)):
+    item=tenant_get(s,WebhookSubscription,webhook_id,ctx["tenant"])
+    delivery=s.scalar(select(WebhookAttempt).where(WebhookAttempt.id==delivery_id,WebhookAttempt.subscription_id==item.id,WebhookAttempt.tenant_id==ctx["tenant"]))
+    if not delivery:raise HTTPException(404,"not_found")
+    return delivery
+@router.post("/webhooks/{webhook_id}/deliveries/{delivery_id}/replay",status_code=202)
+def webhook_delivery_replay(webhook_id:str,delivery_id:str,ctx=Depends(auth),s:Session=Depends(db)):
+    require_permission(ctx,"webhook.manage")
+    item=tenant_get(s,WebhookSubscription,webhook_id,ctx["tenant"])
+    delivery=s.scalar(select(WebhookAttempt).where(WebhookAttempt.id==delivery_id,WebhookAttempt.subscription_id==item.id,WebhookAttempt.tenant_id==ctx["tenant"]))
+    if not delivery:raise HTTPException(404,"not_found")
+    delivery.state="PENDING";delivery.next_attempt_at=now();delivery.last_error=None;audit(s,ctx,"webhook.delivery_replay_requested");s.commit();return {"id":delivery.id,"state":delivery.state,"provider_submission":False}
+@router.post("/webhooks/{webhook_id}/rotate-secret")
+def webhook_rotate_secret(webhook_id:str,ctx=Depends(auth),s:Session=Depends(db)):
+    require_permission(ctx,"webhook.manage")
+    return webhook_rotate(webhook_id,ctx,s)
 
 @router.post("/delivery-jobs/{message_id}",status_code=201)
 def job_create(message_id:str,ctx=Depends(auth),s:Session=Depends(db)):

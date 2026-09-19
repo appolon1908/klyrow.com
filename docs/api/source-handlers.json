@@ -728,269 +728,283 @@
     "method": "POST"
   },
   {
+    "declared_path": "/v1/messages/batch",
+    "file": "apps/gateway/app/main.py",
+    "handler": "messages_batch",
+    "line": 1182,
+    "method": "POST"
+  },
+  {
     "declared_path": "/v1/email/{mid}",
     "file": "apps/gateway/app/main.py",
     "handler": "message",
-    "line": 1182,
+    "line": 1185,
     "method": "GET"
   },
   {
     "declared_path": "/v1/messages/{mid}",
     "file": "apps/gateway/app/main.py",
     "handler": "message_alias",
-    "line": 1187,
+    "line": 1190,
     "method": "GET"
   },
   {
     "declared_path": "/v1/messages",
     "file": "apps/gateway/app/main.py",
     "handler": "messages",
-    "line": 1190,
+    "line": 1193,
     "method": "GET"
   },
   {
     "declared_path": "/v1/email/{mid}/events",
     "file": "apps/gateway/app/main.py",
     "handler": "events",
-    "line": 1195,
+    "line": 1198,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/v1/messages/{mid}/events",
+    "file": "apps/gateway/app/main.py",
+    "handler": "message_events_alias",
+    "line": 1200,
     "method": "GET"
   },
   {
     "declared_path": "/v1/webhooks/postal",
     "file": "apps/gateway/app/main.py",
     "handler": "postal_hook",
-    "line": 1197,
+    "line": 1202,
     "method": "POST"
   },
   {
     "declared_path": "/v1/contacts",
     "file": "apps/gateway/app/main.py",
     "handler": "contacts",
-    "line": 1223,
+    "line": 1228,
     "method": "GET"
   },
   {
     "declared_path": "/v1/contacts",
     "file": "apps/gateway/app/main.py",
     "handler": "contact_upsert",
-    "line": 1225,
+    "line": 1230,
     "method": "POST"
   },
   {
     "declared_path": "/v1/campaigns",
     "file": "apps/gateway/app/main.py",
     "handler": "campaigns",
-    "line": 1228,
+    "line": 1233,
     "method": "GET"
   },
   {
     "declared_path": "/v1/campaigns",
     "file": "apps/gateway/app/main.py",
     "handler": "campaign_create",
-    "line": 1230,
+    "line": 1235,
     "method": "POST"
   },
   {
     "declared_path": "/v1/campaigns/{cid}",
     "file": "apps/gateway/app/main.py",
     "handler": "campaign_get",
-    "line": 1240,
+    "line": 1245,
     "method": "GET"
   },
   {
     "declared_path": "/v1/suppressions",
     "file": "apps/gateway/app/main.py",
     "handler": "suppressions",
-    "line": 1245,
+    "line": 1250,
     "method": "GET"
   },
   {
     "declared_path": "/v1/audit",
     "file": "apps/gateway/app/main.py",
     "handler": "audits",
-    "line": 1247,
+    "line": 1252,
     "method": "GET"
   },
   {
     "declared_path": "/v1/usage",
     "file": "apps/gateway/app/main.py",
     "handler": "usage",
-    "line": 1249,
+    "line": 1254,
     "method": "GET"
   },
   {
     "declared_path": "/v1/webhooks",
     "file": "apps/gateway/app/main.py",
     "handler": "webhook_add",
-    "line": 1251,
+    "line": 1256,
     "method": "POST"
   },
   {
     "declared_path": "/v1/webhooks/{wid}/rotate",
     "file": "apps/gateway/app/main.py",
     "handler": "webhook_rotate",
-    "line": 1255,
+    "line": 1260,
     "method": "POST"
   },
   {
     "declared_path": "/v1/admin/tenants",
     "file": "apps/gateway/app/main.py",
     "handler": "admin_tenants",
-    "line": 1261,
+    "line": 1266,
     "method": "GET"
   },
   {
     "declared_path": "/v1/admin/tenants",
     "file": "apps/gateway/app/main.py",
     "handler": "admin_tenant_create",
-    "line": 1263,
+    "line": 1268,
     "method": "POST"
   },
   {
     "declared_path": "/v1/admin/tenants/{tid}/suspend",
     "file": "apps/gateway/app/main.py",
     "handler": "admin_suspend",
-    "line": 1267,
+    "line": 1272,
     "method": "POST"
   },
   {
     "declared_path": "/v1/admin/tenants/{tid}/quota",
     "file": "apps/gateway/app/main.py",
     "handler": "admin_quota",
-    "line": 1273,
+    "line": 1278,
     "method": "POST"
   },
   {
     "declared_path": "/",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_home",
-    "line": 1279,
+    "line": 1284,
     "method": "GET"
   },
   {
     "declared_path": "/portal",
     "file": "apps/gateway/app/main.py",
     "handler": "portal",
-    "line": 1281,
+    "line": 1286,
     "method": "GET"
   },
   {
     "declared_path": "/account-disabled",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/forgot-password",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/invite",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/logged-out",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/login",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/reset-expired",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/reset-password",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/reset-sent",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/reset-success",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/service-error",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/signup",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/verification-expired",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/verification-success",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/verify-email",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 1296,
+    "line": 1301,
     "method": "GET"
   },
   {
     "declared_path": "/assets/portal.js",
     "file": "apps/gateway/app/main.py",
     "handler": "portal_js",
-    "line": 1301,
+    "line": 1306,
     "method": "GET"
   },
   {
     "declared_path": "/admin",
     "file": "apps/gateway/app/main.py",
     "handler": "admin_portal",
-    "line": 1303,
+    "line": 1308,
     "method": "GET"
   },
   {
     "declared_path": "/assets/admin.js",
     "file": "apps/gateway/app/main.py",
     "handler": "admin_js",
-    "line": 1305,
+    "line": 1310,
     "method": "GET"
   },
   {
@@ -1190,31 +1204,59 @@
     "method": "POST"
   },
   {
+    "declared_path": "/webhooks/{webhook_id}/deliveries",
+    "file": "apps/gateway/app/messaging.py",
+    "handler": "webhook_deliveries",
+    "line": 241,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/webhooks/{webhook_id}/deliveries/{delivery_id}",
+    "file": "apps/gateway/app/messaging.py",
+    "handler": "webhook_delivery_detail",
+    "line": 246,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/webhooks/{webhook_id}/deliveries/{delivery_id}/replay",
+    "file": "apps/gateway/app/messaging.py",
+    "handler": "webhook_delivery_replay",
+    "line": 252,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/webhooks/{webhook_id}/rotate-secret",
+    "file": "apps/gateway/app/messaging.py",
+    "handler": "webhook_rotate_secret",
+    "line": 259,
+    "method": "POST"
+  },
+  {
     "declared_path": "/delivery-jobs/{message_id}",
     "file": "apps/gateway/app/messaging.py",
     "handler": "job_create",
-    "line": 242,
+    "line": 264,
     "method": "POST"
   },
   {
     "declared_path": "/delivery-jobs/{job_id}/lease",
     "file": "apps/gateway/app/messaging.py",
     "handler": "job_lease",
-    "line": 247,
+    "line": 269,
     "method": "POST"
   },
   {
     "declared_path": "/delivery-jobs/{job_id}/fail",
     "file": "apps/gateway/app/messaging.py",
     "handler": "job_fail",
-    "line": 255,
+    "line": 277,
     "method": "POST"
   },
   {
     "declared_path": "/reputation/recalculate",
     "file": "apps/gateway/app/messaging.py",
     "handler": "reputation",
-    "line": 262,
+    "line": 284,
     "method": "POST"
   },
   {
@@ -1757,157 +1799,171 @@
     "method": "POST"
   },
   {
+    "declared_path": "/v1/campaigns/{campaign_id}/test",
+    "file": "apps/gateway/app/production_api.py",
+    "handler": "campaign_test",
+    "line": 1293,
+    "method": "POST"
+  },
+  {
     "declared_path": "/v1/tracking/events",
     "file": "apps/gateway/app/production_api.py",
     "handler": "tracking_events",
-    "line": 1293,
+    "line": 1320,
     "method": "GET"
   },
   {
     "declared_path": "/v1/tracking/events/{event_id}",
     "file": "apps/gateway/app/production_api.py",
     "handler": "tracking_event_detail",
-    "line": 1307,
+    "line": 1334,
     "method": "GET"
   },
   {
     "declared_path": "/v1/tracking/messages/{message_id}",
     "file": "apps/gateway/app/production_api.py",
     "handler": "tracking_message",
-    "line": 1314,
+    "line": 1341,
     "method": "GET"
   },
   {
     "declared_path": "/v1/suppressions",
     "file": "apps/gateway/app/production_api.py",
     "handler": "suppression_create",
-    "line": 1327,
+    "line": 1354,
     "method": "POST"
   },
   {
     "declared_path": "/v1/suppressions/{suppression_id}",
     "file": "apps/gateway/app/production_api.py",
     "handler": "suppression_delete",
-    "line": 1352,
+    "line": 1379,
     "method": "DELETE"
+  },
+  {
+    "declared_path": "/v1/suppressions/check",
+    "file": "apps/gateway/app/production_api.py",
+    "handler": "suppression_check",
+    "line": 1391,
+    "method": "GET"
   },
   {
     "declared_path": "/v1/bounces",
     "file": "apps/gateway/app/production_api.py",
     "handler": "bounces",
-    "line": 1376,
+    "line": 1414,
     "method": "GET"
   },
   {
     "declared_path": "/v1/complaints",
     "file": "apps/gateway/app/production_api.py",
     "handler": "complaints",
-    "line": 1381,
+    "line": 1419,
     "method": "GET"
   },
   {
     "declared_path": "/v1/billing/account",
     "file": "apps/gateway/app/production_api.py",
     "handler": "billing_account",
-    "line": 1386,
+    "line": 1424,
     "method": "GET"
   },
   {
     "declared_path": "/v1/billing/plans",
     "file": "apps/gateway/app/production_api.py",
     "handler": "billing_plans",
-    "line": 1399,
+    "line": 1437,
     "method": "GET"
   },
   {
     "declared_path": "/v1/operations",
     "file": "apps/gateway/app/production_api.py",
     "handler": "operations",
-    "line": 1424,
+    "line": 1462,
     "method": "GET"
   },
   {
     "declared_path": "/v1/operations/{operation_id}/events",
     "file": "apps/gateway/app/production_api.py",
     "handler": "operation_events",
-    "line": 1453,
+    "line": 1491,
     "method": "GET"
   },
   {
     "declared_path": "/v1/operations/{operation_id}/attempts",
     "file": "apps/gateway/app/production_api.py",
     "handler": "operation_attempts",
-    "line": 1483,
+    "line": 1521,
     "method": "GET"
   },
   {
     "declared_path": "/v1/operations/{operation_id}/cancel",
     "file": "apps/gateway/app/production_api.py",
     "handler": "operation_cancel",
-    "line": 1493,
+    "line": 1531,
     "method": "POST"
   },
   {
     "declared_path": "/v1/operations/{operation_id}/reconcile",
     "file": "apps/gateway/app/production_api.py",
     "handler": "operation_reconcile",
-    "line": 1542,
+    "line": 1580,
     "method": "POST"
   },
   {
     "declared_path": "/v1/providers/postal/health",
     "file": "apps/gateway/app/production_api.py",
     "handler": "postal_health",
-    "line": 1593,
+    "line": 1631,
     "method": "GET"
   },
   {
     "declared_path": "/v1/providers/postal/status",
     "file": "apps/gateway/app/production_api.py",
     "handler": "postal_status",
-    "line": 1635,
+    "line": 1673,
     "method": "GET"
   },
   {
     "declared_path": "/v1/integrations/mautic/commands",
     "file": "apps/gateway/app/production_api.py",
     "handler": "mautic_command",
-    "line": 1649,
+    "line": 1687,
     "method": "POST"
   },
   {
     "declared_path": "/v1/integrations/mautic/operations",
     "file": "apps/gateway/app/production_api.py",
     "handler": "mautic_operations",
-    "line": 1763,
+    "line": 1801,
     "method": "GET"
   },
   {
     "declared_path": "/v1/integrations/mautic/operations/{operation_id}",
     "file": "apps/gateway/app/production_api.py",
     "handler": "mautic_operation",
-    "line": 1784,
+    "line": 1822,
     "method": "GET"
   },
   {
     "declared_path": "/v1/integrations/mautic/operations/{operation_id}/reconcile",
     "file": "apps/gateway/app/production_api.py",
     "handler": "mautic_reconcile",
-    "line": 1795,
+    "line": 1833,
     "method": "POST"
   },
   {
     "declared_path": "/v1/system/capabilities",
     "file": "apps/gateway/app/production_api.py",
     "handler": "system_capabilities",
-    "line": 1810,
+    "line": 1848,
     "method": "GET"
   },
   {
     "declared_path": "/v1/system/readiness",
     "file": "apps/gateway/app/production_api.py",
     "handler": "system_readiness",
-    "line": 1828,
+    "line": 1866,
     "method": "GET"
   },
   {

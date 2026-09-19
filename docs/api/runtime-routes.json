@@ -841,6 +841,12 @@
   },
   {
     "documented": true,
+    "handler": "message_events_alias",
+    "method": "GET",
+    "path": "/v1/messages/{mid}/events"
+  },
+  {
+    "documented": true,
     "handler": "onboarding_get",
     "method": "GET",
     "path": "/v1/onboarding"
@@ -1015,6 +1021,12 @@
   },
   {
     "documented": true,
+    "handler": "suppression_check",
+    "method": "GET",
+    "path": "/v1/suppressions/check"
+  },
+  {
+    "documented": true,
     "handler": "system_capabilities",
     "method": "GET",
     "path": "/v1/system/capabilities"
@@ -1102,6 +1114,18 @@
     "handler": "webhook_subscriptions",
     "method": "GET",
     "path": "/v1/webhook-subscriptions"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_deliveries",
+    "method": "GET",
+    "path": "/v1/webhooks/{webhook_id}/deliveries"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_delivery_detail",
+    "method": "GET",
+    "path": "/v1/webhooks/{webhook_id}/deliveries/{delivery_id}"
   },
   {
     "documented": false,
@@ -1687,6 +1711,12 @@
   },
   {
     "documented": true,
+    "handler": "campaign_test",
+    "method": "POST",
+    "path": "/v1/campaigns/{campaign_id}/test"
+  },
+  {
+    "documented": true,
     "handler": "middleware_command",
     "method": "POST",
     "path": "/v1/commands"
@@ -2113,6 +2143,12 @@
   },
   {
     "documented": true,
+    "handler": "messages_batch",
+    "method": "POST",
+    "path": "/v1/messages/batch"
+  },
+  {
+    "documented": true,
     "handler": "message_cancel",
     "method": "POST",
     "path": "/v1/messages/{message_id}/cancel"
@@ -2326,6 +2362,18 @@
     "handler": "postal_native_hook",
     "method": "POST",
     "path": "/v1/webhooks/postal-native"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_delivery_replay",
+    "method": "POST",
+    "path": "/v1/webhooks/{webhook_id}/deliveries/{delivery_id}/replay"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_rotate_secret",
+    "method": "POST",
+    "path": "/v1/webhooks/{webhook_id}/rotate-secret"
   },
   {
     "documented": true,
