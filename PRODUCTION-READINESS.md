@@ -11,6 +11,7 @@ not installation or activation of other Codestra repositories.
 
 | Check | Status | Evidence / remaining work |
 | --- | --- | --- |
+| Billing Phase 0 fail-closed activation config | PASS | `apps/gateway/app/billing_activation.py`, `docs/adr/ADR-006-billing-ownership-and-provider-boundary.md`, `docs/adr/ADR-007-billing-ledger-and-webhook-boundaries.md`, `docs/architecture/billing-invariants.md`, `docs/architecture/billing-target-architecture.md`, `docs/operations/billing-rollout-and-rollback.md`, `docs/evidence/billing-phase-0-traceability.md`; `pytest -q tests/test_billing_activation_config.py` — 39 passed. No PaymentAttempt, provider adapter, ledger, or webhook runtime is introduced; every flag defaults to disabled. |
 | Repository/API/secret-reference inventory | PASS | `docs/architecture/current-state.md`, generated `docs/api/` and `docs/security/secret-references.json` |
 | Middleware-only Odoo writer ADR | PASS | `docs/adr/ADR-001-middleware-only-odoo-writer.md` |
 | OpenAPI validation and audience separation | PASS | `python scripts/validate-api-contracts.py`; 355 operations across four exports |

@@ -14,6 +14,24 @@ env:
   KLYROW_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
+  billing-phase-0:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ env.KLYROW_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.12"
+      - run: pip install -r apps/gateway/requirements.txt pytest
+      - name: Verify Phase 0 billing activation contract
+        run: |
+          python -m compileall -q apps/gateway/app/billing_activation.py
+          pytest -q tests/test_billing_activation_config.py
+      - name: Verify generated inventories are current
+        run: python scripts/export-api-contracts.py --check
+
   contracts:
     runs-on: ubuntu-latest
     steps:
@@ -173,7 +191,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   image:
-    needs: [frontend, test, secrets, contracts]
+    needs: [frontend, test, secrets, contracts, billing-phase-0]
     runs-on: ubuntu-latest
     permissions:
       actions: read

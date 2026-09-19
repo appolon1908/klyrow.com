@@ -1338,3 +1338,13 @@ def reconcile_provider_registry_on_startup():
 @app.on_event("startup")
 async def start_provider_worker():
     if os.getenv("KLYROW_EMBEDDED_WORKERS","true").lower()=="true":asyncio.create_task(provider_worker_loop())
+
+from .billing_activation import BillingActivationError, validate_billing_activation
+
+@app.on_event("startup")
+def validate_billing_activation_on_startup():
+    """Fail-closed Phase 0 gate: parses flags/secret references only, no provider contact."""
+    try:
+        validate_billing_activation()
+    except BillingActivationError as exc:
+        raise RuntimeError(str(exc)) from exc
