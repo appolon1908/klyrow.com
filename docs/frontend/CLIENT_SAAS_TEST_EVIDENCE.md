@@ -83,4 +83,19 @@ locally.
 
 ## Delivery
 
-Filled in after push/PR/merge.
+- Pushed branch: `phase/10a-client-saas-portal` (only this branch was pushed).
+- Pull request: #136 — https://github.com/ingtrader21-spec/klyrow.com/pull/136
+  (the canonical `appolon1908-hue/klyrow.com` URL redirects to
+  `ingtrader21-spec/klyrow.com` after a repository transfer).
+- PR HEAD at open: `43f2e927e56c50235197773a625212800a35e5e4`.
+- CI on PR HEAD `43f2e92` (workflow run 35460449014): `contracts` pass (50s),
+  `frontend` pass (1m31s: lint, typecheck, routes, Vitest, build, Playwright),
+  `test` pass (5m44s: full Python suite on Linux), `secrets` pass (gitleaks, 9s),
+  `image` pass (13m59s: reproducible OCI builds, Trivy, SBOM), `publish` skipped
+  (PR); deploy-readiness `source-ci`/`secret-scan` pass, environment stages
+  skipped as designed.
+- Merge gate: `mergeable: MERGEABLE`, `mergeStateStatus: BLOCKED`,
+  `reviewDecision: REVIEW_REQUIRED`. The `main` ruleset requires one approving
+  review after the last push, resolved review threads and squash merge. The PR
+  author cannot self-approve, so merge and post-merge verification are pending
+  an independent reviewer.
