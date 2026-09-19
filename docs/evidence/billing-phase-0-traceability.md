@@ -7,6 +7,33 @@ Scope: configuration, fail-closed startup validation, and documentation only.
 No `PaymentAttempt`, provider adapter, ledger, journal, webhook runtime, or
 billing UI is introduced by this branch.
 
+## Repair addendum (commit `7c2f008`, after independent review of `a7cfd68`)
+
+Reported local results from commit `a7cfd68` were not independently reproduced
+against hosted CI before this addendum. The following defects were found by
+inspection and fixed, each with a new regression test:
+
+| Defect | Fix | Test |
+| --- | --- | --- |
+| Fixture secret values in the test file were shaped like real provider tokens (`sk_test_...`, `whsec_...`), tripping a secret scanner | Replaced with clearly synthetic, non-token-shaped markers (`SYNTHETIC-FIXTURE-...`) | existing provider/webhook tests, updated fixtures |
+| Startup hook was registered last, after DB bootstrap and worker-scheduling hooks | Registered `validate_billing_activation_on_startup` immediately after `configure_tracing`, before `startup()` (DB/admin bootstrap), `reconcile_provider_registry_on_startup`, and `start_provider_worker`/`start_postal_retry_worker` | `test_billing_validation_is_registered_before_worker_scheduling_startup_hooks` (inspects `app.router.on_startup` order) |
+| `_validate_secret_reference` used `Path.read_text()` (unbounded read) then measured character count, so an 80,000-byte multibyte file was accepted despite `_MAX_SECRET_BYTES = 65536` | Bounded binary read of at most `_MAX_SECRET_BYTES + 1` bytes before any decoding | `test_secret_file_at_exact_byte_limit_is_accepted`, `test_secret_file_one_byte_over_limit_is_rejected`, `test_secret_file_multibyte_over_limit_is_rejected_without_full_read` |
+| Invalid UTF-8 content raised an unhandled `UnicodeDecodeError` instead of `BillingActivationError` | Decode failures are caught and converted to a sanitized `BillingActivationError` | `test_malformed_utf8_secret_file_fails_closed_without_leaking` |
+| The outer `BillingActivationError` message omitted the path, but `raise ... from exc` chained the original `OSError`, so a formatted traceback still contained the path | Every raise from a caught filesystem/decoding error now uses `from None` to break the chain | `test_missing_secret_file_traceback_does_not_leak_path` (asserts the formatted traceback and `__cause__`) |
+| No test proved disabled billing avoids reading a configured secret-reference path | Added a spy on `builtins.open` | `test_disabled_billing_never_reads_a_secret_file` |
+
+Verification after the addendum: `pytest -q tests/test_billing_activation_config.py`
+— 46 passed (up from 39). `pytest -q tests/test_billing_activation_config.py
+tests/test_billing.py tests/test_billing_route_backlog.py
+tests/test_delivery_safety.py` — 87 passed. `python scripts/export-api-contracts.py
+--check` — passes after regeneration (only line-number shifts in
+`docs/api/source-handlers.json`/`docs/security/secret-references.json`
+from moving code in `main.py`; no new route was added).
+
+This addendum was produced and verified locally only; it has not yet been
+run through hosted GitHub Actions CI (gitleaks, contracts, image jobs). That
+remains outstanding — see the mission status below.
+
 ## Requirement → implementation → test mapping
 
 | Requirement | Implementation | Test(s) |
