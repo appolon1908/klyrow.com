@@ -34,6 +34,27 @@ export function startSessionSync(): () => void {
   }
 }
 
+/** Typed browser API failure. The message is the server detail code; identifiers support support requests. */
+export class ApiError extends Error {
+  readonly status: number
+  readonly code: string
+  readonly requestId: string
+  readonly correlationId: string
+
+  constructor(status: number, code: string, requestId = '', correlationId = '') {
+    super(code)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = code
+    this.requestId = requestId
+    this.correlationId = correlationId
+  }
+
+  toJSON() {
+    return { name: this.name, status: this.status, code: this.code, requestId: this.requestId, correlationId: this.correlationId }
+  }
+}
+
 async function authenticationFailure(response: Response): Promise<string> {
   const body = await response.json().catch(() => ({})) as { detail?: string } | null
   return body?.detail === 'principal_disabled' ? 'principal_disabled' : 'authentication_required'
@@ -95,7 +116,7 @@ export async function appApi<T>(path: string, init: RequestInit = {}): Promise<T
   if (!response.ok) {
     let detail = `request_failed_${response.status}`
     try { detail = String((await response.json() as { detail?: string }).detail || detail) } catch { /* response may be empty */ }
-    throw new Error(detail)
+    throw new ApiError(response.status, detail, response.headers.get('X-Request-Id') || '', response.headers.get('X-Correlation-Id') || '')
   }
   if (method === 'POST' && (
     ['/auth/logout', '/auth/logout-all', '/auth/refresh'].includes(path) ||
