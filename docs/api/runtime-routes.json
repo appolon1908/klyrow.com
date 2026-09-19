@@ -751,6 +751,24 @@
   },
   {
     "documented": true,
+    "handler": "observability_contract",
+    "method": "GET",
+    "path": "/v1/internal/integrations/observability/contract"
+  },
+  {
+    "documented": true,
+    "handler": "odoo_checkpoints",
+    "method": "GET",
+    "path": "/v1/internal/integrations/odoo/checkpoints"
+  },
+  {
+    "documented": true,
+    "handler": "odoo_health",
+    "method": "GET",
+    "path": "/v1/internal/integrations/odoo/health"
+  },
+  {
+    "documented": true,
     "handler": "get_sender_identity",
     "method": "GET",
     "path": "/v1/internal/sender-identities/{item_id}"
@@ -820,6 +838,12 @@
     "handler": "message_alias",
     "method": "GET",
     "path": "/v1/messages/{mid}"
+  },
+  {
+    "documented": true,
+    "handler": "message_events_alias",
+    "method": "GET",
+    "path": "/v1/messages/{mid}/events"
   },
   {
     "documented": true,
@@ -997,6 +1021,12 @@
   },
   {
     "documented": true,
+    "handler": "suppression_check",
+    "method": "GET",
+    "path": "/v1/suppressions/check"
+  },
+  {
+    "documented": true,
     "handler": "system_capabilities",
     "method": "GET",
     "path": "/v1/system/capabilities"
@@ -1084,6 +1114,18 @@
     "handler": "webhook_subscriptions",
     "method": "GET",
     "path": "/v1/webhook-subscriptions"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_deliveries",
+    "method": "GET",
+    "path": "/v1/webhooks/{webhook_id}/deliveries"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_delivery_detail",
+    "method": "GET",
+    "path": "/v1/webhooks/{webhook_id}/deliveries/{delivery_id}"
   },
   {
     "documented": false,
@@ -1669,6 +1711,12 @@
   },
   {
     "documented": true,
+    "handler": "campaign_test",
+    "method": "POST",
+    "path": "/v1/campaigns/{campaign_id}/test"
+  },
+  {
+    "documented": true,
     "handler": "middleware_command",
     "method": "POST",
     "path": "/v1/commands"
@@ -2023,6 +2071,18 @@
   },
   {
     "documented": true,
+    "handler": "receive_alertmanager_events",
+    "method": "POST",
+    "path": "/v1/internal/integrations/alertmanager/events"
+  },
+  {
+    "documented": true,
+    "handler": "receive_kpi_snapshot",
+    "method": "POST",
+    "path": "/v1/internal/integrations/kpis/snapshots"
+  },
+  {
+    "documented": true,
     "handler": "create_sender_identity",
     "method": "POST",
     "path": "/v1/internal/sender-identities"
@@ -2080,6 +2140,12 @@
     "handler": "send",
     "method": "POST",
     "path": "/v1/messages"
+  },
+  {
+    "documented": true,
+    "handler": "messages_batch",
+    "method": "POST",
+    "path": "/v1/messages/batch"
   },
   {
     "documented": true,
@@ -2296,6 +2362,18 @@
     "handler": "postal_native_hook",
     "method": "POST",
     "path": "/v1/webhooks/postal-native"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_delivery_replay",
+    "method": "POST",
+    "path": "/v1/webhooks/{webhook_id}/deliveries/{delivery_id}/replay"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_rotate_secret",
+    "method": "POST",
+    "path": "/v1/webhooks/{webhook_id}/rotate-secret"
   },
   {
     "documented": true,

@@ -26,6 +26,7 @@ from .business_event_worker import dispatch as dispatch_business_events
 from .campaign_dispatcher import dispatch_campaigns
 from .secret_responses import cleanup_secret_responses, refresh_metrics as refresh_secret_metrics
 from .telemetry import configure_tracing
+from .observability import dispatch_observability_outbox
 
 ROLE = os.getenv("KLYROW_WORKER_ROLE", "mail")
 RUNNING = True
@@ -185,6 +186,8 @@ async def loop():
                 billing_tick()
             elif ROLE == "scheduler":
                 await dispatch_mautic_outbox()
+            elif ROLE == "observability":
+                await dispatch_observability_outbox()
             elif ROLE == "business":
                 await dispatch_business_events()
                 secret_response_maintenance_tick()

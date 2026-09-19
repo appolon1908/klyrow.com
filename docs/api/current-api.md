@@ -131,6 +131,9 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/v1/internal/email/messages/{message_id}` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `message_get` |
 | GET | `/v1/internal/email/operations/health` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `operations_health` |
 | GET | `/v1/internal/email/reputation` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `reputation_metrics` |
+| GET | `/v1/internal/integrations/observability/contract` | INTERNAL | DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE | true | `observability_contract` |
+| GET | `/v1/internal/integrations/odoo/checkpoints` | INTERNAL | DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE | true | `odoo_checkpoints` |
+| GET | `/v1/internal/integrations/odoo/health` | INTERNAL | DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE | true | `odoo_health` |
 | GET | `/v1/internal/sender-identities/{item_id}` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `get_sender_identity` |
 | GET | `/v1/journeys/{jid}/runs` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `journey_runs` |
 | GET | `/v1/legacy/billing/usage` | LEGACY | BEARER_JWT_OR_API_KEY_WITH_ROLE | true | `billing_usage` |
@@ -143,6 +146,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/v1/members` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `members` |
 | GET | `/v1/messages` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `messages` |
 | GET | `/v1/messages/{mid}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `message_alias` |
+| GET | `/v1/messages/{mid}/events` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `message_events_alias` |
 | GET | `/v1/onboarding` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `onboarding_get` |
 | GET | `/v1/operations` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `operations` |
 | GET | `/v1/operations/{command_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `middleware_operation` |
@@ -172,6 +176,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/v1/streams` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `streams` |
 | GET | `/v1/support/tickets` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `support_list` |
 | GET | `/v1/suppressions` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `suppressions` |
+| GET | `/v1/suppressions/check` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `suppression_check` |
 | GET | `/v1/system/capabilities` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `system_capabilities` |
 | GET | `/v1/system/readiness` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `system_readiness` |
 | GET | `/v1/team/invitations` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `team_invitations` |
@@ -187,6 +192,8 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/v1/usage/daily` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `daily_usage` |
 | GET | `/v1/usage/monthly` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `monthly_usage` |
 | GET | `/v1/webhook-subscriptions` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `webhook_subscriptions` |
+| GET | `/v1/webhooks/{webhook_id}/deliveries` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `webhook_deliveries` |
+| GET | `/v1/webhooks/{webhook_id}/deliveries/{delivery_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `webhook_delivery_detail` |
 | GET | `/verification-expired` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `auth_page` |
 | GET | `/verification-success` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `auth_page` |
 | GET | `/verify-email` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `auth_page` |
@@ -284,6 +291,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/campaigns/{campaign_id}/pause` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `campaign_pause` |
 | POST | `/v1/campaigns/{campaign_id}/resume` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `campaign_resume` |
 | POST | `/v1/campaigns/{campaign_id}/schedule` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `campaign_schedule` |
+| POST | `/v1/campaigns/{campaign_id}/test` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `campaign_test` |
 | POST | `/v1/commands` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `middleware_command` |
 | POST | `/v1/consents` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `consent` |
 | POST | `/v1/contacts` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `contact_upsert` |
@@ -343,6 +351,8 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/internal/email/smtp/preflight` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `smtp_preflight` |
 | POST | `/v1/internal/email/suppressions/check` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `suppression_check` |
 | POST | `/v1/internal/email/webhooks/test` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `webhook_test` |
+| POST | `/v1/internal/integrations/alertmanager/events` | INTERNAL | DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE | true | `receive_alertmanager_events` |
+| POST | `/v1/internal/integrations/kpis/snapshots` | INTERNAL | DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE | true | `receive_kpi_snapshot` |
 | POST | `/v1/internal/sender-identities` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `create_sender_identity` |
 | POST | `/v1/internal/sender-identities/{item_id}/disable` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `disable_sender_identity` |
 | POST | `/v1/journeys` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `journey_create` |
@@ -353,6 +363,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/journeys/{jid}/runs` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `journey_run` |
 | POST | `/v1/lists` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `list_create` |
 | POST | `/v1/messages` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `send` |
+| POST | `/v1/messages/batch` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `messages_batch` |
 | POST | `/v1/messages/{message_id}/cancel` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `message_cancel` |
 | POST | `/v1/operations/{operation_id}/cancel` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `operation_cancel` |
 | POST | `/v1/operations/{operation_id}/reconcile` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `operation_reconcile` |
@@ -389,6 +400,8 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/webhooks/postal` | WEBHOOK | HMAC_SHA256_SIGNATURE_TIMESTAMP_AND_REPLAY_ID | true | `postal_hook` |
 | POST | `/v1/webhooks/postal-inbound` | WEBHOOK | POSTAL_RSA_SHA256_SIGNATURE_AND_TIMESTAMP | true | `postal_inbound` |
 | POST | `/v1/webhooks/postal-native` | WEBHOOK | POSTAL_RSA_SHA256_SIGNATURE_AND_TIMESTAMP | true | `postal_native_hook` |
+| POST | `/v1/webhooks/{webhook_id}/deliveries/{delivery_id}/replay` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `webhook_delivery_replay` |
+| POST | `/v1/webhooks/{webhook_id}/rotate-secret` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `webhook_rotate_secret` |
 | POST | `/v1/webhooks/{wid}/rotate` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `webhook_rotate` |
 | PUT | `/app/api/mailboxes/{mailbox_id}/drafts/{message_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `update_draft` |
 | PUT | `/v1/campaigns/{campaign_id}/dispatch-configuration` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `campaign_dispatch_configuration` |

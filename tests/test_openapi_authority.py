@@ -44,7 +44,7 @@ def test_every_documented_operation_has_one_canonical_audience_and_auth_model():
     schema = app.openapi()
     rows = list(operations(schema))
     assert len(rows) == schema["x-klyrow-operation-count"]
-    assert len(rows) == 363
+    assert len(rows) == 376
     assert all(row[2]["x-klyrow-audience"] in AUDIENCES for row in rows)
     assert all(row[2]["x-klyrow-auth-model"] for row in rows)
     assert all("security" in row[2] for row in rows)
@@ -200,19 +200,20 @@ def test_durable_mutations_require_the_idempotency_header():
 
 def test_non_atomic_bulk_idempotency_is_truthfully_described():
     schema = app.openapi()
-    assert NON_ATOMIC_ITEM_IDEMPOTENCY == {("post", "/v1/email/bulk")}
-    operation = schema["paths"]["/v1/email/bulk"]["post"]
-    assert operation["x-durable-idempotency"] is False
-    assert operation["x-idempotency-model"] == "ITEM_SCOPED_NON_ATOMIC"
-    assert operation["x-idempotency-required"] is True
-    assert (
-        header_parameter(
+    assert NON_ATOMIC_ITEM_IDEMPOTENCY == {
+        ("post", "/v1/email/bulk"),
+        ("post", "/v1/messages/batch"),
+    }
+    for path in ("/v1/email/bulk", "/v1/messages/batch"):
+        operation = schema["paths"][path]["post"]
+        assert operation["x-durable-idempotency"] is False
+        assert operation["x-idempotency-model"] == "ITEM_SCOPED_NON_ATOMIC"
+        assert operation["x-idempotency-required"] is True
+        assert header_parameter(
             operation,
             "Idempotency-Key",
-        )["required"]
-        is True
-    )
-    assert ("post", "/v1/email/bulk") not in DURABLE_IDEMPOTENCY
+        )["required"] is True
+        assert (("post", path)) not in DURABLE_IDEMPOTENCY
 
 
 def test_optional_invoice_idempotency_remains_optional_and_explicit():
@@ -257,9 +258,9 @@ def test_schema_generation_is_cached_and_deterministic():
     assert first["x-klyrow-audience-counts"] == {
         "ADMIN": 22,
         "BROWSER_BFF": 50,
-        "INTERNAL": 43,
+        "INTERNAL": 48,
         "LEGACY": 1,
-        "PUBLIC": 238,
+        "PUBLIC": 246,
         "TRACKING": 6,
         "WEBHOOK": 3,
     }

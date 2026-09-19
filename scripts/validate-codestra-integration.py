@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -26,6 +27,8 @@ def validate() -> None:
     n8n = read_json("codestra/integration/n8n-orchestration.v1.json")
     aliases = read_json("codestra/integration/openbao-secret-aliases.v1.json")
     metrics = read_json("monitoring/klyrow-metrics-contract.v1.json")
+    boundary = read_json("monitoring/codestra-observability-boundary.v1.json")
+    projection = read_json("monitoring/kyyow-observability-sync-v1.json")
     env = read_text("codestra/integration/runtime.env.example")
     target = read_text("monitoring/prometheus-target.disabled.yml")
     rules = read_text("monitoring/klyrow-recording-rules.yml")
@@ -99,6 +102,7 @@ def validate() -> None:
         "KLYROW_SAFE_MODE=true",
         "KLYROW_N8N_ORCHESTRATION_ENABLED=false",
         "KLYROW_MIDDLEWARE_CANARY_ENABLED=false",
+        "KLYROW_OBSERVABILITY_DELIVERY_ENABLED=false",
         "KLYROW_PROVIDER_LIVE_DELIVERY_ENABLED=false",
         "KLYROW_SECURITY_SMTP_ENABLED=false",
         "KLYROW_SECURITY_SMTP_LIVE_ENABLED=false",
@@ -129,6 +133,81 @@ def validate() -> None:
         "Activation Gates",
     ]:
         assert fragment in docs
+
+    assert boundary["schema_version"] == "1.1"
+    assert boundary["application"] == "klyrow.com"
+    assert boundary["status"] == "SOURCE_READY_PENDING_EXTERNAL_CERTIFICATION"
+    assert set(boundary["components"]) == {
+        "Codestra-Prometheus",
+        "Codestra-Alertmanager",
+        "Codestra-Grafana",
+        "Codestra-Telemetry",
+        "Codestra-Alloy",
+        "Codestra-Loki",
+        "Codestra-Tempo",
+        "Codestra-Node-Exporter",
+        "Codestra-cAdvisor",
+        "Codestra-Redis-Exporter",
+        "Codestra-Blackbox-Exporter",
+        "Codestra-Postgres-Exporter",
+        "Superset",
+        "Codestra-OpenBao",
+    }
+    assert all(component["odoo_write"] is False for component in boundary["components"].values())
+    assert boundary["integration_targets"]["Middleware"]["writes_odoo"] is True
+    assert boundary["integration_targets"]["Odoo"]["direct_writers"] == ["Middleware"]
+    assert boundary["klyrow_contract"]["outbox_target"] == "MIDDLEWARE_OBSERVABILITY"
+    assert boundary["klyrow_contract"]["delivery_worker_role"] == "observability"
+    assert boundary["klyrow_contract"]["delivery_enabled_by_default"] is False
+    assert boundary["klyrow_contract"]["direct_odoo_database_write"] is False
+    assert boundary["klyrow_contract"]["internal_routes"] == [
+        "POST /v1/internal/integrations/alertmanager/events",
+        "POST /v1/internal/integrations/kpis/snapshots",
+        "GET /v1/internal/integrations/odoo/health",
+        "GET /v1/internal/integrations/odoo/checkpoints",
+        "GET /v1/internal/integrations/observability/contract",
+    ]
+
+    canonical = boundary["canonical_projection"]
+    assert canonical["source_repository"] == "appolon1908-hue/Middleware-"
+    assert canonical["source_ref"] == "main"
+    assert canonical["source_commit_sha"] == "61d899f98048f4465303cdcb616a4c9f5a35ceb5"
+    assert canonical["source_path"] == "contracts/observability/odoo-sync.v1.json"
+    assert (
+        canonical["consumer_implementation_path"]
+        == "app/api/v1/observability_sync.py"
+    )
+    assert (
+        canonical["consumer_implementation_blob_sha"]
+        == "8748512f71d3856785abb5113e056eb975102421"
+    )
+    raw_projection = (ROOT / canonical["vendored_path"]).read_bytes()
+    blob_header = f"blob {len(raw_projection)}\0".encode("ascii")
+    assert hashlib.sha1(blob_header + raw_projection).hexdigest() == canonical["source_blob_sha"]
+    assert projection["authority"]["api_owner"] == canonical["source_repository"]
+    assert projection["authority"]["business_record_owner"] == "appolon1908-hue/Odoo"
+
+    middleware_posts = {
+        (entry["path"], entry["authorization"])
+        for entry in projection["middleware_endpoints"]
+        if entry["method"] == "POST"
+    }
+    assert middleware_posts == {
+        ("/v1/observability/kpis", "observability.kpis.write"),
+        ("/v1/observability/incidents", "observability.incidents.write"),
+    }
+    assert {
+        entry["operation"]
+        for entry in projection["odoo_endpoints"]
+        if entry["method"] == "POST"
+    } == set(canonical["odoo_operations"])
+    assert {
+        entry["operation"] for entry in canonical["middleware_operations"]
+    } == {"observability.kpis.create", "observability.incidents.upsert"}
+    assert projection["schemas"]["kpi_snapshot"]["properties"]["schema_version"]["const"] == "kyyow.observability.kpi.v1"
+    assert projection["schemas"]["incident_state"]["properties"]["schema_version"]["const"] == "kyyow.observability.incident.v1"
+    for gate in boundary["activation_gates"]:
+        assert isinstance(gate, str) and gate.strip()
 
 
 if __name__ == "__main__":

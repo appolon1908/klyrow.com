@@ -1,16 +1,18 @@
 import os
+import socket
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from apps.gateway.app.main import AllowedSender, Base, DB, Message, Tenant, User, app, engine, ph
+from apps.gateway.app.main import AllowedSender, Base, DB, Message, Tenant, User, app, engine, ph, rate_buckets
 from apps.gateway.app import messaging
 
 client=TestClient(app)
 tokens={}
 
 def setup_module():
+    rate_buckets.clear()
     tokens.clear();Base.metadata.drop_all(engine);Base.metadata.create_all(engine)
     with DB() as s:
         for tid in ("a","b"):
@@ -80,7 +82,11 @@ def test_exact_inbound_routing_duplicate_protection_and_quarantine():
 
 def test_webhook_event_idempotency_and_delivery_retry_policy():
     h=headers("a")
-    webhook=client.post("/v1/webhook-subscriptions",headers=h,json={"url":"https://example.com/events","events":["message.delivered"]});assert webhook.status_code==201,webhook.text;wid=webhook.json()["id"]
+    # Exercise the real URL/IP policy with a deterministic public DNS answer.
+    addresses=[(socket.AF_INET,socket.SOCK_STREAM,socket.IPPROTO_TCP,"",("93.184.216.34",443))]
+    with patch("apps.gateway.app.main.socket.getaddrinfo",return_value=addresses):
+        webhook=client.post("/v1/webhook-subscriptions",headers=h,json={"url":"https://example.com/events","events":["message.delivered"]})
+    assert webhook.status_code==201,webhook.text;wid=webhook.json()["id"]
     event={"event_id":"event-00000001","event_type":"message.delivered","payload":{"message_id":"m"}}
     first=client.post(f"/v1/webhook-subscriptions/{wid}/test",headers=h,json=event);duplicate=client.post(f"/v1/webhook-subscriptions/{wid}/test",headers=h,json=event);assert first.status_code==202 and duplicate.json()["duplicate"] is True
     listed=client.get("/v1/webhook-subscriptions",headers=h).json();assert listed[0]["id"]==wid and "secret_hash" not in listed[0] and "encrypted_secret_ref" not in listed[0]
