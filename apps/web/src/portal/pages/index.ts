@@ -9,6 +9,15 @@ import EmailDomainsPage from './EmailDomainsPage.vue'
 import EmailDomainPage from './EmailDomainPage.vue'
 import EmailSendersPage from './EmailSendersPage.vue'
 import EmailInboundPage from './EmailInboundPage.vue'
+import AnalyticsOverviewPage from './AnalyticsOverviewPage.vue'
+import DeliverabilityPage from './DeliverabilityPage.vue'
+import DeveloperLogsPage from './DeveloperLogsPage.vue'
+import BillingPlanPage from './BillingPlanPage.vue'
+import BillingUsagePage from './BillingUsagePage.vue'
+import SettingsOrganizationPage from './SettingsOrganizationPage.vue'
+import SettingsTeamPage from './SettingsTeamPage.vue'
+import SettingsSecurityPage from './SettingsSecurityPage.vue'
+import AdminCountsPage from './AdminCountsPage.vue'
 
 /** Pages backed by a browser API. Every other route renders the honest unavailable page. */
 const pages: Record<string, Component> = {
@@ -20,6 +29,18 @@ const pages: Record<string, Component> = {
   'email-domain': EmailDomainPage,
   'email-senders': EmailSendersPage,
   'email-inbound': EmailInboundPage,
+  'analytics-overview': AnalyticsOverviewPage,
+  deliverability: DeliverabilityPage,
+  'deliverability-domain': EmailDomainPage,
+  'developer-logs': DeveloperLogsPage,
+  'billing-plan': BillingPlanPage,
+  'billing-usage': BillingUsagePage,
+  'settings-organization': SettingsOrganizationPage,
+  'settings-team': SettingsTeamPage,
+  'settings-security': SettingsSecurityPage,
+  'admin-tenants': AdminCountsPage,
+  'admin-queues': AdminCountsPage,
+  'admin-deliverability': AdminCountsPage,
 }
 
 export function pageFor(route: PortalRoute): Component {

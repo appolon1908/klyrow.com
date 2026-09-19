@@ -69,7 +69,7 @@ describe('portal shell', () => {
   it('renders an honest unavailable state with the required contract for pages without a browser API', async () => {
     await mountAt('/app/settings/sso', owner)
     expect(await screen.findByText(/not available in this release/i)).toBeTruthy()
-    expect(screen.getByText(/not implemented server-side/i)).toBeTruthy()
+    expect(screen.getAllByText(/not implemented server-side/i).length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /enable/i })).toBeNull()
   })
 
