@@ -595,6 +595,11 @@ def _authorize_operation_mutation(ctx: dict[str, Any], item: Any) -> None:
         return
     elif isinstance(item, IntegrationOutbox) and item.target == "N8N":
         permission = "webhook.manage"
+    elif (
+        isinstance(item, IntegrationOutbox)
+        and item.target == "MIDDLEWARE_OBSERVABILITY"
+    ):
+        permission = "klyrow.observability.write"
     elif isinstance(item, IntegrationOutbox) and item.target == "ODOO":
         permission = (
             "support.manage"

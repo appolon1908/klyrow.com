@@ -40,6 +40,6 @@ Public traffic is terminated by the existing host Nginx. The gateway, Mautic and
 - Postal: SMTP/API submission, DKIM, queue workers and delivery events.
 - PostgreSQL: Klyrow tenant/application state; MariaDB: isolated Mautic and Postal stores.
 
-See [deployment report](DEPLOYMENT_REPORT.md), [architecture](docs/ARCHITECTURE.md), and [operations](docs/OPERATIONS.md).
+See [deployment report](DEPLOYMENT_REPORT.md), [architecture](docs/ARCHITECTURE.md), [operations](docs/OPERATIONS.md), and the [Codestra observability/Odoo integration contract](docs/OBSERVABILITY_INTEGRATION.md).
 
 Production sending is intentionally launch-gated. See [DNS and deliverability](docs/DNS_AND_DELIVERABILITY.md), [SMTP](docs/SMTP.md), and [middleware integration](docs/MIDDLEWARE_INTEGRATION.md).

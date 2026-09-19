@@ -41,6 +41,111 @@
         "title": "AbuseIn",
         "type": "object"
       },
+      "AlertmanagerAlert": {
+        "properties": {
+          "annotations": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 20,
+            "title": "Annotations",
+            "type": "object"
+          },
+          "endsAt": {
+            "default": "",
+            "maxLength": 80,
+            "title": "Endsat",
+            "type": "string"
+          },
+          "fingerprint": {
+            "maxLength": 128,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]+$",
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "generatorURL": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Generatorurl",
+            "type": "string"
+          },
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 32,
+            "title": "Labels",
+            "type": "object"
+          },
+          "startsAt": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Startsat",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "firing",
+              "resolved"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "startsAt",
+          "fingerprint"
+        ],
+        "title": "AlertmanagerAlert",
+        "type": "object"
+      },
+      "AlertmanagerEnvelope": {
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/AlertmanagerAlert"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Alerts",
+            "type": "array"
+          },
+          "externalURL": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Externalurl",
+            "type": "string"
+          },
+          "groupKey": {
+            "default": "",
+            "maxLength": 2048,
+            "title": "Groupkey",
+            "type": "string"
+          },
+          "receiver": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Receiver",
+            "type": "string"
+          },
+          "status": {
+            "default": "firing",
+            "enum": [
+              "firing",
+              "resolved"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "alerts"
+        ],
+        "title": "AlertmanagerEnvelope",
+        "type": "object"
+      },
       "AttachmentIn": {
         "properties": {
           "content_type": {
@@ -420,6 +525,112 @@
           "dmarc_fail_action"
         ],
         "title": "InboundFixtureIn",
+        "type": "object"
+      },
+      "KpiSnapshotIn": {
+        "additionalProperties": false,
+        "properties": {
+          "environment": {
+            "enum": [
+              "development",
+              "test",
+              "staging",
+              "production"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "kpi_key": {
+            "maxLength": 96,
+            "minLength": 3,
+            "pattern": "^[a-z][a-z0-9_.:-]*$",
+            "title": "Kpi Key",
+            "type": "string"
+          },
+          "labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 32,
+            "title": "Labels",
+            "type": "object"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "query_ref": {
+            "maxLength": 96,
+            "minLength": 3,
+            "title": "Query Ref",
+            "type": "string"
+          },
+          "service": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+            "title": "Service",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "maxLength": 128,
+            "minLength": 8,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]+$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "source_revision": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Source Revision",
+            "type": "integer"
+          },
+          "status": {
+            "default": "observed",
+            "enum": [
+              "observed",
+              "stale",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unit": {
+            "default": "ratio",
+            "maxLength": 32,
+            "minLength": 1,
+            "pattern": "^[A-Za-z][A-Za-z0-9_.%/-]{0,31}$",
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          },
+          "window_end": {
+            "format": "date-time",
+            "title": "Window End",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date-time",
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "snapshot_id",
+          "kpi_key",
+          "query_ref",
+          "value",
+          "observed_at",
+          "window_start",
+          "window_end",
+          "service",
+          "environment"
+        ],
+        "title": "KpiSnapshotIn",
         "type": "object"
       },
       "MailIn": {
@@ -6985,6 +7196,488 @@
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE",
         "x-klyrow-enforced-auth-dependencies": [
           "auth"
+        ]
+      }
+    },
+    "/v1/internal/integrations/alertmanager/events": {
+      "post": {
+        "operationId": "receive_alertmanager_events_v1_internal_integrations_alertmanager_events_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 128,
+              "title": "X-Correlation-Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertmanagerEnvelope"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Receive Alertmanager Events V1 Internal Integrations Alertmanager Events Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "serviceBearer": []
+          }
+        ],
+        "summary": "Receive Alertmanager Events",
+        "tags": [
+          "Observability integrations"
+        ],
+        "x-klyrow-audience": "INTERNAL",
+        "x-klyrow-auth-model": "DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth",
+          "require_observability_write"
+        ]
+      }
+    },
+    "/v1/internal/integrations/kpis/snapshots": {
+      "post": {
+        "operationId": "receive_kpi_snapshot_v1_internal_integrations_kpis_snapshots_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Correlation-ID",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 128,
+              "title": "X-Correlation-Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KpiSnapshotIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Receive Kpi Snapshot V1 Internal Integrations Kpis Snapshots Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "serviceBearer": []
+          }
+        ],
+        "summary": "Receive Kpi Snapshot",
+        "tags": [
+          "Observability integrations"
+        ],
+        "x-klyrow-audience": "INTERNAL",
+        "x-klyrow-auth-model": "DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth",
+          "require_observability_write"
+        ]
+      }
+    },
+    "/v1/internal/integrations/observability/contract": {
+      "get": {
+        "operationId": "observability_contract_v1_internal_integrations_observability_contract_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Observability Contract V1 Internal Integrations Observability Contract Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "serviceBearer": []
+          }
+        ],
+        "summary": "Observability Contract",
+        "tags": [
+          "Observability integrations"
+        ],
+        "x-klyrow-audience": "INTERNAL",
+        "x-klyrow-auth-model": "DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth",
+          "require_observability_read"
+        ]
+      }
+    },
+    "/v1/internal/integrations/odoo/checkpoints": {
+      "get": {
+        "operationId": "odoo_checkpoints_v1_internal_integrations_odoo_checkpoints_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Odoo Checkpoints V1 Internal Integrations Odoo Checkpoints Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "serviceBearer": []
+          }
+        ],
+        "summary": "Odoo Checkpoints",
+        "tags": [
+          "Observability integrations"
+        ],
+        "x-klyrow-audience": "INTERNAL",
+        "x-klyrow-auth-model": "DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth",
+          "require_observability_read"
+        ]
+      }
+    },
+    "/v1/internal/integrations/odoo/health": {
+      "get": {
+        "operationId": "odoo_health_v1_internal_integrations_odoo_health_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Odoo Health V1 Internal Integrations Odoo Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "serviceBearer": []
+          }
+        ],
+        "summary": "Odoo Health",
+        "tags": [
+          "Observability integrations"
+        ],
+        "x-klyrow-audience": "INTERNAL",
+        "x-klyrow-auth-model": "DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth",
+          "require_observability_read"
         ]
       }
     },
