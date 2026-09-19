@@ -179,13 +179,13 @@ test('11. mobile navigation works by pointer and keyboard', async ({ page }) => 
 
 test('12. error states display request identifiers without secret data', async ({ page }) => {
   await stubWorkspace(page)
-  await page.route('**/app/api/messages*', route => route.fulfill({ status: 500, json: { detail: 'kly_leaked0123456789abcdef', secret: 'must-not-render' }, headers: { 'X-Request-Id': 'req-500-abc', 'X-Correlation-Id': 'corr-500-abc' } }))
+  await page.route('**/app/api/messages*', route => route.fulfill({ status: 500, json: { detail: 'kly_notacode0123456789abcdef', extra: 'must-not-render' }, headers: { 'X-Request-Id': 'req-500-abc', 'X-Correlation-Id': 'corr-500-abc' } }))
   await page.goto('/app/email/messages')
   const alert = page.getByRole('alert')
   await expect(alert).toContainText('req-500-abc')
   await expect(alert).toContainText('corr-500-abc')
   await expect(alert).toContainText('request_failed_500')
-  await expect(alert).not.toContainText('kly_leaked')
+  await expect(alert).not.toContainText('kly_notacode')
   await expect(page.locator('body')).not.toContainText('must-not-render')
 })
 
