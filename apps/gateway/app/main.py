@@ -669,15 +669,39 @@ async def email_outbox_loop():
                     item.state="quarantined";item.last_error="invalid_outbox_payload";item.updated_at=current;s.commit();continue
                 if not isinstance(payload,dict):
                     item.state="quarantined";item.last_error="invalid_outbox_payload";item.updated_at=current;s.commit();continue
+                try:
+                    from .production_authorization import provider_payload_from_outbox
+                    payload,production_authorized=provider_payload_from_outbox(
+                        payload,tenant_id=item.tenant_id,message_id=item.operation_id or "",correlation_id=item.correlation_id or ""
+                    )
+                except Exception:
+                    item.state="quarantined";item.last_error="production_authorization_denied";item.updated_at=current
+                    message=s.get(Message,item.message_id)
+                    if message:set_core_message_status(message,"suppressed")
+                    queue_email_lifecycle_event(s,kind="email.rejected",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=item.provider_message_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts or 1))
+                    s.commit();continue
+                try:
+                    tenant=s.get(Tenant,item.tenant_id)
+                    if not tenant or not tenant.enabled:raise HTTPException(403,"tenant_suspended")
+                    from .operations import enforce_tenant_send_gate
+                    enforce_tenant_send_gate(s,item.tenant_id)
+                    from .delivery_controls import enforce_delivery_controls
+                    enforce_delivery_controls(s,item.tenant_id,str(payload.get("from") or ""),str(payload.get("stream") or ""))
+                except HTTPException:
+                    item.state="quarantined";item.last_error="delivery_resource_suspended";item.updated_at=current
+                    message=s.get(Message,item.message_id)
+                    if message:set_core_message_status(message,"suppressed")
+                    queue_email_lifecycle_event(s,kind="email.rejected",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=item.provider_message_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts or 1))
+                    s.commit();continue
                 campaign_payload=payload.get("stream")=="marketing"
                 campaign_production=campaign_payload and campaign_execution_mode()=="CAMPAIGN_PRODUCTION_ENABLED"
                 gate_key=("campaign:"+str(payload.get("campaign_id"))) if campaign_payload else canary_gate_key()
-                gate=None if campaign_production else s.scalar(select(ProductionCanaryGate).where(ProductionCanaryGate.gate_key==gate_key).with_for_update())
+                gate=None if campaign_production or production_authorized else s.scalar(select(ProductionCanaryGate).where(ProductionCanaryGate.gate_key==gate_key).with_for_update())
                 maximum=1 if campaign_payload else canary_configuration()[3]
                 first_attempt=(item.attempts or 0)==0
-                reservation_denied=False if campaign_production else (not gate or (first_attempt and
+                reservation_denied=False if campaign_production or production_authorized else (not gate or (first_attempt and
                     (gate.claimed_deliveries>=gate.reserved_deliveries or gate.claimed_deliveries>=maximum)))
-                payload_allowed=campaign_worker_payload_allowed(payload,item.tenant_id) if campaign_payload else canary_payload_allowed(payload)
+                payload_allowed=True if production_authorized else (campaign_worker_payload_allowed(payload,item.tenant_id) if campaign_payload else canary_payload_allowed(payload))
                 if not payload_allowed or reservation_denied:
                     item.state="quarantined";item.last_error="production_canary_policy_denied";item.updated_at=current
                     message=s.get(Message,item.message_id)
@@ -689,7 +713,8 @@ async def email_outbox_loop():
                 item.state="sending";item.attempts+=1;item.next_attempt_at=None;item.updated_at=current
                 message=s.get(Message,item.message_id)
                 if message:set_core_message_status(message,"submitted")
-                snapshot=(item.id,item.message_id,item.payload,item.operation_id,item.correlation_id,item.tenant_id,item.trace_context_json);s.commit()
+                provider_payload=json.dumps(payload,separators=(",",":"),sort_keys=True)
+                snapshot=(item.id,item.message_id,provider_payload,item.operation_id,item.correlation_id,item.tenant_id,item.trace_context_json);s.commit()
             key_file=os.getenv("KLYROW_POSTAL_API_KEY_FILE","")
             key=Path(key_file).read_text(encoding="utf-8").strip() if key_file else ""
             if not key:raise RuntimeError("postal credential unavailable")
@@ -980,7 +1005,7 @@ def queue_email_lifecycle_event(s:Session, *, kind:str, tenant_id:str, message_i
     return event_id
 
 
-async def _send(x:MailIn,ctx,s,idempotency_key):
+async def _send(x:MailIn,ctx,s,idempotency_key,*,_production_authorization=None):
     if not idempotency_key: raise HTTPException(400,"idempotency_key_required")
     resource="messages"
     storage_key=scoped_idempotency_key(ctx,idempotency_key,action="message.send",resource=resource)
@@ -1000,7 +1025,7 @@ async def _send(x:MailIn,ctx,s,idempotency_key):
     authorize_agent_sender(s,ctx,x.sender,x.campaign_id,x.reply_to)
     from .guards import authorize_send
     authorization=authorize_send(s,tenant_id=ctx["tenant"],sender=str(x.sender),recipient=str(x.to),stream=x.stream,sandbox=SAFE_MODE,campaign_id=x.campaign_id,topic=x.topic)
-    enforce_production_canary(x,s)
+    if _production_authorization is None:enforce_production_canary(x,s)
     if x.stream=="marketing" and (x.campaign_id or not SAFE_MODE):enforce_campaign_canary(x,ctx,s)
     sender=x.sender.lower();domain=sender.rsplit("@",1)[1]
     from .delivery_controls import enforce_delivery_controls
@@ -1021,6 +1046,7 @@ async def _send(x:MailIn,ctx,s,idempotency_key):
     if not SAFE_MODE:
         from .preferences import one_click_unsubscribe_headers
         delivery_payload={"to":[str(x.to)],"from":str(x.sender),"subject":x.subject,"html_body":x.html,"plain_body":x.text,"campaign_id":x.campaign_id,"stream":x.stream}
+        if _production_authorization is not None:delivery_payload["_codestra_production_authorization"]=_production_authorization
         delivery_headers=dict(x.headers)
         if x.stream=="marketing":delivery_headers.update(one_click_unsubscribe_headers(ctx["tenant"],str(x.to)))
         if delivery_headers:delivery_payload["headers"]=delivery_headers

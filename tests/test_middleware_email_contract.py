@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import uuid
+from datetime import datetime, timedelta, timezone
 
 os.environ.setdefault("KLYROW_DATABASE_URL", "sqlite:///./test-middleware-email.db")
 os.environ.setdefault("KLYROW_SESSION_SECRET", "test-middleware-email-session-secret-only-32")
@@ -75,6 +76,40 @@ def document(**changes):
 
 
 HEADERS = {"Idempotency-Key": "email-command-key-0001", "X-Correlation-ID": "email-correlation-0001"}
+
+
+def production_authorization():
+    now = datetime.now(timezone.utc)
+    return {
+        "schemaVersion": "1.0",
+        "tenantId": "tenant-a",
+        "policyVersion": 2,
+        "mode": "TRANSACTIONAL_PRODUCTION",
+        "authorizationState": "ACTIVE",
+        "killSwitchOpen": True,
+        "changeId": "CHG-EMAIL-001",
+        "category": "transactional",
+        "validFrom": (now - timedelta(minutes=5)).isoformat(),
+        "validUntil": (now + timedelta(hours=1)).isoformat(),
+        "provider": "klyrow-postal",
+        "environment": "production",
+        "approvedReleaseSha": "a" * 40,
+        "authorizationTimestamp": (now - timedelta(minutes=10)).isoformat(),
+        "activationTimestamp": (now - timedelta(minutes=5)).isoformat(),
+        "commandBinding": {
+            "messageId": "command-00000001",
+            "correlationId": HEADERS["X-Correlation-ID"],
+            "idempotencyKeySha256": hashlib.sha256(
+                HEADERS["Idempotency-Key"].encode()
+            ).hexdigest(),
+            "sender": "sender@example.com",
+            "recipientsSha256": hashlib.sha256(
+                json.dumps(
+                    ["recipient@example.net"], separators=(",", ":")
+                ).encode()
+            ).hexdigest(),
+        },
+    }
 
 
 @pytest.mark.skipif(not os.getenv("KLYROW_CONTRACT_POSTGRES_URL"), reason="PostgreSQL lock test runs in required CI")
@@ -181,6 +216,54 @@ def test_read_only_and_non_service_principals_cannot_send(gateway):
     assert client.post("/v1/email/messages", json=document(), headers=HEADERS).status_code == 403
     context.update(service=False, role="tenant_admin")
     assert client.post("/v1/email/messages", json=document(), headers=HEADERS).status_code == 403
+
+
+def test_live_middleware_route_requires_production_authorization(gateway, monkeypatch):
+    client, _, _ = gateway
+    monkeypatch.setattr(core, "SAFE_MODE", False)
+    monkeypatch.setenv("KLYROW_MIDDLEWARE_EMAIL_IDENTITY", "middleware-a")
+    response = client.post("/v1/email/messages", json=document(), headers=HEADERS)
+    assert response.status_code == 403
+    assert response.json()["detail"] == "production_authorization_invalid"
+
+
+def test_live_middleware_route_requires_exact_service_identity(gateway, monkeypatch):
+    client, _, _ = gateway
+    monkeypatch.setattr(core, "SAFE_MODE", False)
+    monkeypatch.setenv("KLYROW_MIDDLEWARE_EMAIL_IDENTITY", "different-service")
+    response = client.post("/v1/email/messages", json=document(), headers=HEADERS)
+    assert response.status_code == 403
+    assert response.json()["detail"] == "middleware_email_identity_denied"
+
+
+def test_live_authorized_command_bypasses_only_the_consumed_canary(gateway, monkeypatch):
+    client, sessions, _ = gateway
+    from apps.gateway.app.billing import BillingSubscription
+
+    with sessions() as session:
+        session.add(BillingSubscription(
+            id="subscription-a",
+            tenant_id="tenant-a",
+            plan_id="production-plan",
+            price_id="production-price",
+            status="ACTIVE",
+            period_end=datetime.now(timezone.utc) + timedelta(days=30),
+        ))
+        session.commit()
+    monkeypatch.setattr(core, "SAFE_MODE", False)
+    monkeypatch.setenv("KLYROW_MIDDLEWARE_EMAIL_IDENTITY", "middleware-a")
+    payload = document(metadata={
+        "category": "transactional",
+        "productionAuthorization": production_authorization(),
+    })
+    response = client.post("/v1/email/messages", json=payload, headers=HEADERS)
+    assert response.status_code == 202, response.text
+    with sessions() as session:
+        outbox = session.scalar(select(core.EmailOutbox))
+        assert outbox is not None
+        stored = json.loads(outbox.payload)
+        assert "_codestra_production_authorization" in stored
+        assert session.scalar(select(func.count()).select_from(core.ProductionCanaryGate)) == 0
 
 
 def test_alert_recipient_policy_is_enforced_at_gateway(gateway):
