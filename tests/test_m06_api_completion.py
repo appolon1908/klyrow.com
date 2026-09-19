@@ -92,15 +92,15 @@ def test_campaign_test_send_is_truthful_fixture_and_idempotent():
                            json={"name": "M06 campaign", "subject": "Subject"})
     assert created.status_code == 201
     cid = created.json()["id"]
-    first = client.post(f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-campaign-test-1"})
+    first = client.post(f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-test-1"})
     assert first.status_code == 200
     assert first.json()["provider_submission"] is False and first.json()["internal_sink"] is True
-    replay = client.post(f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-campaign-test-1"})
+    replay = client.post(f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-test-1"})
     assert replay.status_code == 200 and replay.json() == first.json()
-    assert client.post(f"/v1/campaigns/{cid}/test", headers={**headers("b"), "Idempotency-Key": "m06-campaign-test-2"}).status_code == 404
-    cancelled = client.post(f"/v1/campaigns/{cid}/cancel", headers={**h, "Idempotency-Key": "m06-campaign-cancel-1"})
+    assert client.post(f"/v1/campaigns/{cid}/test", headers={**headers("b"), "Idempotency-Key": "m06-test-2"}).status_code == 404
+    cancelled = client.post(f"/v1/campaigns/{cid}/cancel", headers={**h, "Idempotency-Key": "m06-cancel-1"})
     assert cancelled.status_code == 200
-    terminal = client.post(f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-campaign-test-3"})
+    terminal = client.post(f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-test-3"})
     assert terminal.status_code == 409 and terminal.json()["detail"] == "campaign_terminal"
 
 
