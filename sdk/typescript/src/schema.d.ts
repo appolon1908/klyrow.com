@@ -1201,6 +1201,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/campaigns/{campaign_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Campaign Test */
+        post: operations["campaign_test_v1_campaigns__campaign_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/campaigns/{cid}": {
         parameters: {
             query?: never;
@@ -2289,6 +2306,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/messages/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Messages Batch */
+        post: operations["messages_batch_v1_messages_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/messages/{message_id}/cancel": {
         parameters: {
             query?: never;
@@ -2315,6 +2349,23 @@ export interface paths {
         };
         /** Message Alias */
         get: operations["message_alias_v1_messages__mid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/messages/{mid}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Message Events Alias */
+        get: operations["message_events_alias_v1_messages__mid__events_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3033,6 +3084,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/suppressions/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Suppression Check */
+        get: operations["suppression_check_v1_suppressions_check_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/suppressions/{suppression_id}": {
         parameters: {
             query?: never;
@@ -3379,6 +3447,74 @@ export interface paths {
         put?: never;
         /** Webhook Add */
         post: operations["webhook_add_v1_webhooks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/{webhook_id}/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Webhook Deliveries */
+        get: operations["webhook_deliveries_v1_webhooks__webhook_id__deliveries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/{webhook_id}/deliveries/{delivery_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Webhook Delivery Detail */
+        get: operations["webhook_delivery_detail_v1_webhooks__webhook_id__deliveries__delivery_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/{webhook_id}/deliveries/{delivery_id}/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Webhook Delivery Replay */
+        post: operations["webhook_delivery_replay_v1_webhooks__webhook_id__deliveries__delivery_id__replay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks/{webhook_id}/rotate-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Webhook Rotate Secret */
+        post: operations["webhook_rotate_secret_v1_webhooks__webhook_id__rotate_secret_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7125,6 +7261,44 @@ export interface operations {
             };
         };
     };
+    campaign_test_v1_campaigns__campaign_id__test_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                campaign_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     campaign_get_v1_campaigns__cid__get: {
         parameters: {
             query?: never;
@@ -9967,6 +10141,44 @@ export interface operations {
             };
         };
     };
+    messages_batch_v1_messages_batch_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string | null;
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkMailIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     message_cancel_v1_messages__message_id__cancel_post: {
         parameters: {
             query?: never;
@@ -10006,6 +10218,41 @@ export interface operations {
         };
     };
     message_alias_v1_messages__mid__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                mid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    message_events_alias_v1_messages__mid__events_get: {
         parameters: {
             query?: never;
             header?: {
@@ -11984,6 +12231,43 @@ export interface operations {
             };
         };
     };
+    suppression_check_v1_suppressions_check_get: {
+        parameters: {
+            query: {
+                email: string;
+            };
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     suppression_delete_v1_suppressions__suppression_id__delete: {
         parameters: {
             query?: never;
@@ -12996,6 +13280,150 @@ export interface operations {
                 "application/json": components["schemas"]["apps__gateway__app__main__WebhookIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    webhook_deliveries_v1_webhooks__webhook_id__deliveries_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                webhook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    webhook_delivery_detail_v1_webhooks__webhook_id__deliveries__delivery_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                webhook_id: string;
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    webhook_delivery_replay_v1_webhooks__webhook_id__deliveries__delivery_id__replay_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                webhook_id: string;
+                delivery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    webhook_rotate_secret_v1_webhooks__webhook_id__rotate_secret_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                webhook_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
