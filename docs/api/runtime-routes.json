@@ -751,6 +751,24 @@
   },
   {
     "documented": true,
+    "handler": "observability_contract",
+    "method": "GET",
+    "path": "/v1/internal/integrations/observability/contract"
+  },
+  {
+    "documented": true,
+    "handler": "odoo_checkpoints",
+    "method": "GET",
+    "path": "/v1/internal/integrations/odoo/checkpoints"
+  },
+  {
+    "documented": true,
+    "handler": "odoo_health",
+    "method": "GET",
+    "path": "/v1/internal/integrations/odoo/health"
+  },
+  {
+    "documented": true,
     "handler": "get_sender_identity",
     "method": "GET",
     "path": "/v1/internal/sender-identities/{item_id}"
@@ -2020,6 +2038,18 @@
     "handler": "webhook_test",
     "method": "POST",
     "path": "/v1/internal/email/webhooks/test"
+  },
+  {
+    "documented": true,
+    "handler": "receive_alertmanager_events",
+    "method": "POST",
+    "path": "/v1/internal/integrations/alertmanager/events"
+  },
+  {
+    "documented": true,
+    "handler": "receive_kpi_snapshot",
+    "method": "POST",
+    "path": "/v1/internal/integrations/kpis/snapshots"
   },
   {
     "documented": true,

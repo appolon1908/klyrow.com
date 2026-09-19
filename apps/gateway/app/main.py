@@ -218,6 +218,7 @@ def auth(request:Request,authorization:str=Header(default=""),x_klyrow_tenant_id
             if any(name.lower() in {"x-codestra-tenant-id","x-codestra-identity-id","x-codestra-tenant","x-codestra-subject"} for name in request.headers):raise HTTPException(403,"not_found")
             if request.url.path=="/v1/commands":permission="klyrow.middleware.command.write"
             elif request.url.path=="/v1/integrations/results":permission="klyrow.integration.result.write"
+            elif request.url.path.startswith("/v1/internal/integrations/"):permission="klyrow.observability.write" if request.method not in {"GET","HEAD","OPTIONS"} else "klyrow.observability.read"
             elif request.url.path.startswith("/v1/operations/"):permission="klyrow.middleware.operation.read" if request.method in {"GET","HEAD","OPTIONS"} else "klyrow.middleware.operation.write"
             elif request.method=="POST" and re.fullmatch(r"/v1/(?:campaigns|campaign-definitions)/[^/]+/schedule",request.url.path):permission="campaign.manage"
             elif required_mutation_permission:=mutation_permission(request.method,request.url.path):permission=required_mutation_permission
@@ -248,7 +249,7 @@ def auth(request:Request,authorization:str=Header(default=""),x_klyrow_tenant_id
                 tenant=s.get(Tenant,requested_tenant) if requested_tenant else None
                 if not tenant or not tenant.enabled:raise HTTPException(403,"valid_tenant_required")
                 ctx={"sub":"middleware-service","tenant":tenant.id,"role":"tenant_admin","service":True,
-                     "identity_type":"SERVICE","permissions":["klyrow.middleware.command.write","klyrow.integration.result.write"]}
+                     "identity_type":"SERVICE","permissions":["klyrow.middleware.command.write","klyrow.integration.result.write","klyrow.observability.read","klyrow.observability.write"]}
             elif raw.startswith("kly_"):
                 key=s.scalar(select(ApiKey).where(ApiKey.key_hash==sha(raw),ApiKey.revoked==False))
                 if not key: raise ValueError()
@@ -721,6 +722,16 @@ async def start_postal_retry_worker():
         asyncio.create_task(postal_retry_loop())
         asyncio.create_task(email_outbox_loop())
 
+def bounded_metric_path(request:Request)->str:
+    """Return the reviewed route template, never a raw URL or identifier."""
+    route=getattr(request.scope.get("route"),"path",None)
+    if isinstance(route,str) and route.startswith("/"):
+        return route
+    # Starlette has not attached a route for an unmatched request.  Keeping a
+    # single bounded bucket prevents tenant/message IDs and query material
+    # from becoming Prometheus label values.
+    return "/__unmatched__"
+
 @app.middleware("http")
 async def headers(request, call_next):
     started=time.monotonic()
@@ -739,10 +750,10 @@ async def headers(request, call_next):
     finally:
         # Registered route templates bound cardinality and exclude identifiers.
         # A metrics client failure must never turn accepted mail into HTTP 500.
-        route=getattr(request.scope.get("route"),"path","unmatched")
         try:
-            REQUESTS.labels(route,status).inc()
-            LATENCY.labels(route).observe(time.monotonic()-started)
+            metric_path=bounded_metric_path(request)
+            REQUESTS.labels(metric_path,status).inc()
+            LATENCY.labels(metric_path).observe(time.monotonic()-started)
         except Exception:
             pass
 
@@ -1305,6 +1316,8 @@ from .messaging import router as messaging_router
 app.include_router(messaging_router)
 from .operations import router as operations_router
 app.include_router(operations_router)
+from .observability import router as observability_router
+app.include_router(observability_router)
 from .production_api import router as production_api_router
 app.include_router(production_api_router)
 from .middleware_email import router as middleware_email_router
