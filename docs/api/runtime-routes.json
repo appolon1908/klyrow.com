@@ -481,6 +481,12 @@
   },
   {
     "documented": true,
+    "handler": "billing_capability_status",
+    "method": "GET",
+    "path": "/v1/billing/capability-status"
+  },
+  {
+    "documented": true,
     "handler": "billing_credits",
     "method": "GET",
     "path": "/v1/billing/credits"

@@ -71,6 +71,18 @@ SECRET=required_session_secret()
 if len(SECRET) < 32: raise RuntimeError("KLYROW_SESSION_SECRET must contain at least 32 characters")
 DATABASE_URL=database_url()
 SAFE_MODE=safe_mode_enabled()
+
+from .billing_config import BillingConfigError, billing_capability_status_payload, load_billing_settings
+
+def _validate_billing_configuration_before_startup():
+    """Mission 01 gate: must run before any DB engine, worker, or provider client exists."""
+    try:
+        return load_billing_settings()
+    except BillingConfigError as exc:
+        raise RuntimeError(f"billing_config:{exc.code}") from None
+
+BILLING_SETTINGS=_validate_billing_configuration_before_startup()
+
 engine=create_engine(DATABASE_URL, pool_pre_ping=True)
 DB=sessionmaker(engine, expire_on_commit=False)
 ph=PasswordHasher()
@@ -892,6 +904,10 @@ def reset(x:Reset,s:Session=Depends(db)):
     audit(s,{"tenant":u.tenant_id,"sub":u.id},"password.reset.sessions_revoked");s.commit(); return {"status":"reset"}
 @app.get("/v1/me")
 def me(ctx=Depends(auth)): return ctx
+@app.get("/v1/billing/capability-status")
+def billing_capability_status(ctx=Depends(auth)):
+    """Safe, allowlisted billing capability status; never a path, secret, or exception string."""
+    return billing_capability_status_payload()
 @app.post("/v1/api-keys")
 def create_key(x:KeyIn,ctx=Depends(require("platform_admin","tenant_admin")),s:Session=Depends(db)):
     from .secret_responses import record_secret_response,response_metadata

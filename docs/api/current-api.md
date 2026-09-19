@@ -86,6 +86,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/v1/auth/oidc/config` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `oidc_config` |
 | GET | `/v1/auth/sessions` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `sessions` |
 | GET | `/v1/billing/account` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_account` |
+| GET | `/v1/billing/capability-status` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_capability_status` |
 | GET | `/v1/billing/credits` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_credits` |
 | GET | `/v1/billing/invoices` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_invoices` |
 | GET | `/v1/billing/invoices/{invoice_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_invoice` |
