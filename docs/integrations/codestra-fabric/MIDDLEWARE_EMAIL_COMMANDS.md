@@ -26,6 +26,33 @@ The binding is committed in the same database transaction as the existing
 governed send: native idempotency, message, usage, lifecycle events and (when
 enabled) durable outbox. Policy denial rolls back the binding.
 
+When Klyrow is not in safe mode, this route additionally requires Middleware's
+active transactional-production attestation. It is bound to the exact command
+ID, correlation ID, idempotency-key digest, tenant, sender, recipient-list
+digest, category, policy version, change ID, validity window, provider and exact
+Middleware release. Campaign mode, an expired/revoked authority, a closed kill
+switch, a changed command binding, and malformed or extra fields fail closed.
+
+The recipient digest uses SHA-256 over UTF-8 compact JSON of the sorted,
+trimmed, lowercase addresses. Duplicate addresses are retained in the digest.
+The current single-recipient Middleware transport remains compatible; batch
+transport still needs a coordinated producer contract before activation.
+All policy timestamps and the execution clock require a defined timezone
+offset and are compared as UTC instants. The validity window includes
+`validFrom` and excludes `validUntil`; naive timestamps are rejected.
+
+Middleware is the sole production-policy authority; Klyrow does not store or
+mutate a second policy. Klyrow persists the validated attestation with the
+outbox intent and checks it again immediately before Postal submission. The
+control document is removed from the provider payload and never sent to Postal.
+Direct Klyrow send routes cannot provide this private authorization argument and
+remain governed by the existing one-message canary gate.
+
+Production also binds the tenant-resolver `identity_id` to the exact dedicated
+service configured as `KLYROW_MIDDLEWARE_EMAIL_IDENTITY`. Missing configuration
+returns 503 and a different service identity returns 403 even if it holds an
+unrelated `klyrow.send` grant.
+
 Batch recipients, template references and scheduled submission are rejected
 before transport. They need separate contracts before activation. Alert payloads
 require all evidence fields and a string label map; recipient/sender policies
@@ -70,6 +97,9 @@ Do not retry unknown outcomes through the old incompatible adapter.
 This implementation does not certify production readiness for issue #85. Private
 TLS/mTLS routing, service audience and resolver grants, immutable deployment
 evidence, a reviewed synthetic canary and rollback evidence are still required.
-Existing gateway production canary checks continue to govern this route; it cannot
-bypass them. Connector activation defaults remain disabled. No live email,
-deployment, Keycloak configuration or external Odoo mutation is part of this patch.
+The existing one-message gateway production canary continues to govern every
+non-Middleware route. The canonical Middleware route can move beyond that
+consumed allowance only with the validated command-bound production attestation.
+Connector activation defaults remain disabled. This source change itself does
+not authorize live email, deployment, Keycloak configuration or external Odoo
+mutation.

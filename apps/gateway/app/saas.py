@@ -92,8 +92,11 @@ def attrs(p): return json.loads(p.attributes_json or "{}")
 def profile_payload(p):
     return {"id":p.id,"email":p.email,"phone":p.phone,"external_id":p.external_id,"customer_id":p.customer_id,"attributes":attrs(p),"created_at":p.created_at,"updated_at":p.updated_at}
 def encode_profile_cursor(p):
-    created=p.created_at if p.created_at.tzinfo else p.created_at.replace(tzinfo=timezone.utc)
-    raw=json.dumps({"id":p.id,"created_at":created.astimezone(timezone.utc).isoformat()},separators=(",",":"))
+    created=p.created_at
+    # SQLite returns timezone-enabled columns as naive values. Treat those
+    # values as UTC instead of applying the host's local timezone offset.
+    created=created.replace(tzinfo=timezone.utc) if created.tzinfo is None else created.astimezone(timezone.utc)
+    raw=json.dumps({"id":p.id,"created_at":created.isoformat()},separators=(",",":"))
     return base64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
 def decode_profile_cursor(raw):
     try:

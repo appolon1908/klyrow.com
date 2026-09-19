@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import datetime, timezone
 from typing import Any, Literal
 
@@ -15,6 +16,10 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from . import main as core
 from .production_api import _has_permission
+from .production_authorization import (
+    ProductionAuthorizationError,
+    validate_production_authorization,
+)
 
 router = APIRouter(tags=["Middleware email"])
 
@@ -61,6 +66,12 @@ def _authorize(ctx: dict, *, read: bool = False) -> None:
     capability = "klyrow.read" if read else "klyrow.send"
     if not _has_permission(ctx, capability):
         raise HTTPException(403, "permission_denied")
+    if not core.SAFE_MODE:
+        expected = os.getenv("KLYROW_MIDDLEWARE_EMAIL_IDENTITY", "").strip()
+        if not expected:
+            raise HTTPException(503, "middleware_email_identity_unconfigured")
+        if ctx.get("sub") != expected:
+            raise HTTPException(403, "middleware_email_identity_denied")
 
 
 def _message_key(binding: EmailCommandBinding) -> str:
@@ -126,6 +137,22 @@ async def submit(
     elif any((command.classification, command.recipient_policy_id, command.sender_policy_id)):
         raise HTTPException(422, "alert_policy_requires_operational_stream")
 
+    production_authorization = None
+    if not core.SAFE_MODE:
+        try:
+            production_authorization = validate_production_authorization(
+                command.metadata.get("productionAuthorization"),
+                tenant_id=ctx["tenant"],
+                message_id=command.message_id,
+                correlation_id=x_correlation_id,
+                sender=str(command.sender),
+                recipients=[str(value) for value in command.recipients],
+                category=str(command.metadata.get("category") or "transactional"),
+                idempotency_key=idempotency_key,
+            )
+        except ProductionAuthorizationError as exc:
+            raise HTTPException(403, str(exc)) from exc
+
     # The tenant lock serializes duplicate command/key reservations and is held
     # until _send commits the binding, message, usage and native idempotency row.
     tenant = session.scalar(select(core.Tenant).where(
@@ -161,7 +188,13 @@ async def submit(
     try:
         session.add(binding)
         session.flush()
-        await core._send(message, ctx, session, _message_key(binding))
+        await core._send(
+            message,
+            ctx,
+            session,
+            _message_key(binding),
+            _production_authorization=production_authorization,
+        )
     except IntegrityError as exc:
         session.rollback()
         raise HTTPException(409, "email_command_identity_conflict") from exc
