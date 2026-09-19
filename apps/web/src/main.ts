@@ -5,12 +5,13 @@ import Onboarding from './Onboarding.vue'
 import AdminDashboard from './AdminDashboard.vue'
 import Provisioning from './Provisioning.vue'
 import Webmail from './Webmail.vue'
+import Portal from './Portal.vue'
 import './styles.css'
 import { browserRoute, type RootView } from './routeManifest'
 import { startSessionSync } from './api'
 
 const path = location.pathname
-const views = { App: AuthApp, Dashboard, AdminDashboard, Onboarding, Provisioning, Webmail } satisfies Record<RootView, Component>
+const views = { App: AuthApp, Dashboard, AdminDashboard, Onboarding, Provisioning, Webmail, Portal } satisfies Record<RootView, Component>
 const route = browserRoute(path)
 const Root = views[route?.view || 'App']
 if (route?.access === 'session') startSessionSync()
