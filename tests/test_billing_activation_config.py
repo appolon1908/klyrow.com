@@ -2,17 +2,26 @@
 
 Scope: configuration parsing and validation only. No PaymentAttempt, provider
 adapter, ledger, or webhook runtime is exercised or implied by these tests.
+
+Fixture secret values are deliberately NOT shaped like real provider tokens
+(no `sk_`/`whsec_`-style prefixes) so secret scanners do not flag this test
+file; the validator only checks non-emptiness/UTF-8/size, never token shape.
 """
 import os
+import traceback
 
 import pytest
 
 from apps.gateway.app.billing_activation import (
     FLAG_NAMES,
     SECRET_REFERENCE_NAMES,
+    _MAX_SECRET_BYTES,
     BillingActivationError,
     validate_billing_activation,
 )
+
+SYNTHETIC_SECRET = "SYNTHETIC-FIXTURE-VALUE-NOT-A-CREDENTIAL-0000111122223333"
+SYNTHETIC_WEBHOOK_SECRET = "SYNTHETIC-FIXTURE-WEBHOOK-VALUE-NOT-A-CREDENTIAL-4444555566667777"
 
 ALL_FLAGS = list(FLAG_NAMES.values())
 
@@ -136,7 +145,7 @@ def test_unavailable_secret_file_fails(tmp_path):
 
 def test_valid_stripe_secret_reference_activates_provider(tmp_path):
     secret_file = tmp_path / "stripe-secret"
-    secret_file.write_text("sk_test_placeholder")
+    secret_file.write_text(SYNTHETIC_SECRET)
     state = validate_billing_activation(
         env(
             KLYROW_BILLING_CORE_ENABLED="true",
@@ -160,7 +169,7 @@ def test_provider_webhooks_require_an_enabled_provider(tmp_path):
 
 def test_provider_webhooks_require_verification_secret_reference(tmp_path):
     secret_file = tmp_path / "stripe-secret"
-    secret_file.write_text("sk_test_placeholder")
+    secret_file.write_text(SYNTHETIC_SECRET)
     with pytest.raises(BillingActivationError, match="KLYROW_BILLING_STRIPE_WEBHOOK_SECRET_FILE"):
         validate_billing_activation(
             env(
@@ -174,9 +183,9 @@ def test_provider_webhooks_require_verification_secret_reference(tmp_path):
 
 def test_provider_webhooks_activate_with_all_secret_references(tmp_path):
     secret_file = tmp_path / "stripe-secret"
-    secret_file.write_text("sk_test_placeholder")
+    secret_file.write_text(SYNTHETIC_SECRET)
     webhook_file = tmp_path / "stripe-webhook-secret"
-    webhook_file.write_text("whsec_placeholder")
+    webhook_file.write_text(SYNTHETIC_WEBHOOK_SECRET)
     state = validate_billing_activation(
         env(
             KLYROW_BILLING_CORE_ENABLED="true",
@@ -216,7 +225,7 @@ def test_live_charging_requires_a_valid_provider(tmp_path):
 
 def test_live_charging_activates_with_a_valid_provider(tmp_path):
     secret_file = tmp_path / "stripe-secret"
-    secret_file.write_text("sk_test_placeholder")
+    secret_file.write_text(SYNTHETIC_SECRET)
     state = validate_billing_activation(
         env(
             KLYROW_BILLING_CORE_ENABLED="true",
@@ -230,7 +239,7 @@ def test_live_charging_activates_with_a_valid_provider(tmp_path):
 
 def test_errors_do_not_expose_secret_path_or_content(tmp_path):
     secret_file = tmp_path / "super-secret-stripe-key-value"
-    secret_file.write_text("sk_live_should_never_appear_in_error_text")
+    secret_file.write_text("SYNTHETIC-FIXTURE-MUST-NEVER-APPEAR-IN-ERROR-TEXT-99887766")
     directory = tmp_path / "unreadable"
     directory.mkdir()
     with pytest.raises(BillingActivationError) as excinfo:
@@ -243,8 +252,81 @@ def test_errors_do_not_expose_secret_path_or_content(tmp_path):
         )
     message = str(excinfo.value)
     assert str(directory) not in message
-    assert "sk_live_should_never_appear_in_error_text" not in message
+    assert "SYNTHETIC-FIXTURE-MUST-NEVER-APPEAR-IN-ERROR-TEXT-99887766" not in message
     assert "KLYROW_BILLING_STRIPE_SECRET_FILE" in message
+
+
+def test_missing_secret_file_traceback_does_not_leak_path(tmp_path):
+    # B3: the formatted, chained traceback must not leak the path either.
+    missing = tmp_path / "does-not-exist-secret"
+    with pytest.raises(BillingActivationError) as excinfo:
+        validate_billing_activation(
+            env(
+                KLYROW_BILLING_CORE_ENABLED="true",
+                KLYROW_BILLING_STRIPE_ENABLED="true",
+                KLYROW_BILLING_STRIPE_SECRET_FILE=str(missing),
+            )
+        )
+    formatted = "".join(
+        traceback.format_exception(type(excinfo.value), excinfo.value, excinfo.value.__traceback__)
+    )
+    assert str(missing) not in formatted
+    assert excinfo.value.__cause__ is None
+
+
+def test_secret_file_at_exact_byte_limit_is_accepted(tmp_path):
+    secret_file = tmp_path / "exact-limit-secret"
+    secret_file.write_bytes(b"a" * _MAX_SECRET_BYTES)
+    state = validate_billing_activation(
+        env(
+            KLYROW_BILLING_CORE_ENABLED="true",
+            KLYROW_BILLING_STRIPE_ENABLED="true",
+            KLYROW_BILLING_STRIPE_SECRET_FILE=str(secret_file),
+        )
+    )
+    assert state.stripe_enabled is True
+
+
+def test_secret_file_one_byte_over_limit_is_rejected(tmp_path):
+    secret_file = tmp_path / "one-over-secret"
+    secret_file.write_bytes(b"a" * (_MAX_SECRET_BYTES + 1))
+    with pytest.raises(BillingActivationError, match="oversized"):
+        validate_billing_activation(
+            env(
+                KLYROW_BILLING_CORE_ENABLED="true",
+                KLYROW_BILLING_STRIPE_ENABLED="true",
+                KLYROW_BILLING_STRIPE_SECRET_FILE=str(secret_file),
+            )
+        )
+
+
+def test_secret_file_multibyte_over_limit_is_rejected_without_full_read(tmp_path):
+    # Large multibyte content: must be rejected via the bounded read, not by
+    # decoding/measuring the whole (much larger) file.
+    secret_file = tmp_path / "multibyte-over-secret"
+    secret_file.write_text("\u00e9" * 40000, encoding="utf-8")  # 80000 bytes
+    with pytest.raises(BillingActivationError, match="oversized"):
+        validate_billing_activation(
+            env(
+                KLYROW_BILLING_CORE_ENABLED="true",
+                KLYROW_BILLING_STRIPE_ENABLED="true",
+                KLYROW_BILLING_STRIPE_SECRET_FILE=str(secret_file),
+            )
+        )
+
+
+def test_malformed_utf8_secret_file_fails_closed_without_leaking(tmp_path):
+    secret_file = tmp_path / "invalid-encoding-secret"
+    secret_file.write_bytes(b"\xff\xfe\x00invalid")
+    with pytest.raises(BillingActivationError, match="UTF-8") as excinfo:
+        validate_billing_activation(
+            env(
+                KLYROW_BILLING_CORE_ENABLED="true",
+                KLYROW_BILLING_STRIPE_ENABLED="true",
+                KLYROW_BILLING_STRIPE_SECRET_FILE=str(secret_file),
+            )
+        )
+    assert excinfo.value.__cause__ is None
 
 
 def test_configuration_import_has_no_side_effects():
@@ -298,3 +380,39 @@ def test_secret_reference_names_cover_every_provider_and_webhook():
         "stablecoin_webhook",
     }
     assert set(SECRET_REFERENCE_NAMES) == expected
+
+
+def test_billing_validation_is_registered_before_worker_scheduling_startup_hooks():
+    """B2: the gateway must not schedule workers before billing validation runs."""
+    from apps.gateway.app.main import app, validate_billing_activation_on_startup
+
+    handlers = list(app.router.on_startup)
+    assert validate_billing_activation_on_startup in handlers
+    billing_index = handlers.index(validate_billing_activation_on_startup)
+    worker_hook_names = {
+        "start_provider_worker",
+        "start_postal_retry_worker",
+        "reconcile_provider_registry_on_startup",
+    }
+    later_worker_hooks = [
+        index for index, handler in enumerate(handlers) if handler.__name__ in worker_hook_names
+    ]
+    assert later_worker_hooks, "expected at least one worker-scheduling startup hook to be present"
+    assert all(billing_index < index for index in later_worker_hooks)
+
+
+def test_disabled_billing_never_reads_a_secret_file(tmp_path, monkeypatch):
+    """Disabled-by-default configuration must not touch any secret reference."""
+    sentinel = tmp_path / "must-not-be-read"
+    sentinel.write_text("SYNTHETIC-SENTINEL-VALUE")
+    real_open = open
+    opened_paths = []
+
+    def spying_open(file, *args, **kwargs):
+        opened_paths.append(str(file))
+        return real_open(file, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", spying_open)
+    state = validate_billing_activation(env(KLYROW_BILLING_STRIPE_SECRET_FILE=str(sentinel)))
+    assert state.core_enabled is False
+    assert str(sentinel) not in opened_paths

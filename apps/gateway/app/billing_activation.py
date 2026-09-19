@@ -16,7 +16,6 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
-from pathlib import Path
 
 _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 _FALSE_VALUES = frozenset({"0", "false", "no", "off"})
@@ -98,22 +97,31 @@ def _read_flags(environment: Mapping[str, str] | None) -> dict[str, bool]:
 
 
 def _validate_secret_reference(var_name: str, environment: Mapping[str, str] | None) -> None:
-    """Validate a secret-reference path without disclosing its path or content."""
+    """Validate a secret-reference path without disclosing its path or content.
+
+    Reads at most ``_MAX_SECRET_BYTES + 1`` bytes (never the whole file) and never
+    chains the underlying OSError/UnicodeDecodeError, so neither the raised
+    exception nor its formatted traceback contains the secret path or content.
+    """
 
     source = os.environ if environment is None else environment
     raw = source.get(var_name, "")
     path_value = raw.strip() if isinstance(raw, str) else ""
     if not path_value:
         raise BillingActivationError(f"{var_name} is required and must reference a secret file")
-    path = Path(path_value)
     try:
-        content = path.read_text(encoding="utf-8")
-    except OSError as exc:
-        raise BillingActivationError(f"{var_name} must reference a readable secret file") from exc
-    if not content.strip():
-        raise BillingActivationError(f"{var_name} must reference a non-empty secret file")
+        with open(path_value, "rb") as handle:
+            content = handle.read(_MAX_SECRET_BYTES + 1)
+    except OSError:
+        raise BillingActivationError(f"{var_name} must reference a readable secret file") from None
     if len(content) > _MAX_SECRET_BYTES:
-        raise BillingActivationError(f"{var_name} secret file is oversized")
+        raise BillingActivationError(f"{var_name} secret file is oversized") from None
+    try:
+        text = content.decode("utf-8")
+    except UnicodeDecodeError:
+        raise BillingActivationError(f"{var_name} must reference a UTF-8 encoded secret file") from None
+    if not text.strip():
+        raise BillingActivationError(f"{var_name} must reference a non-empty secret file")
 
 
 def validate_billing_activation(

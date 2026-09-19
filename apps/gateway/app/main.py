@@ -3,6 +3,7 @@ from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .billing_activation import BillingActivationError, validate_billing_activation
 from .delivery_safety import email_activation_status, safe_mode_enabled
 from .durable_results import read_control_response, seal_control_response
 from .durable_keys import keyring_ready
@@ -77,6 +78,20 @@ ph=PasswordHasher()
 app=FastAPI(title="Klyrow API", version="1.0.0", docs_url=None if os.getenv("KLYROW_ENV")=="production" else "/docs")
 app.add_middleware(TraceMiddleware)
 app.on_event("startup")(configure_tracing)
+
+@app.on_event("startup")
+def validate_billing_activation_on_startup():
+    """Fail-closed Phase 0 gate, registered before any worker-scheduling startup hook.
+
+    Parses flags/secret references only: no provider contact, no database access,
+    no charge/refund/mutation. Must run before start_provider_worker/start_postal_retry_worker
+    or any other hook that schedules background work or performs feature-dependent side effects.
+    """
+    try:
+        validate_billing_activation()
+    except BillingActivationError as exc:
+        raise RuntimeError(str(exc)) from exc
+
 AUTH_WEB_DIST=Path(__file__).with_name("auth_web")
 if not AUTH_WEB_DIST.exists():
     AUTH_WEB_DIST=Path(__file__).parents[2]/"web"/"dist"
@@ -1338,13 +1353,3 @@ def reconcile_provider_registry_on_startup():
 @app.on_event("startup")
 async def start_provider_worker():
     if os.getenv("KLYROW_EMBEDDED_WORKERS","true").lower()=="true":asyncio.create_task(provider_worker_loop())
-
-from .billing_activation import BillingActivationError, validate_billing_activation
-
-@app.on_event("startup")
-def validate_billing_activation_on_startup():
-    """Fail-closed Phase 0 gate: parses flags/secret references only, no provider contact."""
-    try:
-        validate_billing_activation()
-    except BillingActivationError as exc:
-        raise RuntimeError(str(exc)) from exc
