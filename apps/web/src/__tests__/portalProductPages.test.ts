@@ -52,7 +52,7 @@ describe('pages without a browser API', () => {
     const scim = await mount('settings-scim')
     expect(screen.getAllByText(/not implemented server-side/i)).toBeTruthy()
     scim.unmount()
-    const preferences = await mount('audience-preferences')
+    await mount('audience-preferences')
     expect(screen.getAllByText(/consent.*preference.*suppression/i)).toBeTruthy()
   })
 })

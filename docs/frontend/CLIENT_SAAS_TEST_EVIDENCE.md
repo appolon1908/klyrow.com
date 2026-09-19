@@ -59,14 +59,27 @@ Playwright scenario 8 in the mission asked for API-key creation; API keys have n
 
 ### Complete Python suite
 
-Recorded after the run completed; see the section below.
+`PYTHONPATH=. PYTHONUTF8=1 python -m pytest -q tests --continue-on-collection-errors`
+(from the repository root, with the cp1252-only theme test deselected):
+**1042 passed, 240 failed, 24 errors, 22 skipped in 9m11s**. Every failure and
+error is a Windows platform incompatibility in backend tooling, none in
+`apps/web`: 141 × `os.O_NOFOLLOW`, 37 × `os.O_DIRECTORY`, 48 × `os.geteuid`,
+GPG-required Mautic backup tests, symlink privilege (`WinError 1314`),
+`bash`/WSL execution, `signal.SIGWINCH`, `os.mkfifo`, `os.killpg`, and the
+CRLF-affected `migrations/008` checksum. The remaining
+`test_messaging.py::test_webhook_event_idempotency_and_delivery_retry_policy`
+failure is the known baseline failure reported before this branch. The local
+complete suite is therefore **not** classified as green; the Linux CI `test`
+job is authoritative for it. Frontend-related Python contracts (45 tests) pass
+locally.
 
 ## Environmental limitations (Windows workstation)
 
 1. `tests/test_portal_contract.py::test_keycloak_theme_has_complete_localized_surfaces` fails only without `PYTHONUTF8=1` (`UnicodeDecodeError: 'charmap'` reading UTF-8 theme files with the cp1252 default). It passes with `PYTHONUTF8=1`; CI runs on Linux with UTF-8.
 2. `tests/test_api.py` cannot be collected on Windows (`PermissionError` on a hard-coded `/tmp` path); unrelated to this change and already fixed on the owner's local `main` (`5262a1e`, not yet in `origin/main`).
 3. `playwright.config.ts` starts the web server with `VITE_TEST_SERVER=1 pnpm vite build …`, which is POSIX shell syntax; on Windows the build and `node e2e/server.mjs` were started manually before `playwright test`. `e2e/server.mjs` needed `fileURLToPath` to serve `dist/` on Windows (included in this branch; no behaviour change on Linux).
-4. Gitleaks is not installed locally; the diff was grepped for credential patterns (none) and CI's `secrets` job remains authoritative.
+4. The Playwright suite passed 5 of 6 consecutive local runs (32/32); one run reported a single failure whose artifact was overwritten before inspection. Treat CI as authoritative and inspect any recurrence rather than rerunning blindly.
+5. Gitleaks is not installed locally; the diff was grepped for credential patterns (none) and CI's `secrets` job remains authoritative.
 
 ## Delivery
 
