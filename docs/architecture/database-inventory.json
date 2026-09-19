@@ -123,7 +123,8 @@
       "tenant_id",
       "name",
       "key_hash",
-      "revoked"
+      "revoked",
+      "rotated_at"
     ],
     "table": "api_keys",
     "tenant_scoped": true
@@ -164,6 +165,42 @@
   {
     "columns": [
       "id",
+      "event_id",
+      "event_type",
+      "tenant_id",
+      "aggregate_id",
+      "payload",
+      "payload_hash",
+      "correlation_id",
+      "trace_context",
+      "state",
+      "attempt_count",
+      "next_attempt_at",
+      "lease_owner",
+      "lease_expires_at",
+      "created_at",
+      "delivered_at",
+      "last_error"
+    ],
+    "table": "business_event_outbox",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "campaign_id",
+      "campaign_version",
+      "recipient",
+      "recipient_hash",
+      "created_at"
+    ],
+    "table": "campaign_audience_snapshots",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
       "tenant_id",
       "name",
       "sender_id",
@@ -178,6 +215,44 @@
       "created_at"
     ],
     "table": "campaign_definitions",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "campaign_id",
+      "campaign_version",
+      "audience_id",
+      "recipient_hash",
+      "state",
+      "attempt_count",
+      "next_attempt_at",
+      "lease_owner",
+      "fence_token",
+      "message_id",
+      "last_error",
+      "created_at"
+    ],
+    "table": "campaign_dispatch_items",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "campaign_id",
+      "campaign_version",
+      "state",
+      "scheduled_at",
+      "next_attempt_at",
+      "lease_owner",
+      "lease_expires_at",
+      "fence_token",
+      "created_at",
+      "completed_at"
+    ],
+    "table": "campaign_dispatch_runs",
     "tenant_scoped": true
   },
   {
@@ -210,9 +285,31 @@
     "columns": [
       "id",
       "tenant_id",
+      "campaign_id",
+      "campaign_version",
+      "sender_id",
+      "sender",
+      "template_id",
+      "template_version",
+      "subject",
+      "html_body",
+      "text_body",
+      "created_at"
+    ],
+    "table": "campaign_version_snapshots",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
       "name",
       "status",
       "subject",
+      "sender_id",
+      "template_id",
+      "segment_id",
+      "current_version",
       "scheduled_at",
       "created_at"
     ],
@@ -452,6 +549,7 @@
   },
   {
     "columns": [
+      "trace_context_json",
       "id",
       "tenant_id",
       "message_id",
@@ -1435,7 +1533,8 @@
       "created_at",
       "last_used_at",
       "expires_at",
-      "revoked_at"
+      "revoked_at",
+      "rotated_at"
     ],
     "table": "scoped_api_keys",
     "tenant_scoped": true
@@ -1451,6 +1550,23 @@
       "created_at"
     ],
     "table": "scoped_suppressions",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "resource_type",
+      "resource_id",
+      "action",
+      "encrypted_payload",
+      "created_by",
+      "created_at",
+      "expires_at",
+      "retrieved_at",
+      "redacted_at"
+    ],
+    "table": "secret_responses",
     "tenant_scoped": true
   },
   {
@@ -1814,7 +1930,8 @@
       "tenant_id",
       "url",
       "enabled",
-      "secret_hash"
+      "secret_hash",
+      "rotated_at"
     ],
     "table": "webhook_endpoints",
     "tenant_scoped": true

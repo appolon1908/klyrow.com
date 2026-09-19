@@ -1154,6 +1154,7 @@ def domain_register(payload: DomainRegisterIn, ctx=Depends(auth), s: Session = D
 
 @router.post("/domains/verify")
 def domain_verify(domain_id: str, ctx=Depends(auth), s: Session = Depends(db)):
+    from .business_events import enqueue_named_event
     require_permission(ctx, "domain.manage")
     item = s.scalar(select(ProviderDomain).where(ProviderDomain.id == domain_id, ProviderDomain.tenant_id == ctx["tenant"]))
     if not item:
@@ -1161,16 +1162,23 @@ def domain_verify(domain_id: str, ctx=Depends(auth), s: Session = Depends(db)):
     legacy = s.scalar(select(Domain).where(Domain.tenant_id == ctx["tenant"], Domain.domain == item.domain, Domain.verified == True))
     if not legacy:
         item.status = "DNS_REQUIRED"
+        enqueue_named_event(s, event_type="klyrow.domain.status", tenant_id=ctx["tenant"],
+            aggregate_id=item.id, causation_id=domain_id,
+            data={"domain_id":item.id,"domain":item.domain,"status":item.status,"verified_at":None})
         s.commit()
         return {"domain": item.domain, "status": item.status, "verified": False}
     item.status = "VERIFIED"
     item.verified_at = now()
+    enqueue_named_event(s, event_type="klyrow.domain.status", tenant_id=ctx["tenant"],
+        aggregate_id=item.id, causation_id=domain_id,
+        data={"domain_id":item.id,"domain":item.domain,"status":item.status,"verified_at":item.verified_at})
     s.commit()
     return {"domain": item.domain, "status": item.status, "verified": True}
 
 
 @router.post("/domains/{domain_id}/dns-check")
 def domain_dns_check(domain_id: str, ctx=Depends(auth), s: Session = Depends(db)):
+    from .business_events import enqueue_named_event
     require_permission(ctx, "domain.manage")
     domain = s.scalar(select(ProviderDomain).where(ProviderDomain.id == domain_id,
         ProviderDomain.tenant_id == ctx["tenant"]))
@@ -1186,6 +1194,10 @@ def domain_dns_check(domain_id: str, ctx=Depends(auth), s: Session = Depends(db)
         domain.sending_enabled = False
     audit_provider(s, ctx, "domain.dns_checked", "verified" if evidence["verified"] else "dns_required",
         resource_id=domain.id)
+    enqueue_named_event(s, event_type="klyrow.domain.status", tenant_id=ctx["tenant"],
+        aggregate_id=domain.id, causation_id=domain_id,
+        data={"domain_id":domain.id,"domain":domain.domain,"status":domain.status,
+              "verified_at":domain.verified_at})
     s.commit()
     return {"domain": domain.domain, "status": domain.status, **evidence}
 
@@ -1286,6 +1298,7 @@ def policy_update(payload: PolicyIn, ctx=Depends(auth), s: Session = Depends(db)
 
 @router.post("/smtp/credentials", status_code=201)
 def smtp_credential_create(payload: SmtpCredentialIn, ctx=Depends(auth), s: Session = Depends(db)):
+    from .secret_responses import record_secret_response, response_metadata
     if ctx.get("role") not in {"platform_admin", "tenant_admin"}:
         raise HTTPException(403, "insufficient_role")
     senders = list(s.scalars(select(SenderIdentity).where(SenderIdentity.id.in_(payload.allowed_sender_ids),
@@ -1300,14 +1313,19 @@ def smtp_credential_create(payload: SmtpCredentialIn, ctx=Depends(auth), s: Sess
         secret_hash=smtp_hasher.hash(secret), allowed_senders_json=json.dumps(sorted({sender.email for sender in senders})),
         allowed_streams_json=json.dumps(sorted(streams)), expires_at=now() + timedelta(days=payload.expires_in_days))
     s.add(item)
+    result = {"credential_id": item.id, "username": item.username, "password": secret,
+        "secret_display": "ONCE", "expires_at": item.expires_at.isoformat()}
+    secret_response = record_secret_response(s, tenant_id=ctx["tenant"], resource_type="SMTP_CREDENTIAL",
+        resource_id=item.id, action="CREATE", payload=result, actor=ctx["sub"])
     audit_provider(s, ctx, "smtp_credential.created", "accepted", resource_id=item.id)
     s.commit()
     return {"credential_id": item.id, "username": item.username, "password": secret,
-        "secret_display": "ONCE", "expires_at": item.expires_at}
+        "secret_display": "ONCE", "expires_at": item.expires_at, **response_metadata(secret_response)}
 
 
 @router.post("/smtp/credentials/{credential_id}/rotate")
 def smtp_credential_rotate(credential_id: str, ctx=Depends(auth), s: Session = Depends(db)):
+    from .secret_responses import record_secret_response, response_metadata
     require_permission(ctx, "credential.manage")
     item = s.scalar(select(SmtpCredential).where(SmtpCredential.id == credential_id,
         SmtpCredential.tenant_id == ctx["tenant"], SmtpCredential.status == "ACTIVE"))
@@ -1316,9 +1334,13 @@ def smtp_credential_rotate(credential_id: str, ctx=Depends(auth), s: Session = D
     secret = secrets.token_urlsafe(36)
     item.secret_hash = smtp_hasher.hash(secret)
     item.rotated_at = now()
+    result = {"credential_id": item.id, "username": item.username, "password": secret,
+        "secret_display": "ONCE"}
+    secret_response = record_secret_response(s, tenant_id=ctx["tenant"], resource_type="SMTP_CREDENTIAL",
+        resource_id=item.id, action="ROTATE", payload=result, actor=ctx["sub"])
     audit_provider(s, ctx, "smtp_credential.rotated", "accepted", resource_id=item.id)
     s.commit()
-    return {"credential_id": item.id, "username": item.username, "password": secret, "secret_display": "ONCE"}
+    return {**result, **response_metadata(secret_response)}
 
 
 @router.post("/smtp/credentials/{credential_id}/revoke", status_code=204)

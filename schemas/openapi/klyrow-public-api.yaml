@@ -129,6 +129,40 @@
         "title": "BulkMailIn",
         "type": "object"
       },
+      "CampaignDispatchConfiguration": {
+        "properties": {
+          "segment_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment Id"
+          },
+          "sender_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Sender Id",
+            "type": "string"
+          },
+          "template_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Template Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sender_id",
+          "template_id"
+        ],
+        "title": "CampaignDispatchConfiguration",
+        "type": "object"
+      },
       "CampaignPatch": {
         "properties": {
           "name": {
@@ -1088,6 +1122,57 @@
         "title": "MemberIn",
         "type": "object"
       },
+      "MemberPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MemberView"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "MemberPage",
+        "type": "object"
+      },
+      "MemberView": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "user_id": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "role"
+        ],
+        "title": "MemberView",
+        "type": "object"
+      },
       "MfaEnableIn": {
         "properties": {
           "code": {
@@ -1209,6 +1294,34 @@
           "slug"
         ],
         "title": "OrgIn",
+        "type": "object"
+      },
+      "OrganizationView": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "status"
+        ],
+        "title": "OrganizationView",
         "type": "object"
       },
       "PaymentIn": {
@@ -3974,6 +4087,95 @@
           }
         ],
         "summary": "Revoke",
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/api-keys/{kid}/rotate": {
+      "post": {
+        "operationId": "rotate_key_v1_api_keys__kid__rotate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kid",
+            "required": true,
+            "schema": {
+              "title": "Kid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Rotate Key",
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
         "x-klyrow-enforced-auth-dependencies": [
@@ -8407,6 +8609,332 @@
         ]
       }
     },
+    "/v1/campaigns/{campaign_id}/dispatch-configuration": {
+      "put": {
+        "operationId": "campaign_dispatch_configuration_v1_campaigns__campaign_id__dispatch_configuration_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignDispatchConfiguration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Campaign Dispatch Configuration V1 Campaigns  Campaign Id  Dispatch Configuration Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Campaign Dispatch Configuration",
+        "tags": [
+          "Production API"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/campaigns/{campaign_id}/pause": {
+      "post": {
+        "operationId": "campaign_pause_v1_campaigns__campaign_id__pause_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Campaign Pause V1 Campaigns  Campaign Id  Pause Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Campaign Pause",
+        "tags": [
+          "Production API"
+        ],
+        "x-durable-idempotency": true,
+        "x-idempotency-model": "REQUEST_SCOPED_ATOMIC",
+        "x-idempotency-required": true,
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/campaigns/{campaign_id}/resume": {
+      "post": {
+        "operationId": "campaign_resume_v1_campaigns__campaign_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "campaign_id",
+            "required": true,
+            "schema": {
+              "title": "Campaign Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Campaign Resume V1 Campaigns  Campaign Id  Resume Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Campaign Resume",
+        "tags": [
+          "Production API"
+        ],
+        "x-durable-idempotency": true,
+        "x-idempotency-model": "REQUEST_SCOPED_ATOMIC",
+        "x-idempotency-required": true,
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
     "/v1/campaigns/{campaign_id}/schedule": {
       "post": {
         "operationId": "campaign_schedule_v1_campaigns__campaign_id__schedule_post",
@@ -10613,6 +11141,98 @@
           }
         ],
         "summary": "Api Key Revoke",
+        "tags": [
+          "Tenant authority"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/developer/api-keys/{item_id}/rotate": {
+      "post": {
+        "operationId": "api_key_rotate_v1_developer_api_keys__item_id__rotate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Api Key Rotate",
         "tags": [
           "Tenant authority"
         ],
@@ -15423,6 +16043,116 @@
         ]
       }
     },
+    "/v1/members": {
+      "get": {
+        "operationId": "members_v1_members_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "422": {
+            "description": "Invalid cursor or limit"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Members",
+        "tags": [
+          "Account"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
     "/v1/messages": {
       "get": {
         "operationId": "messages_v1_messages_get",
@@ -16605,6 +17335,97 @@
         "x-durable-idempotency": true,
         "x-idempotency-model": "REQUEST_SCOPED_ATOMIC",
         "x-idempotency-required": true,
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/organization": {
+      "get": {
+        "operationId": "organization_v1_organization_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Organization not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Organization",
+        "tags": [
+          "Account"
+        ],
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
         "x-klyrow-enforced-auth-dependencies": [
@@ -19113,6 +19934,98 @@
         "summary": "Remove Subaccount",
         "tags": [
           "Resellers"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/secret-responses/{response_id}": {
+      "get": {
+        "operationId": "secret_response_get_v1_secret_responses__response_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "response_id",
+            "required": true,
+            "schema": {
+              "title": "Response Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Secret Response Get",
+        "tags": [
+          "Credentials"
         ],
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
@@ -23252,6 +24165,95 @@
           }
         ],
         "summary": "Webhook Add",
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/webhooks/{wid}/rotate": {
+      "post": {
+        "operationId": "webhook_rotate_v1_webhooks__wid__rotate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "wid",
+            "required": true,
+            "schema": {
+              "title": "Wid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Webhook Rotate",
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
         "x-klyrow-enforced-auth-dependencies": [

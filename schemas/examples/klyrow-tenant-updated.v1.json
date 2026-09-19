@@ -1,0 +1,16 @@
+{
+  "causation_id": "cause_example",
+  "correlation_id": "cor_example",
+  "data": {
+    "enabled": false,
+    "name": "Example",
+    "organization_id": "org_example",
+    "tenant_id": "tnt_example"
+  },
+  "id": "evt_klyrow_tenant_updated",
+  "occurred_at": "2026-09-13T00:00:00Z",
+  "source": "klyrow",
+  "tenant_id": "tnt_example",
+  "type": "klyrow.tenant.updated",
+  "version": 1
+}

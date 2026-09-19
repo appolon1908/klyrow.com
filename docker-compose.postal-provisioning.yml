@@ -1,7 +1,7 @@
 services:
   gateway:
     environment:
-      KLYROW_REQUIRED_SCHEMA_VERSION: 2026090208_runtime_database_least_privilege.sql
+      KLYROW_REQUIRED_SCHEMA_VERSION: 2026091302_m07_business_event_runtime.sql
       KLYROW_TENANT_POSTAL_PROVISIONING_ENABLED: "true"
       KLYROW_ALLOW_LEGACY_GLOBAL_POSTAL_KEY: "false"
       KLYROW_PROVIDER_CREDENTIAL_KEY_FILE: /run/secrets/klyrow_provider_credential_key

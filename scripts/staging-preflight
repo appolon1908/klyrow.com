@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="${1:-$ROOT/deploy/staging/staging.env}"
+[[ -f "$ENV_FILE" ]] || { echo "Missing staging environment file: $ENV_FILE" >&2; exit 2; }
+set -a; source "$ENV_FILE"; set +a
+
+fail() { echo "staging-preflight: $*" >&2; exit 2; }
+for name in KLYROW_GATEWAY_IMAGE KLYROW_WEB_IMAGE KLYROW_MIGRATE_IMAGE KLYROW_SEARCH_IMAGE KLYROW_CADDY_IMAGE KLYROW_POSTGRES_IMAGE KLYROW_PROMETHEUS_IMAGE KLYROW_GRAFANA_IMAGE KLYROW_NODE_EXPORTER_IMAGE; do
+  value="${!name:-}"
+  [[ "$value" =~ @sha256:[0-9a-f]{64}$ ]] || fail "$name must be pinned by sha256 digest"
+done
+for name in KLYROW_SOURCE_SHA KLYROW_MIDDLEWARE_SOURCE_SHA KLYROW_ODOO_SOURCE_SHA; do
+  [[ "${!name:-}" =~ ^[0-9a-f]{40}$ ]] || fail "$name must be an exact 40-character commit SHA"
+done
+[[ "$KLYROW_SOURCE_SHA" = "$(git -C "$ROOT" rev-parse HEAD)" ]] || fail "declared source differs from checkout"
+[[ -z "$(git -C "$ROOT" status --porcelain --untracked-files=no)" ]] || fail "checkout has uncommitted changes"
+[[ "${KLYROW_STAGING_HOST:-}" = staging.klyrow.com ]] || fail "unexpected staging host"
+[[ "${KLYROW_KEYCLOAK_URL:-}" = https://auth.codestra.co ]] || fail "unexpected identity issuer"
+[[ "${KLYROW_MIDDLEWARE_MIGRATION:-}" = 0061 ]] || fail "Middleware migration 0061 is required"
+[[ "${KLYROW_ODOO_ADDON:-}" = codestra_observability_integration ]] || fail "unexpected Odoo addon"
+[[ "${KLYROW_KEYCLOAK_REALM:-}" = codestra ]] || fail "the canonical Codestra realm must be selected"
+[[ "${KLYROW_OIDC_CLIENT_ID:-}" = klyrow-staging-portal ]] || fail "the isolated Klyrow staging client must be selected"
+[[ "${KLYROW_OIDC_AUDIENCE:-}" = klyrow-api ]] || fail "the Klyrow API audience is required"
+[[ "${KLYROW_STAGING_SECRET_DIR:-}" = /* ]] || fail "secret directory must be absolute"
+[[ -d "$KLYROW_STAGING_SECRET_DIR" ]] || fail "OpenBao-rendered secret directory is absent"
+for file in database-owner-password database-runtime-password session-secret result-keyring.json metrics-token middleware-token search-key provider-credential-key grafana-password webhook-secret middleware-ca.pem middleware-client.pem middleware-client-key.pem; do
+  path="$KLYROW_STAGING_SECRET_DIR/$file"
+  [[ -f "$path" && ! -L "$path" ]] || fail "missing regular secret file: $file"
+  [[ "$(stat -c %u "$path")" = 0 ]] || fail "secret must be root owned: $file"
+  mode="$(stat -c %a "$path")"
+  [[ "$mode" = 400 || "$mode" = 440 || "$mode" = 600 || "$mode" = 640 ]] || fail "unsafe mode $mode on $file"
+done
+docker compose --env-file "$ENV_FILE" -f "$ROOT/deploy/staging/compose.yml" config --quiet
+docker compose --env-file "$ENV_FILE" -f "$ROOT/deploy/staging/compose.yml" config | grep -Eq 'published: "?(80|443)"?$' || fail "edge ports missing"
+if docker compose --env-file "$ENV_FILE" -f "$ROOT/deploy/staging/compose.yml" config | grep -Eq 'published: "?(3000|3100|3200|7700|9090|9093|9100|12345)"?$'; then
+  fail "native monitoring/search port is published"
+fi
+echo "STAGING_PREFLIGHT=PASS"

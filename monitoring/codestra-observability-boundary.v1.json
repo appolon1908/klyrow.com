@@ -1,0 +1,150 @@
+{
+  "schema_version": "1.1",
+  "application": "klyrow.com",
+  "product": "Kyyow Communications Cloud",
+  "status": "SOURCE_READY_PENDING_EXTERNAL_CERTIFICATION",
+  "authority": "appolon1908-hue/klyrow.com",
+  "components": {
+    "Codestra-Prometheus": {
+      "role": "collects_recording_rules_and_evaluates_technical_alerts",
+      "odoo_write": false
+    },
+    "Codestra-Alertmanager": {
+      "role": "deduplicates_groups_and_routes_alerts_to_klyrow_ingress",
+      "odoo_write": false
+    },
+    "Codestra-Grafana": {
+      "role": "read_only_operational_dashboards",
+      "odoo_write": false
+    },
+    "Codestra-Telemetry": {
+      "role": "telemetry_pipeline",
+      "odoo_write": false
+    },
+    "Codestra-Alloy": {
+      "role": "collects_and_forwards_metrics_logs_and_traces",
+      "odoo_write": false
+    },
+    "Codestra-Loki": {
+      "role": "log_storage_and_query",
+      "odoo_write": false
+    },
+    "Codestra-Tempo": {
+      "role": "trace_storage_and_query",
+      "odoo_write": false
+    },
+    "Codestra-Node-Exporter": {
+      "role": "host_metrics",
+      "odoo_write": false
+    },
+    "Codestra-cAdvisor": {
+      "role": "container_metrics",
+      "odoo_write": false
+    },
+    "Codestra-Redis-Exporter": {
+      "role": "redis_metrics",
+      "odoo_write": false
+    },
+    "Codestra-Blackbox-Exporter": {
+      "role": "endpoint_and_tls_probes",
+      "odoo_write": false
+    },
+    "Codestra-Postgres-Exporter": {
+      "role": "postgres_metrics",
+      "odoo_write": false
+    },
+    "Superset": {
+      "role": "read_only_business_analytics",
+      "odoo_write": false
+    },
+    "Codestra-OpenBao": {
+      "role": "secrets_and_credential_references",
+      "odoo_write": false
+    }
+  },
+  "integration_targets": {
+    "Middleware": {
+      "role": "sole_cross_system_operational_write_boundary",
+      "accepts": [
+        "kyyow.observability.incident.v1",
+        "kyyow.observability.kpi.v1",
+        "Klyrow delivery and usage events"
+      ],
+      "writes_odoo": true
+    },
+    "Odoo": {
+      "role": "Kyyow Superadmin control center",
+      "receives": [
+        "normalized incidents",
+        "KPI snapshots",
+        "service health summaries",
+        "integration runs and failures",
+        "usage and deliverability summaries"
+      ],
+      "direct_writers": [
+        "Middleware"
+      ]
+    }
+  },
+  "canonical_projection": {
+    "source_repository": "appolon1908-hue/Middleware-",
+    "source_ref": "main",
+    "source_commit_sha": "61d899f98048f4465303cdcb616a4c9f5a35ceb5",
+    "source_path": "contracts/observability/odoo-sync.v1.json",
+    "source_blob_sha": "993d89a9649a85d50ef431fa9d8e30fff7c660f3",
+    "consumer_implementation_path": "app/api/v1/observability_sync.py",
+    "consumer_implementation_blob_sha": "8748512f71d3856785abb5113e056eb975102421",
+    "vendored_path": "monitoring/kyyow-observability-sync-v1.json",
+    "middleware_operations": [
+      {
+        "method": "POST",
+        "path": "/v1/observability/kpis",
+        "operation": "observability.kpis.create",
+        "schema": "kyyow.observability.kpi.v1"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/observability/incidents",
+        "operation": "observability.incidents.upsert",
+        "schema": "kyyow.observability.incident.v1"
+      }
+    ],
+    "odoo_operations": [
+      "odoo.observability.kpis.create",
+      "odoo.observability.incidents.upsert"
+    ]
+  },
+  "klyrow_contract": {
+    "service_id": "klyrow-gateway",
+    "metrics_path": "/metrics",
+    "health_path": "/health/ready",
+    "readiness_path": "/v1/internal/integrations/odoo/health",
+    "observability_contract_path": "/v1/internal/integrations/observability/contract",
+    "internal_routes": [
+      "POST /v1/internal/integrations/alertmanager/events",
+      "POST /v1/internal/integrations/kpis/snapshots",
+      "GET /v1/internal/integrations/odoo/health",
+      "GET /v1/internal/integrations/odoo/checkpoints",
+      "GET /v1/internal/integrations/observability/contract"
+    ],
+    "outbox_target": "MIDDLEWARE_OBSERVABILITY",
+    "outbox_transport": "Klyrow durable OIDC plus mTLS relay to canonical Middleware observability API; Middleware durable Odoo result-delivery worker",
+    "delivery_worker_role": "observability",
+    "delivery_enabled_by_default": false,
+    "direct_odoo_database_write": false
+  },
+  "activation_gates": [
+    "immutable release and image digest verified",
+    "vendored canonical contract source blob verified",
+    "Prometheus private scrape credential installed",
+    "Alertmanager private ingress route verified",
+    "Klyrow observability relay profile deployed but disabled",
+    "Middleware observability service identity, tenant, service, observation sources and exact scopes verified",
+    "private mTLS Klyrow to Middleware route verified",
+    "Middleware to Odoo JSON-2 adapter and credentials verified",
+    "firing and resolved incident deduplication evidence recorded",
+    "KPI snapshot Middleware acceptance and Odoo read-back evidence recorded",
+    "restore and rollback rehearsal passed",
+    "safe email delivery gate remains independently approved"
+  ]
+}

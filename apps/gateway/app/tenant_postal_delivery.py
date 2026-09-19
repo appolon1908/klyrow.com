@@ -7,6 +7,8 @@ import os
 import uuid
 from datetime import timedelta
 
+from .telemetry import traced, trace_carrier, stored_carrier
+
 import httpx
 from sqlalchemy import or_, select
 
@@ -169,6 +171,7 @@ async def tenant_email_outbox_loop() -> None:
                     item.tenant_id,
                     item.payload,
                     key,
+                    item.trace_context_json,
                 )
                 session.commit()
 
@@ -180,19 +183,21 @@ async def tenant_email_outbox_loop() -> None:
             postal_host = os.getenv("KLYROW_POSTAL_API_HOST_HEADER", "").strip()
             if postal_host:
                 headers["Host"] = postal_host
-            async with httpx.AsyncClient(
-                timeout=10, trust_env=False, follow_redirects=False
-            ) as client:
-                response = await client.post(
-                    os.environ["KLYROW_POSTAL_API_URL"] + "/api/v1/send/message",
-                    headers=headers,
-                    json=request_payload,
-                )
-                response.raise_for_status()
-                provider_id = str(
-                    response.json().get("data", {}).get("message_id")
-                    or snapshot[1]
-                )
+            with traced("postal tenant submit", stored_carrier(snapshot[5])):
+                headers.update(trace_carrier())
+                async with httpx.AsyncClient(
+                    timeout=10, trust_env=False, follow_redirects=False
+                ) as client:
+                    response = await client.post(
+                        os.environ["KLYROW_POSTAL_API_URL"] + "/api/v1/send/message",
+                        headers=headers,
+                        json=request_payload,
+                    )
+                    response.raise_for_status()
+                    provider_id = str(
+                        response.json().get("data", {}).get("message_id")
+                        or snapshot[1]
+                    )
             with DB() as session:
                 item = session.get(EmailOutbox, snapshot[0])
                 message = session.get(Message, snapshot[1])

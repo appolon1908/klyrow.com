@@ -1,0 +1,88 @@
+# Apply after the Middleware inbox migration and private authenticated smoke test.
+# Credentials/certificates are OpenBao-rendered files; no Odoo access is granted.
+services:
+  gateway:
+    environment:
+      KLYROW_BUSINESS_EVENTS_ENABLED: '${KLYROW_BUSINESS_EVENTS_ENABLED:-false}'
+  worker:
+    environment:
+      KLYROW_BUSINESS_EVENTS_ENABLED: '${KLYROW_BUSINESS_EVENTS_ENABLED:-false}'
+  business-events:
+    image: '${KLYROW_GATEWAY_IMAGE:?set the exact protected gateway image by digest}'
+    profiles: [business-events]
+    environment:
+      KLYROW_ENV: production
+      KLYROW_WORKER_ROLE: business
+      KLYROW_DATABASE_URL: postgresql+psycopg://klyrow_runtime@postgres:5432/klyrow
+      KLYROW_DATABASE_PASSWORD_FILE: /run/secrets/klyrow_database_runtime_password
+      KLYROW_SESSION_SECRET_FILE: /run/secrets/klyrow_session_secret
+      KLYROW_REQUIRED_SCHEMA_VERSION: 2026091302_m07_business_event_runtime.sql
+      KLYROW_BUSINESS_EVENTS_URL: '${KLYROW_BUSINESS_EVENTS_URL:?set the private canonical Middleware HTTPS endpoint}'
+      KLYROW_BUSINESS_EVENTS_TOKEN_FILE: /run/secrets/klyrow_business_events_token
+      KLYROW_BUSINESS_EVENTS_HMAC_SECRET_FILE: /run/secrets/klyrow_business_events_hmac_secret
+      KLYROW_BUSINESS_EVENTS_ENABLED: '${KLYROW_BUSINESS_EVENTS_ENABLED:-false}'
+      KLYROW_BUSINESS_EVENTS_CA_FILE: /run/business-events-tls/ca.crt
+      KLYROW_BUSINESS_EVENTS_CLIENT_CERT_FILE: /run/business-events-tls/client.crt
+      KLYROW_BUSINESS_EVENTS_CLIENT_KEY_FILE: /run/business-events-tls/client.key
+      KLYROW_SAFE_MODE: "true"
+      KLYROW_PRODUCTION_GATE_APPROVED: "false"
+      LIVE_EMAIL_DELIVERY: "false"
+      EXTERNAL_EMAIL_DELIVERY: "false"
+      PRODUCTION_PROVIDER_ROUTING: "false"
+    command: [python, -m, app.service_worker]
+    secrets: [klyrow_database_runtime_password, klyrow_session_secret, klyrow_business_events_token, klyrow_business_events_hmac_secret]
+    volumes:
+      - '${KLYROW_BUSINESS_EVENTS_TLS_DIR:?set the OpenBao-rendered mTLS directory}:/run/business-events-tls:ro'
+    depends_on:
+      postgres: {condition: service_healthy}
+      gateway-migrate: {condition: service_completed_successfully}
+    networks: [backend, frontend]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/live')"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+  campaign-dispatcher:
+    image: '${KLYROW_GATEWAY_IMAGE:?set the exact protected gateway image by digest}'
+    profiles: [campaign-dispatcher]
+    environment:
+      KLYROW_ENV: production
+      KLYROW_WORKER_ROLE: campaign
+      KLYROW_DATABASE_URL: postgresql+psycopg://klyrow_runtime@postgres:5432/klyrow
+      KLYROW_DATABASE_PASSWORD_FILE: /run/secrets/klyrow_database_runtime_password
+      KLYROW_SESSION_SECRET_FILE: /run/secrets/klyrow_session_secret
+      KLYROW_REQUIRED_SCHEMA_VERSION: 2026091302_m07_business_event_runtime.sql
+      KLYROW_CAMPAIGN_DISPATCHER_ENABLED: '${KLYROW_CAMPAIGN_DISPATCHER_ENABLED:-false}'
+      KLYROW_CAMPAIGN_DISPATCHER_SANDBOX: "true"
+      KLYROW_CAMPAIGN_DISPATCHER_ALLOW_LIVE: "false"
+      KLYROW_SAFE_MODE: "true"
+      KLYROW_PRODUCTION_GATE_APPROVED: "false"
+      LIVE_EMAIL_DELIVERY: "false"
+      EXTERNAL_EMAIL_DELIVERY: "false"
+      PRODUCTION_PROVIDER_ROUTING: "false"
+    command: [python, -m, app.service_worker]
+    secrets: [klyrow_database_runtime_password, klyrow_session_secret]
+    depends_on:
+      postgres: {condition: service_healthy}
+      gateway-migrate: {condition: service_completed_successfully}
+    networks: [backend]
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/live')"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+secrets:
+  klyrow_business_events_token:
+    file: '${KLYROW_BUSINESS_EVENTS_TOKEN_FILE:?set the OpenBao-rendered service JWT file}'
+  klyrow_business_events_hmac_secret:
+    file: '${KLYROW_BUSINESS_EVENTS_HMAC_SECRET_FILE:?set the OpenBao-rendered HMAC secret file}'

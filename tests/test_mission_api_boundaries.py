@@ -10,7 +10,7 @@ from apps.gateway.app.production_api import health_live, health_ready
 
 
 @pytest.mark.parametrize("path", [
-    "/internal/v1/events/klyrow", "/internal/v1/alerts/alertmanager",
+    "/internal/v1/alerts/alertmanager",
     "/internal/v1/kpis", "/internal/v1/odoo/sync-status",
     "/v1/internal/email/send", "/metrics",
 ])

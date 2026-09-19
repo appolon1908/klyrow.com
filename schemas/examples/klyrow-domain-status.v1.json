@@ -1,0 +1,16 @@
+{
+  "causation_id": "cause_example",
+  "correlation_id": "cor_example",
+  "data": {
+    "domain": "example.test",
+    "domain_id": "dom_example",
+    "status": "VERIFIED",
+    "verified_at": "2026-09-13T00:00:00Z"
+  },
+  "id": "evt_klyrow_domain_status",
+  "occurred_at": "2026-09-13T00:00:00Z",
+  "source": "klyrow",
+  "tenant_id": "tnt_example",
+  "type": "klyrow.domain.status",
+  "version": 1
+}

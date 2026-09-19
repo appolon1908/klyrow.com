@@ -1,27 +1,17 @@
-# Campaign scheduling availability
+# Campaign scheduling runtime
 
-The current runtime has no scheduled-campaign dispatcher. Both
-`POST /v1/campaigns/{id}/schedule` and
-`POST /v1/campaign-definitions/{id}/schedule` reject valid future requests with
-HTTP 409 and `campaign_dispatcher_unavailable`. They require `campaign.manage`
-and a tenant-owned campaign. Existing validation errors still apply.
+M07 implements scheduled public Klyrow campaigns behind the disabled-by-default `KLYROW_CAMPAIGN_DISPATCHER_ENABLED` feature flag. A disabled dispatcher rejects new schedules with HTTP 409 `campaign_dispatcher_unavailable` and does not replay previously sealed success responses.
 
-No schedule, idempotent success, audit success, or outbox work is written.
-Retrying the same key cannot return an earlier accepted scheduling promise.
-Previously persisted schedules remain historical data; operators must review
-them before any future dispatcher is activated. This change never sends them.
+An enabled schedule freezes the campaign version, published template version, sender, and deduplicated audience in the same database transaction. The worker uses a lease owner plus monotonically increasing fence token, evaluates global and campaign suppressions, and admits each recipient through the existing Klyrow provider message pipeline. It does not contain a second delivery engine.
 
-Scheduling can become available only with a tested dispatcher that provides
-leases, idempotent submission, retry limits, coordinated cancellation,
-observability, and rollback. A successful API test or preflight does not prove
-that campaign delivery exists.
+The durable recipient identity is:
 
-## Validation and rollback
+```text
+campaign_id + campaign_version + sha256(normalized recipient)
+```
 
-`tests/test_campaign_scheduling_truth.py` exercises both HTTP surfaces, repeat
-requests, permission denial, and absence of scheduling or outbox side effects.
-The existing mutation and messaging suites cover validation and cancellation.
-No database migration or runtime secret change is required. Reverting this
-guard would restore a false acceptance response; keep the guard until a
-dispatcher is reviewed and certified. Existing delivery activation gates remain
-required.
+Retries reuse that identity as the message-admission idempotency key. A crash after message admission therefore recovers the existing queued message rather than creating a duplicate.
+
+Pause clears active dispatch leases and preserves pending work. Resume continues the frozen version. Cancel marks undispatched recipient items cancelled and creates one terminal `klyrow.campaign.summary` business event. Normal completion creates the same bounded business summary without recipient addresses.
+
+The optional Compose profile keeps sandbox delivery enabled and explicitly keeps live delivery disabled. M07 does not authorize production activation.

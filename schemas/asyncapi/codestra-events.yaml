@@ -1,0 +1,362 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "integration": {
+      "address": "codestra.integration.events",
+      "messages": {
+        "event": {
+          "$ref": "#/components/messages/integration"
+        }
+      }
+    },
+    "klyrow": {
+      "address": "codestra.klyrow.events",
+      "messages": {
+        "event": {
+          "$ref": "#/components/messages/klyrow"
+        }
+      }
+    },
+    "telnexa": {
+      "address": "codestra.telnexa.events",
+      "messages": {
+        "event": {
+          "$ref": "#/components/messages/telnexa"
+        }
+      }
+    },
+    "vicidial": {
+      "address": "codestra.vicidial.events",
+      "messages": {
+        "event": {
+          "$ref": "#/components/messages/vicidial"
+        }
+      }
+    }
+  },
+  "components": {
+    "messages": {
+      "integration": {
+        "name": "integrationBusinessEvent",
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "causation_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Causation Id",
+              "type": "string"
+            },
+            "correlation_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Correlation Id",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": true,
+              "title": "Data",
+              "type": "object"
+            },
+            "id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "occurred_at": {
+              "format": "date-time",
+              "title": "Occurred At",
+              "type": "string"
+            },
+            "source": {
+              "const": "integration"
+            },
+            "tenant_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Tenant Id",
+              "type": "string"
+            },
+            "type": {
+              "maxLength": 120,
+              "pattern": "^[a-z]+\\.[a-z][a-z0-9_.]+$",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "source",
+            "tenant_id",
+            "correlation_id",
+            "causation_id",
+            "occurred_at",
+            "data"
+          ],
+          "title": "EventEnvelope",
+          "type": "object"
+        }
+      },
+      "klyrow": {
+        "name": "klyrowBusinessEvent",
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "causation_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Causation Id",
+              "type": "string"
+            },
+            "correlation_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Correlation Id",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": true,
+              "title": "Data",
+              "type": "object"
+            },
+            "id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "occurred_at": {
+              "format": "date-time",
+              "title": "Occurred At",
+              "type": "string"
+            },
+            "source": {
+              "const": "klyrow"
+            },
+            "tenant_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Tenant Id",
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "klyrow.tenant.created",
+                "klyrow.subscription.changed",
+                "klyrow.email.accepted",
+                "klyrow.email.delivered",
+                "klyrow.email.bounced",
+                "klyrow.email.complained",
+                "klyrow.campaign.summary",
+                "klyrow.usage.daily",
+                "klyrow.kpi.daily",
+                "klyrow.domain.status",
+                "klyrow.provider.health",
+                "klyrow.account.held"
+              ],
+              "maxLength": 120,
+              "pattern": "^[a-z]+\\.[a-z][a-z0-9_.]+$",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "source",
+            "tenant_id",
+            "correlation_id",
+            "causation_id",
+            "occurred_at",
+            "data"
+          ],
+          "title": "EventEnvelope",
+          "type": "object"
+        }
+      },
+      "telnexa": {
+        "name": "telnexaBusinessEvent",
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "causation_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Causation Id",
+              "type": "string"
+            },
+            "correlation_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Correlation Id",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": true,
+              "title": "Data",
+              "type": "object"
+            },
+            "id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "occurred_at": {
+              "format": "date-time",
+              "title": "Occurred At",
+              "type": "string"
+            },
+            "source": {
+              "const": "telnexa"
+            },
+            "tenant_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Tenant Id",
+              "type": "string"
+            },
+            "type": {
+              "maxLength": 120,
+              "pattern": "^[a-z]+\\.[a-z][a-z0-9_.]+$",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "source",
+            "tenant_id",
+            "correlation_id",
+            "causation_id",
+            "occurred_at",
+            "data"
+          ],
+          "title": "EventEnvelope",
+          "type": "object"
+        }
+      },
+      "vicidial": {
+        "name": "vicidialBusinessEvent",
+        "payload": {
+          "additionalProperties": false,
+          "properties": {
+            "causation_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Causation Id",
+              "type": "string"
+            },
+            "correlation_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Correlation Id",
+              "type": "string"
+            },
+            "data": {
+              "additionalProperties": true,
+              "title": "Data",
+              "type": "object"
+            },
+            "id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "occurred_at": {
+              "format": "date-time",
+              "title": "Occurred At",
+              "type": "string"
+            },
+            "source": {
+              "const": "vicidial"
+            },
+            "tenant_id": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Tenant Id",
+              "type": "string"
+            },
+            "type": {
+              "maxLength": 120,
+              "pattern": "^[a-z]+\\.[a-z][a-z0-9_.]+$",
+              "title": "Type",
+              "type": "string"
+            },
+            "version": {
+              "const": 1,
+              "default": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "source",
+            "tenant_id",
+            "correlation_id",
+            "causation_id",
+            "occurred_at",
+            "data"
+          ],
+          "title": "EventEnvelope",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "title": "Codestra business events",
+    "version": "1.0.0"
+  },
+  "operations": {
+    "receive_integration": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/integration"
+      }
+    },
+    "receive_klyrow": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/klyrow"
+      }
+    },
+    "receive_telnexa": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/telnexa"
+      }
+    },
+    "receive_vicidial": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/vicidial"
+      }
+    }
+  }
+}

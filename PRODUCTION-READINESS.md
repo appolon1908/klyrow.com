@@ -13,19 +13,20 @@ not installation or activation of other Codestra repositories.
 | --- | --- | --- |
 | Repository/API/secret-reference inventory | PASS | `docs/architecture/current-state.md`, generated `docs/api/` and `docs/security/secret-references.json` |
 | Middleware-only Odoo writer ADR | PASS | `docs/adr/ADR-001-middleware-only-odoo-writer.md` |
-| OpenAPI validation and audience separation | PASS | `python scripts/validate-api-contracts.py`; 353 operations across four exports |
+| OpenAPI validation and audience separation | PASS | `python scripts/validate-api-contracts.py`; 355 operations across four exports |
 | Template-version history API | PASS | Cursor pagination, immutable content, authentication, cross-tenant and wrong-parent tests |
 | Usage-history API | PASS | Tenant/unit SQL aggregation, bounded UTC windows, cursor validation and redacted failure tests; PostgreSQL timezone test is part of CI |
 | Database outage readiness | PASS | `/health/ready` reports redacted 503; liveness is independent |
 | Source/packaging Odoo-writer guardrails | PASS | `tests/test_odoo_writer_architecture.py`; not a live network/ACL test |
 | Generated TypeScript API types/client compilation | PASS | Pinned openapi-typescript generation and TypeScript compiler in contract CI |
 | Contract drift/compatibility checks | PASS | Generated-file comparison and conservative operation/schema/security diff; initial exports have no predecessor at baseline |
-| Python regression checks | PASS | Python 3.12 full run: 1,256 passed, 20 skipped in 1,142 seconds. Isolated PostgreSQL 17.6 usage suite: 19 passed, including UTC grouping and transaction-local timeout reset. Focused contract/boundary checks also pass. Skipped environment gates are not certified |
+| Python regression checks | PASS | Python 3.12 regression: 1,278 passed, 20 skipped, three stale count/migration expectations failed and were corrected; the affected checks pass on rerun. Separate browser/Postal checks: 24 passed. PostgreSQL usage/outbox and final focused checks are recorded in the PR. This is not a clean all-green full-suite rerun or runtime certification |
 | Full-history and staged-change secret scan | PASS | Five reviewed historical findings were TestClient `Idempotency-Key` values, not credentials; exact commit/file/line exclusions in `.gitleaksignore`, no broad file/rule suppression |
-| All M06 target operations and typed response schemas | FAIL | Existing API remains broader/different than the target; template and usage history added, remaining contract gaps inventoried |
-| AsyncAPI and normalized M07 summary production | FAIL | Existing signed event protocol differs from the new envelope; coordinated producer/consumer migration remains |
+| All M06 target operations and typed response schemas | FAIL | Existing API remains broader/different than the target; template/usage history and canonical organization/member views added; remaining target-operation/typed-schema gaps still need implementation |
+| AsyncAPI and normalized M07 summary production | PASS | Versioned schemas/examples, durable daily snapshot outbox, bounded publisher and optional Compose role; live consumer deployment remains a production gate |
 | Full Odoo KPI writer/reconciler | FAIL | Included worker handles inbound mail, not the complete daily KPI loop; existing Odoo model mappings unavailable in this repo |
-| OTLP instrumentation and end-to-end traces | FAIL | SDK/exporter configuration and runtime trace proof remain |
+| OTLP SDK and propagation source | PASS | Bounded OTLP/HTTP exporter, durable W3C context and both Postal delivery paths instrumented; redaction and instrumentation-failure tests pass |
+| Deployed end-to-end traces | FAIL | A fresh API → outbox → Postal trace in the private collector is still required |
 | PostgreSQL RLS | FAIL | Runtime role is restricted, but table policies are not implemented in checked-in migrations |
 
 ## Required production gates
@@ -70,3 +71,11 @@ provider configuration, DNS record or external service was changed.
 Rollback by reverting this source change and regenerating schema/type snapshots;
 redeploy the previous approved immutable image through the normal promotion
 process if needed. There is no data rollback and no accepted-message deletion.
+
+## Mission-gap implementation
+
+See `docs/adr/ADR-005-normalized-business-events-and-traces.md` for deployment
+order, event semantics, rollback and remaining acceptance. The M33 evidence
+validator rejects missing/stale results and release-identity or artifact-hash
+mismatches. Trusted signature verification is required before using it; it does
+not turn fixture assertions into production evidence or enable delivery.

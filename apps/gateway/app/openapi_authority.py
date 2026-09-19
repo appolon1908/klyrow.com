@@ -54,6 +54,11 @@ POSTAL_SIGNATURE_PATHS = {
     "/v1/webhooks/postal-native",
 }
 DEDICATED_SERVICE_PATHS = {
+    "/v1/internal/integrations/alertmanager/events",
+    "/v1/internal/integrations/kpis/snapshots",
+    "/v1/internal/integrations/odoo/health",
+    "/v1/internal/integrations/odoo/checkpoints",
+    "/v1/internal/integrations/observability/contract",
     "/v1/internal/email/beyvra/send",
 }
 
@@ -72,6 +77,8 @@ DURABLE_IDEMPOTENCY = {
     ("post", "/v1/campaigns"),
     ("post", "/v1/messages/{message_id}/cancel"),
     ("post", "/v1/campaigns/{campaign_id}/schedule"),
+    ("post", "/v1/campaigns/{campaign_id}/pause"),
+    ("post", "/v1/campaigns/{campaign_id}/resume"),
     ("post", "/v1/campaigns/{campaign_id}/cancel"),
     ("post", "/v1/operations/{operation_id}/cancel"),
     ("post", "/v1/operations/{operation_id}/reconcile"),
@@ -95,6 +102,8 @@ CLASSIFIED_IDEMPOTENCY = REQUIRED_IDEMPOTENCY | OPTIONAL_IDEMPOTENCY
 
 RECOGNIZED_AUTH_DEPENDENCIES = {
     "auth": "bearerAuth",
+    "require_observability_read": "serviceBearer",
+    "require_observability_write": "serviceBearer",
     "beyvra_service_auth": "serviceBearer",
     "browser_context": "browserSession",
     "csrf_guard": "browserCsrf",
@@ -309,6 +318,12 @@ def _validate_dependency_security(
     )
     for dependency in enforced:
         required_scheme = RECOGNIZED_AUTH_DEPENDENCIES[dependency]
+        # The observability guard narrows its underlying auth dependency to
+        # service identities with an explicit observability grant.
+        if dependency == "auth" and dependencies.intersection({
+            "require_observability_read", "require_observability_write",
+        }):
+            required_scheme = "serviceBearer"
         if required_scheme not in schemes:
             raise RuntimeError(
                 f"OpenAPI auth mismatch for {method.upper()} {path}: "

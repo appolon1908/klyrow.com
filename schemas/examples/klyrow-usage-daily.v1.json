@@ -1,0 +1,16 @@
+{
+  "causation_id": "cause_example",
+  "correlation_id": "cor_example",
+  "data": {
+    "date": "2026-09-12",
+    "quantity": 123,
+    "snapshot_at": "2026-09-13T00:00:00Z",
+    "unit": "accepted_message"
+  },
+  "id": "evt_klyrow_usage_daily",
+  "occurred_at": "2026-09-13T00:00:00Z",
+  "source": "klyrow",
+  "tenant_id": "tnt_example",
+  "type": "klyrow.usage.daily",
+  "version": 1
+}

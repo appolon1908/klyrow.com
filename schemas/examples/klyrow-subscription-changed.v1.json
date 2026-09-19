@@ -1,0 +1,18 @@
+{
+  "causation_id": "cause_example",
+  "correlation_id": "cor_example",
+  "data": {
+    "effective_at": "2026-09-13T00:00:00Z",
+    "plan_id": "plan_email",
+    "price_id": "price_v1",
+    "status": "ACTIVE",
+    "subscription_id": "sub_example",
+    "version": 2
+  },
+  "id": "evt_klyrow_subscription_changed",
+  "occurred_at": "2026-09-13T00:00:00Z",
+  "source": "klyrow",
+  "tenant_id": "tnt_example",
+  "type": "klyrow.subscription.changed",
+  "version": 1
+}

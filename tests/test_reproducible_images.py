@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -222,4 +223,10 @@ def test_all_third_party_workflow_actions_are_commit_pinned():
         if "uses:" in line
     ]
     assert uses
-    assert all(len(reference.rsplit("@", 1)[1]) == 40 for reference in uses)
+    for reference in uses:
+        if reference.startswith("./"):
+            assert "@" not in reference
+            assert (ROOT / reference).resolve().is_relative_to(ROOT.resolve())
+            assert (ROOT / reference).exists()
+        else:
+            assert re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference), reference

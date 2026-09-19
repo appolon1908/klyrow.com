@@ -9,7 +9,9 @@ backups/
 __pycache__/
 .pytest_cache/
 .venv/
+.venv*/
 *.pyc
+*.db-journal
 backups/
 secrets/
 postal-data/
@@ -19,3 +21,6 @@ apps/web/node_modules/
 apps/web/dist/
 apps/web/test-results/
 apps/web/playwright-report/
+
+# Local contract-validator dependencies
+/tools/contracts/node_modules/

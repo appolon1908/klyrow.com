@@ -1,0 +1,19 @@
+{
+  "causation_id": "cause_example",
+  "correlation_id": "cor_example",
+  "data": {
+    "audience_count": 100,
+    "campaign_id": "cmp_example",
+    "campaign_version": 1,
+    "delivered_count": 96,
+    "failed_count": 1,
+    "status": "COMPLETED",
+    "suppressed_count": 3
+  },
+  "id": "evt_klyrow_campaign_summary",
+  "occurred_at": "2026-09-13T00:00:00Z",
+  "source": "klyrow",
+  "tenant_id": "tnt_example",
+  "type": "klyrow.campaign.summary",
+  "version": 1
+}

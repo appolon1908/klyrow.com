@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="${1:-$ROOT/deploy/staging/staging.env}"
+[[ "${KLYROW_STAGING_CONFIRM:-}" = "DEPLOY-KLYROW-STAGING" ]] || { echo "Set KLYROW_STAGING_CONFIRM=DEPLOY-KLYROW-STAGING" >&2; exit 2; }
+"$ROOT/scripts/staging-preflight" "$ENV_FILE"
+set -a; source "$ENV_FILE"; set +a
+mkdir -p "$KLYROW_STAGING_EVIDENCE_DIR"
+COMPOSE=(docker compose --env-file "$ENV_FILE" -f "$ROOT/deploy/staging/compose.yml")
+"${COMPOSE[@]}" pull
+for name in KLYROW_GATEWAY_IMAGE KLYROW_WEB_IMAGE KLYROW_MIGRATE_IMAGE; do
+  revision="$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "${!name}")"
+  [[ "$revision" = "$KLYROW_SOURCE_SHA" ]] || { echo "$name revision differs from declared source" >&2; exit 2; }
+done
+"${COMPOSE[@]}" up -d --remove-orphans
+"${COMPOSE[@]}" ps --format json > "$KLYROW_STAGING_EVIDENCE_DIR/compose-services.json"
+git -C "$ROOT" rev-parse HEAD > "$KLYROW_STAGING_EVIDENCE_DIR/source-sha.txt"
+printf '%s\n' "STAGING_DEPLOY=PASS" "LIVE_EMAIL_DELIVERY=false" "PRODUCTION_PROVIDER_ROUTING=false"

@@ -7,6 +7,7 @@ from apps.gateway.app.main import MiddlewareCommandOperation, app
 from apps.gateway.app.operations import IntegrationOutbox
 from apps.gateway.app.production_api import (
     ContactPatch,
+    CampaignDispatchConfiguration,
     CampaignPatch,
     CampaignSchedule,
     MauticCommand,
@@ -17,6 +18,7 @@ from apps.gateway.app.production_api import (
     contact_delete,
     contact_patch,
     campaign_cancel,
+    campaign_dispatch_configuration,
     campaign_patch,
     campaign_schedule,
     message_cancel,
@@ -61,6 +63,7 @@ def test_required_production_routes_are_documented():
         ("patch", "/v1/lists/{list_id}"),
         ("delete", "/v1/lists/{list_id}"),
         ("patch", "/v1/campaigns/{campaign_id}"),
+        ("put", "/v1/campaigns/{campaign_id}/dispatch-configuration"),
         ("post", "/v1/campaigns/{campaign_id}/schedule"),
         ("post", "/v1/campaigns/{campaign_id}/cancel"),
         ("get", "/v1/tracking/events"),
@@ -91,7 +94,11 @@ def test_required_production_routes_are_documented():
         ("get", "/capabilities"),
         ("post", "/v1/webhooks/postal-inbound"),
     }
-    missing = sorted(f"{method.upper()} {path}" for method, path in required if method not in paths.get(path, {}))
+    missing = sorted(
+        f"{method.upper()} {path}"
+        for method, path in required
+        if method not in paths.get(path, {})
+    )
     assert missing == []
 
 
@@ -120,38 +127,58 @@ def test_production_migration_is_required_by_the_model():
     attachments = Path("migrations/2026090202_webmail_attachments.sql").read_text()
     assert "CREATE TABLE IF NOT EXISTS webmail_attachments" in attachments
     assert "octet_length(content) = size" in attachments
-    result_authority = Path("migrations/2026090203_integration_result_authority.sql").read_text()
+    result_authority = Path(
+        "migrations/2026090203_integration_result_authority.sql"
+    ).read_text()
     assert "uq_integration_result_source_key" in result_authority
     assert "UNIQUE (tenant_id, source, result_key)" in result_authority
-    storage = Path("migrations/2026090204_webmail_inbound_storage_authority.sql").read_text()
+    storage = Path(
+        "migrations/2026090204_webmail_inbound_storage_authority.sql"
+    ).read_text()
     assert "storage_used_bytes" in storage
-    assert "DROP CONSTRAINT IF EXISTS uq_webmail_attachment_message_digest_name" in storage
-    outcomes = Path("migrations/2026090205_middleware_command_outcome_authority.sql").read_text()
+    assert (
+        "DROP CONSTRAINT IF EXISTS uq_webmail_attachment_message_digest_name" in storage
+    )
+    outcomes = Path(
+        "migrations/2026090205_middleware_command_outcome_authority.sql"
+    ).read_text()
     assert "unknown_outcome" in outcomes
     assert "processing" in outcomes and "submitted" in outcomes
-    outbox_authority = Path("migrations/2026090206_email_outbox_operation_authority.sql").read_text()
+    outbox_authority = Path(
+        "migrations/2026090206_email_outbox_operation_authority.sql"
+    ).read_text()
     assert "ADD COLUMN IF NOT EXISTS operation_id" in outbox_authority
     assert "ADD COLUMN IF NOT EXISTS correlation_id" in outbox_authority
 
 
 def test_mautic_result_visibility_requires_command_specific_permission():
     item = IntegrationOutbox(
-        id="mautic-result", tenant_id="tenant-a", target="MAUTIC",
-        event_type="contact.upsert.v1", aggregate_id="contact-1",
-        payload_json="{}", idempotency_key="mautic-result-key",
+        id="mautic-result",
+        tenant_id="tenant-a",
+        target="MAUTIC",
+        event_type="contact.upsert.v1",
+        aggregate_id="contact-1",
+        payload_json="{}",
+        idempotency_key="mautic-result-key",
     )
     with pytest.raises(HTTPException) as denied:
         _authorize_operation_read(
-            {"role": "ANALYST", "permissions": ["analytics.read"]}, item,
+            {"role": "ANALYST", "permissions": ["analytics.read"]},
+            item,
         )
     assert denied.value.status_code == 403
     _authorize_operation_read(
-        {"role": "DEVELOPER", "permissions": ["contact.manage"]}, item,
+        {"role": "DEVELOPER", "permissions": ["contact.manage"]},
+        item,
     )
 
 
 def test_contact_mutations_require_contact_management_permission():
-    context = {"tenant": "tenant-a", "role": "ANALYST", "permissions": ["analytics.read"]}
+    context = {
+        "tenant": "tenant-a",
+        "role": "ANALYST",
+        "permissions": ["analytics.read"],
+    }
     with pytest.raises(HTTPException) as denied:
         contact_patch("contact-a", ContactPatch(name="Denied"), context, None)
     assert denied.value.status_code == 403
@@ -175,7 +202,11 @@ def test_message_cancel_requires_send_permission_before_state_access():
 
 
 def test_suppression_mutations_require_contact_management_permission():
-    context = {"tenant": "tenant-a", "role": "ANALYST", "permissions": ["analytics.read"]}
+    context = {
+        "tenant": "tenant-a",
+        "role": "ANALYST",
+        "permissions": ["analytics.read"],
+    }
     with pytest.raises(HTTPException) as denied_create:
         suppression_create(
             SuppressionIn(email="blocked@example.com", reason="policy"),
@@ -189,10 +220,24 @@ def test_suppression_mutations_require_contact_management_permission():
 
 
 def test_campaign_mutations_require_campaign_management_permission():
-    context = {"tenant": "tenant-a", "role": "ANALYST", "permissions": ["analytics.read"]}
+    context = {
+        "tenant": "tenant-a",
+        "role": "ANALYST",
+        "permissions": ["analytics.read"],
+    }
     with pytest.raises(HTTPException) as patch_denied:
         campaign_patch("campaign-a", CampaignPatch(name="Denied"), context, None)
     assert patch_denied.value.status_code == 403
+    with pytest.raises(HTTPException) as configuration_denied:
+        campaign_dispatch_configuration(
+            "campaign-a",
+            CampaignDispatchConfiguration(
+                sender_id="sender-a", template_id="template-a"
+            ),
+            context,
+            None,
+        )
+    assert configuration_denied.value.status_code == 403
     with pytest.raises(HTTPException) as schedule_denied:
         campaign_schedule(
             "campaign-a",
@@ -240,7 +285,9 @@ def test_postal_health_counts_are_tenant_scoped(monkeypatch):
     session = RecordingSession()
     postal_health({"tenant": "tenant-a"}, session)
     assert len(session.statements) == 2
-    assert all("email_outbox.tenant_id" in statement for statement in session.statements)
+    assert all(
+        "email_outbox.tenant_id" in statement for statement in session.statements
+    )
 
 
 def test_system_readiness_passes_authenticated_tenant_to_postal(monkeypatch):
@@ -282,7 +329,9 @@ def test_concurrent_mautic_idempotency_insert_returns_durable_winner():
                 self.winner = item
 
         def commit(self):
-            raise IntegrityError("INSERT integration_outbox", {}, RuntimeError("concurrent unique key"))
+            raise IntegrityError(
+                "INSERT integration_outbox", {}, RuntimeError("concurrent unique key")
+            )
 
         def rollback(self):
             self.rolled_back = True
@@ -290,8 +339,10 @@ def test_concurrent_mautic_idempotency_insert_returns_durable_winner():
     session = ConcurrentSession()
     response = mautic_command(
         MauticCommand(
-            command="contact.upsert.v1", aggregate_id="contact-1",
-            payload={"email": "safe@example.test"}, request_id="request-0001",
+            command="contact.upsert.v1",
+            aggregate_id="contact-1",
+            payload={"email": "safe@example.test"},
+            request_id="request-0001",
             timestamp=datetime.now(timezone.utc),
         ),
         {"tenant": "tenant-a", "sub": "operator", "role": "platform_admin"},

@@ -37,7 +37,7 @@ class TenantLimit(Base):
 class ServiceAccount(Base):
     __tablename__="service_accounts"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); name:Mapped[str]=mapped_column(String); client_id:Mapped[str]=mapped_column(String,unique=True); secret_hash:Mapped[str]=mapped_column(String); scopes_json:Mapped[str]=mapped_column(Text); expires_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True); revoked_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True); rotated_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True); created_by:Mapped[str]=mapped_column(String); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
 class ScopedApiKey(Base):
-    __tablename__="scoped_api_keys"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); name:Mapped[str]=mapped_column(String); prefix:Mapped[str]=mapped_column(String,index=True); verifier_hash:Mapped[str]=mapped_column(String,unique=True); scopes_json:Mapped[str]=mapped_column(Text); environment:Mapped[str]=mapped_column(String); ip_allowlist_json:Mapped[str]=mapped_column(Text,default="[]"); created_by:Mapped[str]=mapped_column(String); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); last_used_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True); expires_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True); revoked_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True)
+    __tablename__="scoped_api_keys"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); name:Mapped[str]=mapped_column(String); prefix:Mapped[str]=mapped_column(String,index=True); verifier_hash:Mapped[str]=mapped_column(String,unique=True); scopes_json:Mapped[str]=mapped_column(Text); environment:Mapped[str]=mapped_column(String); ip_allowlist_json:Mapped[str]=mapped_column(Text,default="[]"); created_by:Mapped[str]=mapped_column(String); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); last_used_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True); expires_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True); revoked_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True); rotated_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True)
 class SmtpCredential(Base):
     __tablename__="tenant_smtp_credentials"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); username:Mapped[str]=mapped_column(String,unique=True); verifier_hash:Mapped[str]=mapped_column(String); scopes_json:Mapped[str]=mapped_column(Text); created_by:Mapped[str]=mapped_column(String); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); expires_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True); revoked_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True); rotated_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True)
 class OidcIdentity(Base):
@@ -69,7 +69,8 @@ def validate_scopes(scopes):
 @router.post("/organizations",status_code=201)
 def organization(x:OrgIn,ctx=Depends(auth),s:Session=Depends(db)):
     if s.scalar(select(Organization).where(Organization.slug==x.slug)):raise HTTPException(409,"organization_slug_taken")
-    tenant=Tenant(id=str(uuid.uuid4()),name=x.name,quota=1000);org=Organization(id=str(uuid.uuid4()),tenant_id=tenant.id,name=x.name,slug=x.slug);membership=TenantMember(id=str(uuid.uuid4()),tenant_id=tenant.id,user_id=ctx["sub"],role="OWNER");s.add_all([tenant,org,membership]);audit(s,{**ctx,"tenant":tenant.id},"organization.created");s.commit();return {"id":org.id,"tenant_id":tenant.id,"slug":org.slug}
+    from .business_events import enqueue_named_event
+    tenant=Tenant(id=str(uuid.uuid4()),name=x.name,quota=1000);org=Organization(id=str(uuid.uuid4()),tenant_id=tenant.id,name=x.name,slug=x.slug);membership=TenantMember(id=str(uuid.uuid4()),tenant_id=tenant.id,user_id=ctx["sub"],role="OWNER");s.add_all([tenant,org,membership]);enqueue_named_event(s,event_type="klyrow.tenant.created",tenant_id=tenant.id,aggregate_id=tenant.id,causation_id=org.id,data={"tenant_id":tenant.id,"name":tenant.name,"organization_id":org.id,"enabled":True});audit(s,{**ctx,"tenant":tenant.id},"organization.created");s.commit();return {"id":org.id,"tenant_id":tenant.id,"slug":org.slug}
 @router.get("/auth/oidc/config")
 def oidc_config():
     issuer="https://auth.codestra.co/realms/codestra"
@@ -140,11 +141,18 @@ def service_revoke(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
 
 @router.post("/developer/api-keys",status_code=201)
 def api_key_create(x:KeyIn,ctx=Depends(auth),s:Session=Depends(db)):
-    manage(ctx,s);validate_scopes(x.scopes);raw="kly_live_"+secrets.token_urlsafe(36);item=ScopedApiKey(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],name=x.name,prefix=raw[:16],verifier_hash=sha(raw),scopes_json=json.dumps(sorted(set(x.scopes))),environment=x.environment,ip_allowlist_json=json.dumps(x.ip_allowlist),created_by=ctx["sub"],expires_at=x.expires_at);s.add(item);audit(s,ctx,"api_key.created");s.commit();return {"id":item.id,"secret":raw,"prefix":item.prefix,"scopes":json.loads(item.scopes_json)}
+    from .secret_responses import record_secret_response,response_metadata
+    manage(ctx,s);validate_scopes(x.scopes);raw="kly_live_"+secrets.token_urlsafe(36);item=ScopedApiKey(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],name=x.name,prefix=raw[:16],verifier_hash=sha(raw),scopes_json=json.dumps(sorted(set(x.scopes))),environment=x.environment,ip_allowlist_json=json.dumps(x.ip_allowlist),created_by=ctx["sub"],expires_at=x.expires_at);s.add(item);result={"id":item.id,"secret":raw,"prefix":item.prefix,"scopes":json.loads(item.scopes_json)};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="API_KEY",resource_id=item.id,action="CREATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"api_key.created");s.commit();return {**result,**response_metadata(secret_response)}
 @router.get("/developer/api-keys")
 def api_keys(ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);rows=s.scalars(select(ScopedApiKey).where(ScopedApiKey.tenant_id==ctx["tenant"]).order_by(ScopedApiKey.created_at.desc())).all()
-    return [{"id":row.id,"name":row.name,"prefix":row.prefix,"scopes":json.loads(row.scopes_json),"environment":row.environment,"ip_allowlist":json.loads(row.ip_allowlist_json),"last_used_at":row.last_used_at,"expires_at":row.expires_at,"revoked_at":row.revoked_at,"created_at":row.created_at} for row in rows]
+    return [{"id":row.id,"name":row.name,"prefix":row.prefix,"scopes":json.loads(row.scopes_json),"environment":row.environment,"ip_allowlist":json.loads(row.ip_allowlist_json),"last_used_at":row.last_used_at,"expires_at":row.expires_at,"revoked_at":row.revoked_at,"rotated_at":row.rotated_at,"created_at":row.created_at} for row in rows]
+@router.post("/developer/api-keys/{item_id}/rotate")
+def api_key_rotate(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
+    from .secret_responses import record_secret_response,response_metadata
+    manage(ctx,s);item=s.scalar(select(ScopedApiKey).where(ScopedApiKey.id==item_id,ScopedApiKey.tenant_id==ctx["tenant"],ScopedApiKey.revoked_at==None))
+    if not item:raise HTTPException(404,"api_key_not_found")
+    raw="kly_live_"+secrets.token_urlsafe(36);item.prefix=raw[:16];item.verifier_hash=sha(raw);item.rotated_at=now();result={"id":item.id,"secret":raw,"prefix":item.prefix,"scopes":json.loads(item.scopes_json)};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="API_KEY",resource_id=item.id,action="ROTATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"api_key.rotated");s.commit();return {**result,**response_metadata(secret_response)}
 @router.delete("/developer/api-keys/{item_id}",status_code=204)
 def api_key_revoke(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);item=s.scalar(select(ScopedApiKey).where(ScopedApiKey.id==item_id,ScopedApiKey.tenant_id==ctx["tenant"]));
@@ -152,18 +160,20 @@ def api_key_revoke(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
     item.revoked_at=now();audit(s,ctx,"api_key.revoked");s.commit()
 @router.post("/developer/smtp-credentials",status_code=201)
 def smtp_create(x:SmtpIn,ctx=Depends(auth),s:Session=Depends(db)):
+    from .secret_responses import record_secret_response,response_metadata
     manage(ctx,s)
     if set(x.scopes)!={"smtp.send"}:raise HTTPException(422,"invalid_smtp_scope")
-    password=secrets.token_urlsafe(36);item=SmtpCredential(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],username="smtp_"+secrets.token_hex(10),verifier_hash=ph.hash(password),scopes_json='["smtp.send"]',created_by=ctx["sub"],expires_at=x.expires_at);s.add(item);audit(s,ctx,"smtp_credential.created");s.commit();return {"id":item.id,"username":item.username,"password":password,"tls_required":True}
+    password=secrets.token_urlsafe(36);item=SmtpCredential(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],username="smtp_"+secrets.token_hex(10),verifier_hash=ph.hash(password),scopes_json='["smtp.send"]',created_by=ctx["sub"],expires_at=x.expires_at);s.add(item);result={"id":item.id,"username":item.username,"password":password,"tls_required":True};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="SMTP_CREDENTIAL",resource_id=item.id,action="CREATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"smtp_credential.created");s.commit();return {**result,**response_metadata(secret_response)}
 @router.get("/developer/smtp-credentials")
 def smtp_credentials(ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);rows=s.scalars(select(SmtpCredential).where(SmtpCredential.tenant_id==ctx["tenant"]).order_by(SmtpCredential.created_at.desc())).all()
     return [{"id":row.id,"username":row.username,"scopes":json.loads(row.scopes_json),"tls_required":True,"expires_at":row.expires_at,"revoked_at":row.revoked_at,"rotated_at":row.rotated_at,"created_at":row.created_at} for row in rows]
 @router.post("/developer/smtp-credentials/{item_id}/rotate")
 def smtp_rotate(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
+    from .secret_responses import record_secret_response,response_metadata
     manage(ctx,s);item=s.scalar(select(SmtpCredential).where(SmtpCredential.id==item_id,SmtpCredential.tenant_id==ctx["tenant"],SmtpCredential.revoked_at==None));
     if not item:raise HTTPException(404,"smtp_credential_not_found")
-    password=secrets.token_urlsafe(36);item.verifier_hash=ph.hash(password);item.rotated_at=now();audit(s,ctx,"smtp_credential.rotated");s.commit();return {"username":item.username,"password":password,"tls_required":True}
+    password=secrets.token_urlsafe(36);item.verifier_hash=ph.hash(password);item.rotated_at=now();result={"username":item.username,"password":password,"tls_required":True};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="SMTP_CREDENTIAL",resource_id=item.id,action="ROTATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"smtp_credential.rotated");s.commit();return {**result,**response_metadata(secret_response)}
 @router.delete("/developer/smtp-credentials/{item_id}",status_code=204)
 def smtp_revoke(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);item=s.scalar(select(SmtpCredential).where(SmtpCredential.id==item_id,SmtpCredential.tenant_id==ctx["tenant"]));
