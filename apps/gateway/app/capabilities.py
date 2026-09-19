@@ -25,6 +25,7 @@ def mutation_permission(method: str, path: str) -> str | None:
         ("/v1/suppressions", "contact.manage"),
         ("/v1/campaigns", "campaign.manage"),
         ("/v1/campaign-definitions", "campaign.manage"),
+        ("/v1/internal/integrations", "klyrow.observability.write"),
     ):
         if path == prefix or path.startswith(prefix + "/"):
             return permission
