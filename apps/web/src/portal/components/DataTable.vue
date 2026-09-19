@@ -2,7 +2,10 @@
 import SafeText from './SafeText.vue'
 
 export interface Column { key: string; label: string }
-defineProps<{ caption: string; columns: Column[]; rows: Array<Record<string, unknown>>; rowKey?: string; emptyMessage?: string }>()
+type Row = Record<string, unknown>
+// Rows are typed records in pages; the table reads them by column key.
+const props = defineProps<{ caption: string; columns: Column[]; rows: readonly object[]; rowKey?: string; emptyMessage?: string }>()
+const records = () => props.rows as readonly Row[]
 </script>
 
 <template>
@@ -13,7 +16,7 @@ defineProps<{ caption: string; columns: Column[]; rows: Array<Record<string, unk
         <tr><th v-for="column in columns" :key="column.key" scope="col">{{ column.label }}</th></tr>
       </thead>
       <tbody>
-        <tr v-for="(row, index) in rows" :key="String(row[rowKey || 'id'] ?? index)">
+        <tr v-for="(row, index) in records()" :key="String(row[rowKey || 'id'] ?? index)">
           <td v-for="column in columns" :key="column.key">
             <slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]">
               <SafeText :value="row[column.key]" />
