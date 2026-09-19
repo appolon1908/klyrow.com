@@ -1,11 +1,12 @@
-import asyncio,base64,hashlib,hmac,json,os,subprocess,sys,time,uuid
+import asyncio,base64,hashlib,hmac,json,os,subprocess,sys,tempfile,time,uuid
 from pathlib import Path
 from unittest.mock import AsyncMock,patch
 import httpx
 import pytest
 from cryptography.hazmat.primitives import hashes,serialization
 from cryptography.hazmat.primitives.asymmetric import padding,rsa
-SERVICE_TOKEN_FILE="/tmp/klyrow-beyvra-test-token"
+SERVICE_TOKEN_FILE=str(Path(tempfile.gettempdir()) / "klyrow-beyvra-test-token")
+Path(SERVICE_TOKEN_FILE).parent.mkdir(parents=True, exist_ok=True)
 Path(SERVICE_TOKEN_FILE).write_text("bounded-beyvra-test-token",encoding="utf-8")
 os.environ.update(KLYROW_DATABASE_URL="sqlite:///./test.db",KLYROW_SESSION_SECRET="test-session-secret-at-least-32-bytes",KLYROW_WEBHOOK_SECRET="hook-secret",KLYROW_MIDDLEWARE_API_KEY="middleware-command-test-token",KLYROW_SAFE_MODE="true",KLYROW_ADMIN_EMAIL="admin@example.com",KLYROW_ADMIN_PASSWORD="correct-horse-battery-staple",BEYVRA_EMAIL_SERVICE_TOKEN_FILE=SERVICE_TOKEN_FILE,BEYVRA_EMAIL_TENANT_ID="a",KLYROW_AUTH_RATE_PER_MINUTE="1000")
 from fastapi.testclient import TestClient
@@ -36,7 +37,7 @@ def test_resolver_network_failure_is_reported_as_authorization_unavailable():
         result=client.get("/v1/domains",headers={"Authorization":"Bearer approved-service-token"})
     assert result.status_code==503
     assert result.json()=={"detail":"authorization_unavailable"}
-def test_logout_revokes_active_session():
+def test_logout_revokes_active_session_after_authenticated_access():
     access=login("a");h={"Authorization":"Bearer "+access}
     assert client.get("/v1/me",headers=h).status_code==200
     assert client.post("/v1/auth/logout",headers=h).status_code==204

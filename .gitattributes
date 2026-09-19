@@ -1,0 +1,25 @@
+# Force LF line endings for all text files regardless of a contributor's
+# local core.autocrlf setting. Production runs exclusively in Linux
+# containers; POSIX shell scripts (scripts/*) and SHA-256-pinned immutable
+# migrations (migrations/*.sql) break or fail integrity checks the moment a
+# checkout introduces CRLF. This keeps local checkouts byte-identical to the
+# committed blobs on every platform.
+* text=auto eol=lf
+
+*.sql text eol=lf
+scripts/* text eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+
+# Binary/opaque assets must never be newline-normalized.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
