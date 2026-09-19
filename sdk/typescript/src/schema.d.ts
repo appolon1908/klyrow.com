@@ -534,6 +534,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/billing/capability-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Billing Capability Status
+         * @description Safe, allowlisted billing capability status; never a path, secret, or exception string.
+         */
+        get: operations["billing_capability_status_v1_billing_capability_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/billing/checkout": {
         parameters: {
             query?: never;
@@ -5675,6 +5695,39 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    billing_capability_status_v1_billing_capability_status_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
