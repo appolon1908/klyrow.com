@@ -6077,7 +6077,10 @@ export interface operations {
     };
     list_payment_attempts_v1_billing_payment_attempts_get: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
             header?: {
                 authorization?: string;
                 "x-klyrow-tenant-id"?: string | null;
