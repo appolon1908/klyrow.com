@@ -422,7 +422,10 @@ def media_events(asset_id: str, ctx=Depends(browser_context_dependency), s: Sess
 
 @router.get("/app/api/media/{asset_id}")
 def media_get(asset_id: str, ctx=Depends(browser_context_dependency), s: Session = Depends(db)):
-    return payload(find_asset(s, asset_id, ctx["tenant"]))
+    item = find_asset(s, asset_id, ctx["tenant"])
+    if item.status == "DELETED":
+        raise HTTPException(404, "media_asset_not_found")
+    return payload(item)
 
 
 @router.post("/app/api/media/{asset_id}/archive")

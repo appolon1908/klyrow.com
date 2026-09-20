@@ -199,6 +199,30 @@ def test_browser_upload_transmits_bytes_before_completion():
     assert completed.json()["status"] == "READY"
 
 
+def test_media_archive_and_delete_require_campaign_manage():
+    prepared = prepare()
+    complete = client.post(
+        f"/app/api/media/{prepared['id']}/complete",
+        headers=login("media-a"),
+        json={"upload_reference": prepared["upload_reference"], "expected_version": prepared["version"]},
+    )
+    assert complete.status_code == 200
+    with DB() as session:
+        member = session.scalar(select(TenantMember).where(TenantMember.tenant_id == "media-a", TenantMember.user_id == "media-a"))
+        member.role = "BILLING"
+        session.commit()
+    try:
+        archive = client.post(f"/app/api/media/{prepared['id']}/archive", headers=login("media-a"), json={"expected_version": complete.json()["version"]})
+        deleted = client.request("DELETE", f"/app/api/media/{prepared['id']}", headers=login("media-a"), json={"expected_version": complete.json()["version"]})
+        assert archive.status_code == 403
+        assert deleted.status_code == 403
+    finally:
+        with DB() as session:
+            member = session.scalar(select(TenantMember).where(TenantMember.tenant_id == "media-a", TenantMember.user_id == "media-a"))
+            member.role = "OWNER"
+            session.commit()
+
+
 def test_fake_storage_delete_removes_uploaded_bytes():
     prepared = prepare()
     assert prepared["upload_reference"] in _fake_store.objects
@@ -211,10 +235,11 @@ def test_fake_storage_delete_removes_uploaded_bytes():
     deleted = client.request("DELETE", f"/app/api/media/{prepared['id']}", headers=login("media-a"), json={"expected_version": complete.json()["version"]})
     assert deleted.status_code == 200
     assert prepared["upload_reference"] not in _fake_store.objects
+    assert client.get(f"/app/api/media/{prepared['id']}", headers=login("media-a")).status_code == 404
 
 
 def test_webp_vp8_and_vp8l_dimensions_are_parsed_and_limited():
-    from apps.gateway.app.media_assets import dimensions_and_type
+    from apps.gateway.app.media_assets import dimensions_and_type, validate_object
     vp8_payload = b"\x00\x00\x00\x9d\x01\x2a" + (320).to_bytes(2, "little") + (240).to_bytes(2, "little") + b"\x00" * 8
     vp8 = b"RIFF" + (len(vp8_payload) + 12).to_bytes(4, "little") + b"WEBPVP8 " + len(vp8_payload).to_bytes(4, "little") + vp8_payload
     vp8l_bits = (319) | (239 << 14)
@@ -222,3 +247,10 @@ def test_webp_vp8_and_vp8l_dimensions_are_parsed_and_limited():
     vp8l = b"RIFF" + (len(vp8l_payload) + 12).to_bytes(4, "little") + b"WEBPVP8L" + len(vp8l_payload).to_bytes(4, "little") + vp8l_payload
     assert dimensions_and_type(vp8) == ("image/webp", 320, 240)
     assert dimensions_and_type(vp8l) == ("image/webp", 320, 240)
+
+    with pytest.raises(ValueError, match="malformed_image"):
+        dimensions_and_type(b"RIFF\x12\x00\x00\x00WEBPVP8 \x04\x00\x00\x00\x00")
+    wide = bytes([0, 0, 0, 0]) + (8192).to_bytes(3, "little") + (1).to_bytes(3, "little")
+    vp8x = b"RIFF" + (len(wide) + 12).to_bytes(4, "little") + b"WEBPVP8X" + len(wide).to_bytes(4, "little") + wide
+    with pytest.raises(ValueError, match="dimensions_exceeded"):
+        validate_object(vp8x, "image/webp", len(vp8x), None)

@@ -151,6 +151,32 @@ test('10. billing pages expose no live payment actions or provider branding', as
   await expect(page.getByText('manual or sandbox only').first()).toBeVisible()
 })
 
+test('11. media upload transmits bytes and completes only after server confirmation', async ({ page }) => {
+  await stubWorkspace(page)
+  const png = Buffer.from('89504e470d0a1a0a', 'hex')
+  let uploadedBytes = 0
+  let completed = false
+  await page.route('**/app/api/media?*', route => route.fulfill({ json: { items: [], limit: 24, offset: 0, has_more: false } }))
+  await page.route('**/app/api/media/uploads', async route => {
+    if (route.request().method() === 'POST') return route.fulfill({ status: 201, json: { id: 'asset-1', version: 1, upload_reference: 'upload-reference-1' } })
+    return route.continue()
+  })
+  await page.route('**/app/api/media/uploads/*', async route => {
+    if (route.request().method() === 'PUT') { uploadedBytes = route.request().postDataBuffer()?.length || 0; return route.fulfill({ json: { upload_reference: 'upload-reference-1', size_bytes: uploadedBytes } }) }
+    return route.continue()
+  })
+  await page.route('**/app/api/media/asset-1/complete', async route => {
+    completed = true
+    return route.fulfill({ json: { id: 'asset-1', status: 'READY', version: 2, original_filename: 'logo.png', size_bytes: uploadedBytes } })
+  })
+  await page.goto('/app/content/media')
+  await page.getByLabel('Choose image').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: png })
+  await page.getByRole('button', { name: 'Upload image' }).click()
+  await expect.poll(() => uploadedBytes).toBe(png.length)
+  await expect.poll(() => completed).toBe(true)
+  await expect(page.getByText(/server confirmed READY/i)).toBeVisible()
+})
+
 test('11. mobile navigation works by pointer and keyboard', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 740 })
   await stubWorkspace(page)

@@ -77,7 +77,7 @@ async function prepareUpload() {
     })
     uploadState.value = 'completing'
     uploadProgress.value = 75
-    const completed = await appApi<MediaAsset>(`/app/api/media/${result.id}/complete`, {
+    await appApi<MediaAsset>(`/app/api/media/${result.id}/complete`, {
       method: 'POST',
       body: JSON.stringify({ upload_reference: uploadReference.value, expected_version: result.version }),
     })
