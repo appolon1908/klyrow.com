@@ -18,7 +18,7 @@ import SafeText from '../components/SafeText.vue'
 type Suppression = { id: string; email: string; reason: string }
 type SuppressionResponse = { items: Suppression[]; limit: number; offset: number; has_more: boolean }
 
-const props = defineProps<{ route: PortalRoute; params: Record<string, string>; session: BrowserSession }>()
+defineProps<{ route: PortalRoute; params: Record<string, string>; session: BrowserSession }>()
 const page = usePage(() => appApi<SuppressionResponse>('/app/api/suppressions?limit=100&offset=0'), { isEmpty: result => result.items.length === 0 })
 const rows = computed(() => page.data.value?.items || [])
 const dialogOpen = ref(false)

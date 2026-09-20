@@ -22,7 +22,7 @@ type Profile = {
 
 type ProfileResponse = { items: Profile[]; next_cursor: string | null }
 
-const props = defineProps<{ route: PortalRoute; params: Record<string, string>; session: BrowserSession }>()
+defineProps<{ route: PortalRoute; params: Record<string, string>; session: BrowserSession }>()
 const page = usePage(() => appApi<ProfileResponse>('/app/api/profiles?limit=50'), { isEmpty: result => result.items.length === 0 })
 const rows = computed(() => page.data.value?.items || [])
 const columns = [
