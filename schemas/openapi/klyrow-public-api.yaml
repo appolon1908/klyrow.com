@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 161448)
-Total output lines: 25722
-
 {
   "components": {
     "schemas": {
@@ -4097,938 +4094,6 @@ Total output lines: 25722
               "title": "X-Klyrow-Tenant-Id"
             }
           },
-…111448 tokens truncated…   ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/settings/send-gate": {
-      "get": {
-        "operationId": "send_gate_v1_settings_send_gate_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Send Gate",
-        "tags": [
-          "Operations and integrations"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      },
-      "put": {
-        "operationId": "kill_switch_v1_settings_send_gate_put",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/KillIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Kill Switch",
-        "tags": [
-          "Operations and integrations"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/settings/warmup": {
-      "post": {
-        "operationId": "warmup_v1_settings_warmup_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WarmupIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Warmup",
-        "tags": [
-          "Delivery controls"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/streams": {
-      "get": {
-        "operationId": "streams_v1_streams_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Streams",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      },
-      "post": {
-        "operationId": "stream_create_v1_streams_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StreamIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Stream Create",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/support/tickets": {
-      "get": {
-        "operationId": "support_list_v1_support_tickets_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Support List",
-        "tags": [
-          "Operations and integrations"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      },
-      "post": {
-        "operationId": "support_v1_support_tickets_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SupportIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Support",
-        "tags": [
-          "Operations and integrations"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/suppressions": {
-      "get": {
-        "operationId": "suppressions_v1_suppressions_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Suppressions",
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      },
-      "post": {
-        "operationId": "suppression_create_v1_suppressions_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SuppressionIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "title": "Response Suppression Create V1 Suppressions Post"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Suppression Create",
-        "tags": [
-          "Production API"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/suppressions/check": {
-      "get": {
-        "operationId": "suppression_check_v1_suppressions_check_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "email",
-            "required": true,
-            "schema": {
-              "format": "email",
-              "title": "Email",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Suppression Check V1 Suppressions Check Get",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Suppression Check",
-        "tags": [
-          "Production API"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/suppressions/{suppression_id}": {
-      "delete": {
-        "operationId": "suppression_delete_v1_suppressions__suppression_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "suppression_id",
-            "required": true,
-            "schema": {
-              "title": "Suppression Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
           {
             "in": "header",
             "name": "X-Tenant-ID",
@@ -5066,10 +4131,7 @@ Total output lines: 25722
             "bearerAuth": []
           }
         ],
-        "summary": "Suppression Delete",
-        "tags": [
-          "Production API"
-        ],
+        "summary": "Revoke",
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
         "x-klyrow-enforced-auth-dependencies": [
@@ -5077,9 +4139,98 @@ Total output lines: 25722
         ]
       }
     },
-    "/v1/team/invitations": {
+    "/v1/api-keys/{kid}/rotate": {
+      "post": {
+        "operationId": "rotate_key_v1_api_keys__kid__rotate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kid",
+            "required": true,
+            "schema": {
+              "title": "Kid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Rotate Key",
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/audit": {
       "get": {
-        "operationId": "team_invitations_v1_team_invitations_get",
+        "operationId": "audits_v1_audit_get",
         "parameters": [
           {
             "in": "header",
@@ -5149,101 +4300,7 @@ Total output lines: 25722
             "bearerAuth": []
           }
         ],
-        "summary": "Team Invitations",
-        "tags": [
-          "Tenant authority"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      },
-      "post": {
-        "operationId": "invite_v1_team_invitations_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InviteIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Invite",
-        "tags": [
-          "Tenant authority"
-        ],
+        "summary": "Audits",
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
         "x-klyrow-enforced-auth-dependencies": [
@@ -5251,21 +4308,21 @@ Total output lines: 25722
         ]
       }
     },
-    "/v1/team/invitations/accept": {
+    "/v1/auth/forgot-password": {
       "post": {
-        "operationId": "accept_legacy_invitation_v1_team_invitations_accept_post",
+        "operationId": "forgot_v1_auth_forgot_password_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AcceptIn"
+                "$ref": "#/components/schemas/ResetRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "201": {
+          "202": {
             "content": {
               "application/json": {
                 "schema": {}
@@ -5285,7 +4342,318 @@ Total output lines: 25722
           }
         },
         "security": [],
-        "summary": "Accept Legacy Invitation",
+        "summary": "Forgot",
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "login_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [],
+        "summary": "Login",
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "logout_v1_auth_logout_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Logout",
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/mfa/enable": {
+      "post": {
+        "operationId": "mfa_enable_v1_auth_mfa_enable_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaEnableIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Mfa Enable",
+        "tags": [
+          "SaaS P0/P1"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/mfa/setup": {
+      "post": {
+        "operationId": "mfa_setup_v1_auth_mfa_setup_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Mfa Setup",
+        "tags": [
+          "SaaS P0/P1"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/oidc/config": {
+      "get": {
+        "operationId": "oidc_config_v1_auth_oidc_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [],
+        "summary": "Oidc Config",
         "tags": [
           "Tenant authority"
         ],
@@ -5294,9 +4662,49 @@ Total output lines: 25722
         "x-klyrow-enforced-auth-dependencies": []
       }
     },
-    "/v1/team/members": {
+    "/v1/auth/reset-password": {
+      "post": {
+        "operationId": "reset_v1_auth_reset_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reset"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [],
+        "summary": "Reset",
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/v1/auth/sessions": {
       "get": {
-        "operationId": "team_members_v1_team_members_get",
+        "operationId": "sessions_v1_auth_sessions_get",
         "parameters": [
           {
             "in": "header",
@@ -5366,9 +4774,9 @@ Total output lines: 25722
             "bearerAuth": []
           }
         ],
-        "summary": "Team Members",
+        "summary": "Sessions",
         "tags": [
-          "Tenant authority"
+          "SaaS P0/P1"
         ],
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
@@ -5377,16 +4785,16 @@ Total output lines: 25722
         ]
       }
     },
-    "/v1/team/members/{user_id}": {
+    "/v1/auth/sessions/{sid}": {
       "delete": {
-        "operationId": "remove_member_v1_team_members__user_id__delete",
+        "operationId": "session_revoke_v1_auth_sessions__sid__delete",
         "parameters": [
           {
             "in": "path",
-            "name": "user_id",
+            "name": "sid",
             "required": true,
             "schema": {
-              "title": "User Id",
+              "title": "Sid",
               "type": "string"
             }
           },
@@ -5453,109 +4861,9 @@ Total output lines: 25722
             "bearerAuth": []
           }
         ],
-        "summary": "Remove Member",
+        "summary": "Session Revoke",
         "tags": [
-          "Tenant authority"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      },
-      "patch": {
-        "operationId": "role_change_v1_team_members__user_id__patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "user_id",
-            "required": true,
-            "schema": {
-              "title": "User Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RoleIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Role Change",
-        "tags": [
-          "Tenant authority"
+          "SaaS P0/P1"
         ],
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
@@ -5564,90 +4872,9 @@ Total output lines: 25722
         ]
       }
     },
-    "/v1/templates": {
-      "get": {
-        "operationId": "templates_v1_templates_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Templates",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      },
+    "/v1/automation/events": {
       "post": {
-        "operationId": "template_create_v1_templates_post",
+        "operationId": "automation_v1_automation_events_post",
         "parameters": [
           {
             "in": "header",
@@ -5696,1714 +4923,7 @@ Total output lines: 25722
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TemplateIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Template Create",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/templates/{item_id}": {
-      "put": {
-        "operationId": "template_update_v1_templates__item_id__put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "item_id",
-            "required": true,
-            "schema": {
-              "title": "Item Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TemplateUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Template Update",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/templates/{item_id}/publish": {
-      "post": {
-        "operationId": "template_publish_v1_templates__item_id__publish_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "item_id",
-            "required": true,
-            "schema": {
-              "title": "Item Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Template Publish",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/templates/{item_id}/render": {
-      "post": {
-        "operationId": "template_render_v1_templates__item_id__render_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "item_id",
-            "required": true,
-            "schema": {
-              "title": "Item Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/apps__gateway__app__messaging__RenderIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Template Render",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/templates/{item_id}/rollback/{version}": {
-      "post": {
-        "operationId": "template_rollback_v1_templates__item_id__rollback__version__post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "item_id",
-            "required": true,
-            "schema": {
-              "title": "Item Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "version",
-            "required": true,
-            "schema": {
-              "title": "Version",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Template Rollback",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/templates/{template_id}": {
-      "delete": {
-        "operationId": "template_delete_v1_templates__template_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "template_id",
-            "required": true,
-            "schema": {
-              "title": "Template Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Template Delete",
-        "tags": [
-          "Production API"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      },
-      "get": {
-        "operationId": "template_detail_v1_templates__template_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "template_id",
-            "required": true,
-            "schema": {
-              "title": "Template Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Template Detail V1 Templates  Template Id  Get",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Template Detail",
-        "tags": [
-          "Production API"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      },
-      "patch": {
-        "operationId": "template_patch_v1_templates__template_id__patch",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "template_id",
-            "required": true,
-            "schema": {
-              "title": "Template Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TemplateUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Template Patch V1 Templates  Template Id  Patch",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Template Patch",
-        "tags": [
-          "Production API"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/templates/{template_id}/versions": {
-      "get": {
-        "operationId": "template_versions_v1_templates__template_id__versions_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "template_id",
-            "required": true,
-            "schema": {
-              "title": "Template Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 50,
-              "maximum": 100,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cursor",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 64,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cursor"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TemplateVersionPage"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "404": {
-            "description": "Template not found"
-          },
-          "422": {
-            "description": "Invalid cursor or limit"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Template Versions",
-        "tags": [
-          "Production API"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/templates/{template_id}/versions/{version_id}": {
-      "get": {
-        "operationId": "template_version_v1_templates__template_id__versions__version_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "template_id",
-            "required": true,
-            "schema": {
-              "title": "Template Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "version_id",
-            "required": true,
-            "schema": {
-              "title": "Version Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TemplateVersionView"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "404": {
-            "description": "Template version not found"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Template Version",
-        "tags": [
-          "Production API"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/usage": {
-      "get": {
-        "operationId": "usage_v1_usage_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Usage",
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/usage/daily": {
-      "get": {
-        "description": "Daily UTC totals from the authoritative usage ledger. Periods without entries are omitted. Counts describe metered units, not recipient delivery.",
-        "operationId": "daily_usage_v1_usage_daily_get",
-        "parameters": [
-          {
-            "description": "Inclusive UTC date; maximum window is 366 days.",
-            "in": "query",
-            "name": "from",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "format": "date",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Inclusive UTC date; maximum window is 366 days.",
-              "title": "From"
-            }
-          },
-          {
-            "description": "Exclusive UTC date; defaults to tomorrow in UTC.",
-            "in": "query",
-            "name": "to",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "format": "date",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Exclusive UTC date; defaults to tomorrow in UTC.",
-              "title": "To"
-            }
-          },
-          {
-            "in": "query",
-            "name": "unit",
-            "required": false,
-            "schema": {
-              "default": "accepted_message",
-              "maxLength": 80,
-              "minLength": 1,
-              "title": "Unit",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 31,
-              "maximum": 100,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cursor",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 2048,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cursor"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UsageHistoryPage"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "403": {
-            "description": "Tenant access denied or account suspended"
-          },
-          "404": {
-            "description": "Authenticated tenant resolution failed"
-          },
-          "422": {
-            "description": "Invalid date window, cursor, filter or pagination limit"
-          },
-          "429": {
-            "description": "Tenant request rate limit exceeded"
-          },
-          "503": {
-            "description": "Authorization or usage store unavailable"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Daily Usage",
-        "tags": [
-          "Usage history"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/usage/monthly": {
-      "get": {
-        "description": "Monthly UTC totals within the requested date window. Boundary months may be partial. Periods without entries are omitted.",
-        "operationId": "monthly_usage_v1_usage_monthly_get",
-        "parameters": [
-          {
-            "description": "Inclusive UTC date; maximum window is 366 days.",
-            "in": "query",
-            "name": "from",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "format": "date",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Inclusive UTC date; maximum window is 366 days.",
-              "title": "From"
-            }
-          },
-          {
-            "description": "Exclusive UTC date; defaults to tomorrow in UTC.",
-            "in": "query",
-            "name": "to",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "format": "date",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Exclusive UTC date; defaults to tomorrow in UTC.",
-              "title": "To"
-            }
-          },
-          {
-            "in": "query",
-            "name": "unit",
-            "required": false,
-            "schema": {
-              "default": "accepted_message",
-              "maxLength": 80,
-              "minLength": 1,
-              "title": "Unit",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 31,
-              "maximum": 100,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cursor",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "maxLength": 2048,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cursor"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UsageHistoryPage"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "403": {
-            "description": "Tenant access denied or account suspended"
-          },
-          "404": {
-            "description": "Authenticated tenant resolution failed"
-          },
-          "422": {
-            "description": "Invalid date window, cursor, filter or pagination limit"
-          },
-          "429": {
-            "description": "Tenant request rate limit exceeded"
-          },
-          "503": {
-            "description": "Authorization or usage store unavailable"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Monthly Usage",
-        "tags": [
-          "Usage history"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/webhook-subscriptions": {
-      "get": {
-        "operationId": "webhook_subscriptions_v1_webhook_subscriptions_get",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Webhook Subscriptions",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      },
-      "post": {
-        "operationId": "webhook_create_v1_webhook_subscriptions_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/apps__gateway__app__messaging__WebhookIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Webhook Create",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/webhook-subscriptions/{item_id}/rotate": {
-      "post": {
-        "operationId": "webhook_rotate_v1_webhook_subscriptions__item_id__rotate_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "item_id",
-            "required": true,
-            "schema": {
-              "title": "Item Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Webhook Rotate",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/webhook-subscriptions/{item_id}/test": {
-      "post": {
-        "operationId": "webhook_test_v1_webhook_subscriptions__item_id__test_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "item_id",
-            "required": true,
-            "schema": {
-              "title": "Item Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/apps__gateway__app__messaging__EventIn"
+                "$ref": "#/components/schemas/AutomationIn"
               }
             }
           },
@@ -7434,9 +4954,9 @@ Total output lines: 25722
             "bearerAuth": []
           }
         ],
-        "summary": "Webhook Test",
+        "summary": "Automation",
         "tags": [
-          "Email SaaS"
+          "Operations and integrations"
         ],
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
@@ -7445,9 +4965,177 @@ Total output lines: 25722
         ]
       }
     },
-    "/v1/webhooks": {
+    "/v1/billing/account": {
+      "get": {
+        "operationId": "billing_account_v1_billing_account_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Billing Account V1 Billing Account Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Billing Account",
+        "tags": [
+          "Production API"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/billing/capability-status": {
+      "get": {
+        "description": "Safe, allowlisted billing capability status; never a path, secret, or exception string.",
+        "operationId": "billing_capability_status_v1_billing_capability_status_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Billing Capability Status",
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/billing/checkout": {
       "post": {
-        "operationId": "webhook_add_v1_webhooks_post",
+        "operationId": "checkout_v1_billing_checkout_post",
         "parameters": [
           {
             "in": "header",
@@ -7496,14 +5184,14 @@ Total output lines: 25722
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/apps__gateway__app__main__WebhookIn"
+                "$ref": "#/components/schemas/CheckoutIn"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {}
@@ -7527,7 +5215,10 @@ Total output lines: 25722
             "bearerAuth": []
           }
         ],
-        "summary": "Webhook Add",
+        "summary": "Checkout",
+        "tags": [
+          "Klyrow billing"
+        ],
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
         "x-klyrow-enforced-auth-dependencies": [
@@ -7535,29 +5226,10 @@ Total output lines: 25722
         ]
       }
     },
-    "/v1/webhooks/{webhook_id}/deliveries": {
+    "/v1/billing/credits": {
       "get": {
-        "operationId": "webhook_deliveries_v1_webhooks__webhook_id__deliveries_get",
+        "operationId": "billing_credits_v1_billing_credits_get",
         "parameters": [
-          {
-            "in": "path",
-            "name": "webhook_id",
-            "required": true,
-            "schema": {
-              "title": "Webhook Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 100,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
           {
             "in": "header",
             "name": "authorization",
@@ -7626,9 +5298,9 @@ Total output lines: 25722
             "bearerAuth": []
           }
         ],
-        "summary": "Webhook Deliveries",
+        "summary": "Billing Credits",
         "tags": [
-          "Email SaaS"
+          "Klyrow billing"
         ],
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
@@ -7637,28 +5309,10 @@ Total output lines: 25722
         ]
       }
     },
-    "/v1/webhooks/{webhook_id}/deliveries/{delivery_id}": {
+    "/v1/billing/invoices": {
       "get": {
-        "operationId": "webhook_delivery_detail_v1_webhooks__webhook_id__deliveries__delivery_id__get",
+        "operationId": "billing_invoices_v1_billing_invoices_get",
         "parameters": [
-          {
-            "in": "path",
-            "name": "webhook_id",
-            "required": true,
-            "schema": {
-              "title": "Webhook Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "delivery_id",
-            "required": true,
-            "schema": {
-              "title": "Delivery Id",
-              "type": "string"
-            }
-          },
           {
             "in": "header",
             "name": "authorization",
@@ -7727,37 +5381,35 @@ Total output lines: 25722
             "bearerAuth": []
           }
         ],
-        "summary": "Webhook Delivery Detail",
+        "summary": "Billing Invoices",
         "tags": [
-          "Email SaaS"
+          "Klyrow billing"
         ],
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
         "x-klyrow-enforced-auth-dependencies": [
           "auth"
         ]
-      }
-    },
-    "/v1/webhooks/{webhook_id}/deliveries/{delivery_id}/replay": {
+      },
       "post": {
-        "operationId": "webhook_delivery_replay_v1_webhooks__webhook_id__deliveries__delivery_id__replay_post",
+        "operationId": "invoice_create_v1_billing_invoices_post",
         "parameters": [
           {
-            "in": "path",
-            "name": "webhook_id",
-            "required": true,
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
             "schema": {
-              "title": "Webhook Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "delivery_id",
-            "required": true,
-            "schema": {
-              "title": "Delivery Id",
-              "type": "string"
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 8,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
             }
           },
           {
@@ -7803,8 +5455,18 @@ Total output lines: 25722
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvoiceIn"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
-          "202": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {}
@@ -7821,230 +5483,4 @@ Total output lines: 25722
               }
             },
             "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Webhook Delivery Replay",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/webhooks/{webhook_id}/rotate-secret": {
-      "post": {
-        "operationId": "webhook_rotate_secret_v1_webhooks__webhook_id__rotate_secret_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "webhook_id",
-            "required": true,
-            "schema": {
-              "title": "Webhook Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Webhook Rotate Secret",
-        "tags": [
-          "Email SaaS"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/v1/webhooks/{wid}/rotate": {
-      "post": {
-        "operationId": "webhook_rotate_v1_webhooks__wid__rotate_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "wid",
-            "required": true,
-            "schema": {
-              "title": "Wid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "authorization",
-            "required": false,
-            "schema": {
-              "default": "",
-              "title": "Authorization",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "x-klyrow-tenant-id",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Klyrow-Tenant-Id"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-Tenant-ID",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Webhook Rotate",
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
-        "x-klyrow-enforced-auth-dependencies": [
-          "auth"
-        ]
-      }
-    },
-    "/version": {
-      "get": {
-        "operationId": "provider_version_version_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "security": [],
-        "summary": "Provider Version",
-        "tags": [
-          "Klyrow provider status"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN",
-        "x-klyrow-enforced-auth-dependencies": []
-      }
-    }
-  },
-  "x-klyrow-export-audiences": [
-    "PUBLIC"
-  ]
-}
+       Yªçx￿￾ÚîÆ­y￿èºÚn￿￿è®("©￿¶￿÷(º{￿￿}4Ó￿￿NZ￿ú.¶­￾X§z￿￿￿￿ÈBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H[ÚXÙHÜX]HYÜÈÂÛ\ÝÈ[[ÈKY\XKZY[\Ý[ÞHYKZY[\Ý[ÞK[[Ù[ÔSÓSÔTUQTÕÔÐÓÔQZY[\Ý[ÞK\\]Z\Y[ÙKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÚ[ÚXÙ\ËÞÚ[ÚXÙWÚYHÂÙ]ÂÜ\][ÛY[[×Ú[ÚXÙWÝWØ[[×Ú[ÚXÙ\××Ú[ÚXÙWÚY×ÙÙ]\[Y]\ÈÂÂ[][YH[ÚXÙWÚY\]Z\YYKØÚ[XHÂ]H[ÚXÙHY\HÝ[ÈBKÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H[[È[ÚXÙHYÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÚ[ÚXÙ\ËÞÚ[ÚXÙWÚYKØÜY][Ý\ÈÂÜÝÂÜ\][ÛYÜY]ÛÝWÝWØ[[×Ú[ÚXÙ\××Ú[ÚXÙWÚY×ØÜY]ÛÝ\×ÜÜÝ\[Y]\ÈÂÂ[][YH[ÚXÙWÚY\]Z\YYKØÚ[XHÂ]H[ÚXÙHY\HÝ[ÈBKÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\]Y\ÝÙHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÐÜY]ÝR[BBK\]Z\YYBK\ÜÛÙ\ÈÂHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\HÜY]ÝHYÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÛÙÛË\Þ[ÈÂÜÝÂÜ\][ÛY[[×ÜÞ[×ÝWØ[[×ÛÙÛ×ÜÞ[×ÜÜÝ\[Y]\ÈÂÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\]Y\ÝÙHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÐ]]ÛX][Û[BBK\]Z\YYBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H[[ÈÞ[ÈYÜÈÂÜ\][ÛÈ[[YÜ][ÛÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ^[Y[X][\ÈÂÙ]ÂÜ\][ÛY\ÝÜ^[Y[Ø][\×ÝWØ[[×Ü^[Y[Ø][\×ÙÙ]\[Y]\ÈÂÂ[]Y\H[YH[Z]\]Z\Y[ÙKØÚ[XHÂY][LX^[][HZ[[][HK]H[Z]\H[YÙ\BKÂ[]Y\H[YHÙÙ]\]Z\Y[ÙKØÚ[XHÂY][Z[[][H]HÙÙ]\H[YÙ\BKÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H\Ý^[Y[][\ÈYÜÈÂÛ\ÝÈ^[Y[][\ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BKÜÝÂÜ\][ÛYÜX]WÜ^[Y[Ø][\ÝWØ[[×Ü^[Y[Ø][\×ÜÜÝ\[Y]\ÈÂÂ[XY\[YHY[\Ý[ÞKRÙ^H\]Z\YYKØÚ[XHÂX^[ÝZ[[Ý]HY[\Ý[ÞKRÙ^H\HÝ[ÈBKÂ[XY\[YHPÛÜ[][ÛRY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂX^[Ý\HÝ[ÈKÂ\H[BK]HPÛÜ[][ÛRYBKÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\]Y\ÝÙHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÔ^[Y[][\ÜX]R[BBK\]Z\YYBK\ÜÛÙ\ÈÂHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\HÜX]H^[Y[][\YÜÈÂÛ\ÝÈ^[Y[][\ÈKY\XKZY[\Ý[ÞHYKZY[\Ý[ÞK[[Ù[TUQTÕÔÐÓÔQÐUÓRPÈZY[\Ý[ÞK\\]Z\YYKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ^[Y[X][\ËÞÜ^[Y[Ø][\ÚYHÂÙ]ÂÜ\][ÛYÙ]Ü^[Y[Ø][\ÝWØ[[×Ü^[Y[Ø][\××Ü^[Y[Ø][\ÚY×ÙÙ]\[Y]\ÈÂÂ[][YH^[Y[Ø][\ÚY\]Z\YYKØÚ[XHÂ]H^[Y[][\Y\HÝ[ÈBKÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\HÙ]^[Y[][\YÜÈÂÛ\ÝÈ^[Y[][\ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ^[Y[X][\ËÞÜ^[Y[Ø][\ÚYKØØ[Ù[ÂÜÝÂÜ\][ÛYØ[Ù[Ü^[Y[Ø][\ÝWØ[[×Ü^[Y[Ø][\××Ü^[Y[Ø][\ÚY×ØØ[Ù[ÜÜÝ\[Y]\ÈÂÂ[][YH^[Y[Ø][\ÚY\]Z\YYKØÚ[XHÂ]H^[Y[][\Y\HÝ[ÈBKÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\HØ[Ù[^[Y[][\YÜÈÂÛ\ÝÈ^[Y[][\ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ^[Y[X][\ËÞÜ^[Y[Ø][\ÚYKÙ][ÈÂÙ]ÂÜ\][ÛYÙ]Ü^[Y[Ø][\Ù][×ÝWØ[[×Ü^[Y[Ø][\××Ü^[Y[Ø][\ÚY×Ù][×ÙÙ]\[Y]\ÈÂÂ[][YH^[Y[Ø][\ÚY\]Z\YYKØÚ[XHÂ]H^[Y[][\Y\HÝ[ÈBKÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\HÙ]^[Y[][\][ÈYÜÈÂÛ\ÝÈ^[Y[][\ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ^[Y[[Y]ÙÈÂÜÝÂÜ\][ÛY^[Y[ÛY]ÙÝWØ[[×Ü^[Y[ÛY]Ù×ÜÜÝ\[Y]\ÈÂÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\]Y\ÝÙHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÔ^[Y[Y]Ù[BBK\]Z\YYBK\ÜÛÙ\ÈÂHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H^[Y[Y]ÙYÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ^[Y[ÈÂÜÝÂÜ\][ÛY^WÝWØ[[×Ü^[Y[×ÜÜÝ\[Y]\ÈÂÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\]Y\ÝÙHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÔ^[Y[[BBK\]Z\YYBK\ÜÛÙ\ÈÂHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H^HYÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ^[Y[ËÛX[X[ÂÜÝÂÜ\][ÛY[[×ÛX[X[Ü^[Y[ÝWØ[[×Ü^[Y[×ÛX[X[ÜÜÝ\[Y]\ÈÂÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\]Y\ÝÙHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÔ^[Y[[BBK\]Z\YYBK\ÜÛÙ\ÈÂHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H[[ÈX[X[^[Y[YÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ^[Y[ËÞÜ^[Y[ÚYKØÛÛ\HÂÜÝÂÜ\][ÛYÛÛ\WÛX[X[ÝWØ[[×Ü^[Y[××Ü^[Y[ÚY×ØÛÛ\WÜÜÝ\[Y]\ÈÂÂ[][YH^[Y[ÚY\]Z\YYKØÚ[XHÂ]H^[Y[Y\HÝ[ÈBKÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\HÛÛ\HX[X[YÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ^[Y[ËÞÜ^[Y[ÚYKÜY[ÈÂÜÝÂÜ\][ÛYY[ÝWØ[[×Ü^[Y[××Ü^[Y[ÚY×ÜY[×ÜÜÝ\[Y]\ÈÂÂ[][YH^[Y[ÚY\]Z\YYKØÚ[XHÂ]H^[Y[Y\HÝ[ÈBKÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\]Y\ÝÙHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÔY[[BBK\]Z\YYBK\ÜÛÙ\ÈÂHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\HY[YÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ[ÂÙ]ÂÜ\][ÛY[[×Ü[ÝWØ[[×Ü[ÙÙ]\[Y]\ÈÂÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H[[È[YÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ[ÈÂÙ]ÂÜ\][ÛY[[×Ü[×ÝWØ[[×Ü[×ÙÙ]\[Y]\ÈÂÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂY][Û[Ü\Y\ÈYK]H\ÜÛÙH[[È[ÈH[[È[ÈÙ]\HØXÝBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H[[È[ÈYÜÈÂÙXÝ[ÛTHKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜÜ[ÂÙ]ÂÜ\][ÛY[[×ÜÜ[ÝWØ[[×ÜÜ[ÙÙ]\[Y]\ÈÂÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H[[ÈÜ[YÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜ][ÝHÂÙ]ÂÜ\][ÛY[[×Ü][ÝWÝWØ[[×Ü][ÝWÙÙ]\[Y]\ÈÂÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\H[[È][ÝHYÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜXÛÛÚ[X][ÛÂÙ]ÂÜ\][ÛYXÛÛÚ[WÝWØ[[×ÜXÛÛÚ[X][ÛÙÙ]\[Y]\ÈÂÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\ÜÛÙ\ÈÂÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\ÜBBK\ØÜ\[Û[Y][Û\ÜBKÙXÝ\]HÂÂX\\]]×BBKÝ[[X\HXÛÛÚ[HYÜÈÂÛ\ÝÈ[[ÈKZÛ\ÝËX]YY[ÙHPPÈZÛ\ÝËX]][[Ù[PTTÒÕÓÔÐTWÒÑVHZÛ\ÝËY[ÜÙYX]]Y\[[ÚY\ÈÂ]]BBKÝKØ[[ËÜY[ÈÂÜÝÂÜ\][ÛY[[×ÜY[ÝWØ[[×ÜY[×ÜÜÝ\[Y]\ÈÂÂ[]Y\H[YH^[Y[ÚY\]Z\YYKØÚ[XHÂ]H^[Y[Y\HÝ[ÈBKÂ[XY\[YH]]Ü^][Û\]Z\Y[ÙKØÚ[XHÂY][]H]]Ü^][Û\HÝ[ÈBKÂ[XY\[YHZÛ\ÝË][[ZY\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HRÛ\ÝËU[[RYBKÂ[XY\[YHU[[RQ\]Z\Y[ÙKØÚ[XHÂ[SÙÂÂ\HÝ[ÈKÂ\H[BK]HU[[RYBBK\]Y\ÝÙHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÔY[[BBK\]Z\YYBK\ÜÛÙ\ÈÂHÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHßBBK\ØÜ\[ÛÝXØÙ\ÜÙ[\ÜÛÙHKÂÛÛ[Â\XØ][ÛÚÛÛÂØÚ[XHÂYËØÛÛ\Û[ËÜØÚ[X\ËÒ[Y][Û\Ü￿￿ûhéì￾ÚîÆ­y￿ÂÐ¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$&ÆÆær&VgVæB"À¢'Fw2#¢°¢$¶Ç&÷r&ÆÆær ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö&ÆÆær÷7V'67&Föâ#¢°¢&vWB#¢°¢&÷W&FöäB#¢&&ÆÆæu÷7V'67&Föå÷cö&ÆÆæu÷7V'67&FöåövWB"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$&ÆÆær7V'67&Föâ"À¢'Fw2#¢°¢$¶Ç&÷r&ÆÆær ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢ÒÀ¢'÷7B#¢°¢&÷W&FöäB#¢'7V'67&&U÷cö&ÆÆæu÷7V'67&Föå÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&WVW7D&öG#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2õ7V'67&&Tâ ¢Ð¢Ð¢ÒÀ¢'&WV&VB#¢G'VP¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢%7V'67&&R"À¢'Fw2#¢°¢$¶Ç&÷r&ÆÆær ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö&ÆÆær÷7V'67&Föâ×ÆâÖ6ævR#¢°¢'÷7B#¢°¢&÷W&FöäB#¢&6ævU÷Æå÷cö&ÆÆæu÷7V'67&Föå÷Æåö6ævU÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&WVW7D&öG#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2õÆä6ævTâ ¢Ð¢Ð¢ÒÀ¢'&WV&VB#¢G'VP¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$6ævRÆâ"À¢'Fw2#¢°¢$¶Ç&÷r&ÆÆær ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö&ÆÆær÷7V'67&Föâö6æ6VÂ#¢°¢'÷7B#¢°¢&÷W&FöäB#¢&&ÆÆæu÷7V'67&Föåö6æ6VÅ÷cö&ÆÆæu÷7V'67&Föåö6æ6VÅ÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$&ÆÆær7V'67&Föâ6æ6VÂ"À¢'Fw2#¢°¢$¶Ç&÷r&ÆÆær ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö&ÆÆær÷7V'67&Föâö6ævR#¢°¢'÷7B#¢°¢&÷W&FöäB#¢&&ÆÆæu÷7V'67&Föåö6ævU÷cö&ÆÆæu÷7V'67&Föåö6ævU÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&WVW7D&öG#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2õÆä6ævTâ ¢Ð¢Ð¢ÒÀ¢'&WV&VB#¢G'VP¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$&ÆÆær7V'67&Föâ6ævR"À¢'Fw2#¢°¢$¶Ç&÷r&ÆÆær ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö&ÆÆær÷7V'67&Föâ÷·7FGW7Ò#¢°¢'÷7B#¢°¢&÷W&FöäB#¢'G&ç6Föå÷cö&ÆÆæu÷7V'67&Föåõ÷7FGW5õ÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢'F"À¢&æÖR#¢'7FGW2"À¢'&WV&VB#¢G'VRÀ¢'66VÖ#¢°¢'FFÆR#¢%7FGW2"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢%G&ç6Föâ"À¢'Fw2#¢°¢$¶Ç&÷r&ÆÆær ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö&ÆÆær÷W6vR#¢°¢&vWB#¢°¢&÷W&FöäB#¢&&ÆÆæu÷W6vU÷cö&ÆÆæu÷W6vUövWB"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$&ÆÆærW6vR"À¢'Fw2#¢°¢$¶Ç&÷r&ÆÆær ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö&ÆÆær÷W6vRÖWfVçG2#¢°¢'÷7B#¢°¢&÷W&FöäB#¢&ÖWFW%÷cö&ÆÆæu÷W6vUöWfVçG5÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&WVW7D&öG#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2õW6vTâ ¢Ð¢Ð¢ÒÀ¢'&WV&VB#¢G'VP¢ÒÀ¢'&W7öç6W2#¢°¢##"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$ÖWFW""À¢'Fw2#¢°¢$¶Ç&÷r&ÆÆær ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö&ÆÆær÷vÆÆWB÷G&ç67Föç2#¢°¢'÷7B#¢°¢&÷W&FöäB#¢'vÆÆWE÷G÷cö&ÆÆæu÷vÆÆWE÷G&ç67Föç5÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&WVW7D&öG#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2õvÆÆWDâ ¢Ð¢Ð¢ÒÀ¢'&WV&VB#¢G'VP¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢%vÆÆWBG"À¢'Fw2#¢°¢$¶Ç&÷r&ÆÆær ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö&÷Væ6W2#¢°¢&vWB#¢°¢&÷W&FöäB#¢&&÷Væ6W5÷cö&÷Væ6W5övWB"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢&FFFöæÅ&÷W'FW2#¢G'VRÀ¢'FFÆR#¢%&W7öç6R&÷Væ6W2c&÷Væ6W2vWB"À¢'GR#¢&ö&¦V7B ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$&÷Væ6W2"À¢'Fw2#¢°¢%&öGV7Föâ ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö6×vâÖFVfæFöç2#¢°¢&vWB#¢°¢&÷W&FöäB#¢&6×våöFVfæFöç5÷cö6×våöFVfæFöç5övWB"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$6×vâFVfæFöç2"À¢'Fw2#¢°¢$VÖÂ62 ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢ÒÀ¢'÷7B#¢°¢&÷W&FöäB#¢&6×våö7&VFU÷cö6×våöFVfæFöç5÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&WVW7D&öG#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ö5õövFWvõöõöÖW76væuõô6×väâ ¢Ð¢Ð¢ÒÀ¢'&WV&VB#¢G'VP¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$6×vâ7&VFR"À¢'Fw2#¢°¢$VÖÂ62 ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö6×vâÖFVfæFöç2÷¶FVÕöGÒö6æ6VÂ#¢°¢'÷7B#¢°¢&÷W&FöäB#¢&6×våö6æ6VÅ÷cö6×våöFVfæFöç5õöFVÕöEõö6æ6VÅ÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢'F"À¢&æÖR#¢&FVÕöB"À¢'&WV&VB#¢G'VRÀ¢'66VÖ#¢°¢'FFÆR#¢$FVÒB"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$6×vâ6æ6VÂ"À¢'Fw2#¢°¢$VÖÂ62 ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö6×vâÖFVfæFöç2÷¶FVÕöGÒ÷&VfÆvB#¢°¢'÷7B#¢°¢&÷W&FöäB#¢&6×vå÷&VfÆvE÷cö6×våöFVfæFöç5õöFVÕöEõ÷&VfÆvE÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢'F"À¢&æÖR#¢&FVÕöB"À¢'&WV&VB#¢G'VRÀ¢'66VÖ#¢°¢'FFÆR#¢$FVÒB"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&WVW7D&öG#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2õ&VfÆvDâ ¢Ð¢Ð¢ÒÀ¢'&WV&VB#¢G'VP¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$6×vâ&VfÆvB"À¢'Fw2#¢°¢$VÖÂ62 ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö6×vâÖFVfæFöç2÷¶FVÕöGÒ÷66VGVÆR#¢°¢'÷7B#¢°¢&÷W&FöäB#¢&6×vå÷66VGVÆU÷cö6×våöFVfæFöç5õöFVÕöEõ÷66VGVÆU÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢'F"À¢&æÖR#¢&FVÕöB"À¢'&WV&VB#¢G'VRÀ¢'66VÖ#¢°¢'FFÆR#¢$FVÒB"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&WVW7D&öG#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2õ66VGVÆTâ ¢Ð¢Ð¢ÒÀ¢'&WV&VB#¢G'VP¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#¢°¢&FW67&Föâ#¢$6×vâF7F6W"VæfÆ&ÆS²66VGVÆær2æ÷B66WFVBâ ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$6×vâ66VGVÆR"À¢'Fw2#¢°¢$VÖÂ62 ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö6×vâÖFVfæFöç2÷¶FVÕöGÒ÷FW7B#¢°¢'÷7B#¢°¢&÷W&FöäB#¢&6×vå÷FW7E÷cö6×våöFVfæFöç5õöFVÕöEõ÷FW7E÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢'F"À¢&æÖR#¢&FVÕöB"À¢'&WV&VB#¢G'VRÀ¢'66VÖ#¢°¢'FFÆR#¢$FVÒB"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$6×vâFW7B"À¢'Fw2#¢°¢$VÖÂ62 ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö6×vâÖVÖÂÖFöÖç2#¢°¢'÷7B#¢°¢&÷W&FöäB#¢&FöÖå÷&Vv7FW%÷cö6×våöVÖÅöFöÖç5÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&WVW7D&öG#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ö5õövFWvõöõövVçEöÖÆ&÷W5õôFöÖäâ ¢Ð¢Ð¢ÒÀ¢'&WV&VB#¢G'VP¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$FöÖâ&Vv7FW""À¢'Fw2#¢°¢&vVçBÖÖÆ&÷W2 ¢ÒÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö6×vç2#¢°¢&vWB#¢°¢&÷W&FöäB#¢&6×vç5÷cö6×vç5övWB"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$6×vç2"À¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢ÒÀ¢'÷7B#¢°¢&÷W&FöäB#¢&6×våö7&VFU÷cö6×vç5÷÷7B"À¢'&ÖWFW'2#¢°¢°¢&â#¢&VFW""À¢&æÖR#¢&FV×÷FVæ7Ö¶W"À¢'&WV&VB#¢G'VRÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢$FV×÷FVæ7Ô¶W ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%Ô¶Ç&÷rÕFVæçBÔB ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢%ÕFVæçBÔB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢Ð¢ÒÀ¢'FFÆR#¢%ÕFVæçBÔB ¢Ð¢Ð¢ÒÀ¢'&WVW7D&öG#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ö5õövFWvõöõöÖåõô6×väâ ¢Ð¢Ð¢ÒÀ¢'&WV&VB#¢G'VP¢ÒÀ¢'&W7öç6W2#¢°¢###¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢·Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%7V66W76gVÂ&W7öç6R ¢ÒÀ¢#C#"#¢°¢&6öçFVçB#¢°¢&Æ6Föâö§6öâ#¢°¢'66VÖ#¢°¢"G&Vb#¢"2ö6ö×öæVçG2÷66VÖ2ôEEfÆFFöäW'&÷" ¢Ð¢Ð¢ÒÀ¢&FW67&Föâ#¢%fÆFFöâW'&÷" ¢Ð¢ÒÀ¢'6V7W&G#¢°¢°¢&&V&W$WF#¢µÐ¢Ð¢ÒÀ¢'7VÖÖ'#¢$6×vâ7&VFR"À¢'ÖGW&&ÆRÖFV×÷FVæ7#¢G'VRÀ¢'ÖFV×÷FVæ7ÖÖöFVÂ#¢%$UTU5Eõ44õTEôDôÔ2"À¢'ÖFV×÷FVæ7×&WV&VB#¢G'VRÀ¢'Ö¶Ç&÷rÖVFVæ6R#¢%T$Ä2"À¢'Ö¶Ç&÷rÖWFÖÖöFVÂ#¢$$T$U%ô¥uEôõ%ôô´U"À¢'Ö¶Ç&÷rÖVæf÷&6VBÖWFÖFWVæFVæ6W2#¢°¢&WF ¢Ð¢Ð¢ÒÀ¢"÷cö6×vç2÷¶6×våöGÒ#¢°¢'F6#¢°¢&÷W&FöäB#¢&6×vå÷F6÷cö6×vç5õö6×våöEõ÷F6"À¢'&ÖWFW'2#¢°¢°¢&â#¢'F"À¢&æÖR#¢&6×våöB"À¢'&WV&VB#¢G'VRÀ¢'66VÖ#¢°¢'FFÆR#¢$6×vâB"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢&WF÷&¦Föâ"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&FVfVÇB#¢""À¢'FFÆR#¢$WF÷&¦Föâ"À¢'GR#¢'7G&ær ¢Ð¢ÒÀ¢°¢&â#¢&VFW""À¢&æÖR#¢'Ö¶Ç&÷r×FVæçBÖB"À¢'&WV&VB#¢fÇ6RÀ¢'66VÖ#¢°¢&çöb#¢°¢°¢'GR#¢'7G&ær ¢ÒÀ¢°¢'GR#¢&çVÆÂ ¢￿￿
