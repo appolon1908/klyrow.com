@@ -910,58 +910,6 @@
   {
     "columns": [
       "id",
-      "payment_attempt_id",
-      "tenant_id",
-      "from_status",
-      "to_status",
-      "event_type",
-      "source",
-      "provider_event_reference",
-      "idempotency_key",
-      "payload_digest",
-      "correlation_id",
-      "created_by",
-      "created_at"
-    ],
-    "table": "klyrow_payment_attempt_events",
-    "tenant_scoped": true
-  },
-  {
-    "columns": [
-      "id",
-      "tenant_id",
-      "invoice_id",
-      "customer_id",
-      "payment_method_reference_id",
-      "provider",
-      "provider_account_reference",
-      "provider_attempt_reference",
-      "idempotency_key",
-      "request_fingerprint",
-      "amount_minor",
-      "currency",
-      "status",
-      "failure_code",
-      "failure_message",
-      "next_action_type",
-      "next_action_reference",
-      "correlation_id",
-      "created_by",
-      "created_at",
-      "updated_at",
-      "authorized_at",
-      "captured_at",
-      "failed_at",
-      "cancelled_at",
-      "expires_at",
-      "version"
-    ],
-    "table": "klyrow_payment_attempts",
-    "tenant_scoped": true
-  },
-  {
-    "columns": [
-      "id",
       "tenant_id",
       "provider",
       "provider_reference",

@@ -90,9 +90,6 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/v1/billing/credits` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_credits` |
 | GET | `/v1/billing/invoices` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_invoices` |
 | GET | `/v1/billing/invoices/{invoice_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_invoice` |
-| GET | `/v1/billing/payment-attempts` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `list_payment_attempts` |
-| GET | `/v1/billing/payment-attempts/{payment_attempt_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `get_payment_attempt` |
-| GET | `/v1/billing/payment-attempts/{payment_attempt_id}/events` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `get_payment_attempt_events` |
 | GET | `/v1/billing/plan` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_plan` |
 | GET | `/v1/billing/plans` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_plans` |
 | GET | `/v1/billing/portal` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_portal` |
@@ -271,8 +268,6 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/billing/invoices` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `invoice_create` |
 | POST | `/v1/billing/invoices/{invoice_id}/credit-notes` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `credit_note` |
 | POST | `/v1/billing/odoo-sync` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_sync` |
-| POST | `/v1/billing/payment-attempts` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `create_payment_attempt` |
-| POST | `/v1/billing/payment-attempts/{payment_attempt_id}/cancel` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `cancel_payment_attempt` |
 | POST | `/v1/billing/payment-methods` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `payment_method` |
 | POST | `/v1/billing/payments` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `pay` |
 | POST | `/v1/billing/payments/manual` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_manual_payment` |
@@ -331,7 +326,6 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/integrations/mautic/commands` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `mautic_command` |
 | POST | `/v1/integrations/mautic/operations/{operation_id}/reconcile` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `mautic_reconcile` |
 | POST | `/v1/integrations/results` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `result` |
-| POST | `/v1/internal/billing/payment-attempts/{payment_attempt_id}/transition` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `transition_payment_attempt` |
 | POST | `/v1/internal/email/beyvra/send` | INTERNAL | DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE | true | `beyvra_send` |
 | POST | `/v1/internal/email/communications/messages` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `canonical_email_send` |
 | POST | `/v1/internal/email/domains/register` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `domain_register` |
