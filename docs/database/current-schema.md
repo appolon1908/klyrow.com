@@ -2,7 +2,9 @@
 
 Base: `8d41ec081119335ab995ade15bee781d2902009a` (PR #148 exact head).
 
-The source database inventory is generated at `docs/architecture/database-inventory.json`. The repository currently contains 45 migration files. Migration files are forward-only numbered SQL and must not be edited after application.
+The source database inventory is generated at `docs/architecture/database-inventory.json`. At this base, SQLAlchemy metadata contains 136 tables: 122 include a `tenant_id` column and 14 do not. The metadata contains 279 indexes, 54 foreign keys, and 270 constraints. The repository currently contains 45 migration files. Migration files are forward-only numbered SQL and must not be edited after application.
+
+The migration filenames are lexicographically ordered, but four legacy numeric prefixes are duplicated: `004`, `005`, `006`, and `010`. The runner uses the complete filename as the migration version, so this is recorded as a compatibility fact rather than silently renumbered.
 
 API contract validation at this base reports 403 OpenAPI operations:
 
