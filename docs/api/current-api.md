@@ -407,8 +407,8 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/support/tickets` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `support` |
 | POST | `/v1/suppressions` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `suppression_create` |
 | POST | `/v1/team/invitations` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `invite` |
-| POST | `/v1/team/invitations/accept` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `accept_legacy_invitation` |
 | POST | `/v1/team/invitations/accept` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `accept` |
+| POST | `/v1/team/invitations/accept` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `accept_legacy_invitation` |
 | POST | `/v1/templates` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `template_create` |
 | POST | `/v1/templates/{item_id}/publish` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `template_publish` |
 | POST | `/v1/templates/{item_id}/render` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `template_render` |
