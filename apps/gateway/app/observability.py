@@ -131,6 +131,13 @@ ALLOWED_LABELS = frozenset(
         "outcome",
     }
 )
+SENSITIVE_OBSERVABILITY_TEXT = re.compile(
+    r"(?:bearer\s+[A-Za-z0-9._~+/=-]+|"
+    r"(?:password|passwd|secret|token|api[_-]?key|access[_-]?token|refresh[_-]?token)\s*[:=]\s*[^\s,;]+|"
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----|"
+    r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b)",
+    re.IGNORECASE,
+)
 PROMETHEUS_KPI_REFERENCES = frozenset(
     {
         "klyrow:http_requests:rate5m",
@@ -267,6 +274,8 @@ def _normalize_labels(
         value = str(raw_value)
         if len(value) > max_value_length:
             raise HTTPException(422, "observability_label_value_too_long")
+        if SENSITIVE_OBSERVABILITY_TEXT.search(value):
+            raise HTTPException(422, "sensitive_observability_payload_rejected")
         normalized[key] = value
     return dict(sorted(normalized.items()))
 
@@ -296,7 +305,10 @@ def _safe_annotations(annotations: dict[str, str]) -> dict[str, str]:
     for key in allowed:
         value = annotations.get(key)
         if value is not None:
-            result[key] = str(value)[:4000]
+            normalized = str(value)[:4000]
+            if SENSITIVE_OBSERVABILITY_TEXT.search(normalized):
+                raise HTTPException(422, "sensitive_observability_payload_rejected")
+            result[key] = normalized
     return result
 
 
