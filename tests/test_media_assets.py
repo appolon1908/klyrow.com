@@ -18,7 +18,7 @@ upload_counter = 0
 
 PNG_1X1 = bytes.fromhex(
     "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
-    "0000000d49444154789c6360f8cf00000003000100018d0d0d0000000049454e44ae426082"
+    "0000000d49444154789c6360f8cf00000003000100560270710000000049454e44ae426082"
 )
 
 
@@ -252,6 +252,21 @@ def test_rejected_upload_cleans_fake_storage():
     assert visible.status_code == 200 and visible.json()["status"] == "REJECTED"
 
 
+def test_storage_failure_cleans_staged_upload(monkeypatch):
+    prepared = prepare()
+    def fail_finalize(command):
+        raise RuntimeError("storage_failure")
+    monkeypatch.setattr(_fake_store, "finalize_object", fail_finalize)
+    with pytest.raises(RuntimeError, match="storage_failure"):
+        client.post(
+            f"/app/api/media/{prepared['id']}/complete",
+            headers=login("media-a"),
+            json={"upload_reference": prepared["upload_reference"], "expected_version": prepared["version"]},
+        )
+    assert prepared["upload_reference"] not in _fake_store.objects
+    assert prepared["upload_reference"] not in _fake_store.references
+
+
 def test_webp_vp8_and_vp8l_dimensions_are_parsed_and_limited():
     from apps.gateway.app.media_assets import dimensions_and_type, validate_object
     vp8_payload = b"\x00\x00\x00\x9d\x01\x2a" + (320).to_bytes(2, "little") + (240).to_bytes(2, "little") + b"\x00" * 8
@@ -279,6 +294,10 @@ def test_webp_vp8_and_vp8l_dimensions_are_parsed_and_limited():
         dimensions_and_type(trailing_vp8x)
     with pytest.raises(ValueError, match="malformed_image"):
         dimensions_and_type(PNG_1X1[:-8])
+    corrupted_png = bytearray(PNG_1X1)
+    corrupted_png[29] ^= 1
+    with pytest.raises(ValueError, match="malformed_image"):
+        dimensions_and_type(bytes(corrupted_png))
     with pytest.raises(ValueError, match="malformed_image"):
         dimensions_and_type(vp8[:-1])
     trailing = vp8 + b"JUNK"

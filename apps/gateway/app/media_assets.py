@@ -8,6 +8,7 @@ import re
 import secrets
 import struct
 import uuid
+import zlib
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Protocol
@@ -254,6 +255,10 @@ def dimensions_and_type(content: bytes) -> tuple[str, int, int]:
             if chunk_end > len(content):
                 raise ValueError("malformed_image")
             chunk_type = content[position + 4:position + 8]
+            stored_crc = int.from_bytes(content[position + 8 + length:position + 12 + length], "big")
+            calculated_crc = zlib.crc32(content[position + 4:position + 8 + length]) & 0xFFFFFFFF
+            if stored_crc != calculated_crc:
+                raise ValueError("malformed_image")
             if chunk_type == b"IEND":
                 if length != 0 or chunk_end != len(content):
                     raise ValueError("malformed_image")
@@ -423,18 +428,29 @@ def media_complete(asset_id: str, x: CompleteIn, ctx=Depends(browser_context_dep
     if item.status == "READY": return {**payload(item), "duplicate": True}
     if item.status != "PENDING_UPLOAD" or item.upload_reference != x.upload_reference:
         raise HTTPException(409, "media_upload_not_pending")
+    def cleanup_upload() -> None:
+        try:
+            object_store().delete_object({"tenant_id": item.tenant_id, "asset_id": item.id, "upload_reference": x.upload_reference})
+        except Exception:
+            pass
+
     try:
         inspected = object_store().inspect_object(x.upload_reference)
         details = validate_object(inspected["content"], item.declared_content_type, item.size_bytes, item.sha256_digest)
-    except HTTPException:
-        raise
     except (ValueError, KeyError) as exc:
-        item.status = "REJECTED"; item.quarantine_reason = str(exc); item.version += 1; item.updated_at = utcnow(); event(s, item, "upload_rejected", "REJECTED", ctx, reason=str(exc), from_status="PENDING_UPLOAD"); object_store().delete_object({"tenant_id": item.tenant_id, "asset_id": item.id, "upload_reference": x.upload_reference}); s.commit(); raise HTTPException(422, str(exc))
+        item.status = "REJECTED"; item.quarantine_reason = str(exc); item.version += 1; item.updated_at = utcnow(); event(s, item, "upload_rejected", "REJECTED", ctx, reason=str(exc), from_status="PENDING_UPLOAD"); cleanup_upload(); s.commit(); raise HTTPException(422, str(exc))
+    except Exception:
+        cleanup_upload()
+        raise
     if x.expected_version != item.version:
         raise HTTPException(409, "media_version_conflict")
     item.status = "UPLOADED"; item.version += 1; item.updated_at = utcnow(); event(s, item, "upload_completed", "UPLOADED", ctx, from_status="PENDING_UPLOAD")
     item.status = "VALIDATING"; item.version += 1; item.validated_at = utcnow(); item.updated_at = utcnow(); event(s, item, "validation_started", "VALIDATING", ctx, from_status="UPLOADED")
-    finalized = object_store().finalize_object({"tenant_id": item.tenant_id, "asset_id": item.id, "upload_reference": x.upload_reference})
+    try:
+        finalized = object_store().finalize_object({"tenant_id": item.tenant_id, "asset_id": item.id, "upload_reference": x.upload_reference})
+    except Exception:
+        cleanup_upload()
+        raise
     item.detected_content_type = details["detected_content_type"]; item.sha256_digest = details["sha256_digest"]; item.width = details["width"]; item.height = details["height"]; item.size_bytes = details["size_bytes"]; item.storage_object_key = finalized["object_key"]
     item.status = "READY"; item.ready_at = utcnow(); item.version += 1; item.updated_at = utcnow(); event(s, item, "validation_succeeded", "READY", ctx, metadata={"detected_content_type": item.detected_content_type}, from_status="VALIDATING"); audit(s, ctx, "media.upload.ready"); s.commit()
     return {**payload(item), "duplicate": False}
