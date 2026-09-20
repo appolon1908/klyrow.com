@@ -58,6 +58,30 @@ describe('pages without a browser API', () => {
 })
 
 describe('analytics, deliverability, developer logs and billing', () => {
+  it('uses the authenticated billing BFF for every live billing view without a client tenant selector', async () => {
+    const responses: Record<string, unknown> = {
+      '/app/api/billing/overview': { subscription: { product: 'Klyrow Email', plan: 'Growth', status: 'ACTIVE', interval: 'MONTHLY' }, outstanding_balance: '0.00', currency: 'USD', wallet_balance: '0.00', most_recent_invoice: null, recent_payments: [], capabilities: [{ key: 'historical_billing', available: true, reason: 'available' }] },
+      '/app/api/billing/subscription': { product: 'Klyrow Email', plan: 'Growth', status: 'ACTIVE', interval: 'MONTHLY', price: '29.00', currency: 'USD', usage: [] },
+      '/app/api/billing/invoices?offset=0&limit=25': { items: [], limit: 25, offset: 0, has_more: false },
+      '/app/api/billing/invoices/invoice-1': { id: 'invoice-1', reference: 'KLY-1', status: 'OPEN', issued_at: '2026-09-01T00:00:00Z', total: '29.00', currency: 'USD', line_items: [] },
+      '/app/api/billing/payments': { items: [], limit: 50, offset: 0, has_more: false },
+      '/app/api/billing/refunds': { items: [], limit: 50, offset: 0, has_more: false },
+      '/app/api/billing/payment-methods': [],
+      '/app/api/billing/wallet': { balance: '0.00', currency: 'USD', transactions: [] },
+    }
+    api.appApi.mockImplementation(async (url: string) => responses[url] ?? responses[url.split('?')[0]])
+    const names = ['billing-overview', 'billing-subscription', 'billing-invoices', 'billing-invoice', 'billing-payments', 'billing-refunds', 'billing-payment-methods', 'billing-wallet']
+    for (const name of names) {
+      const mounted = await mount(name, name === 'billing-invoice' ? { id: 'invoice-1' } : {}, reader)
+      await waitFor(() => expect(api.appApi).toHaveBeenCalled())
+      mounted.unmount()
+    }
+    const calls = api.appApi.mock.calls.map(call => String(call[0]))
+    expect(calls).toEqual(expect.arrayContaining(Object.keys(responses)))
+    expect(calls.some(url => /tenant[_-]?id|organization[_-]?id/.test(url))).toBe(false)
+    expect(api.appApi.mock.calls.every(call => !call[1]?.method || call[1].method === 'GET')).toBe(true)
+  })
+
   it('shows real delivery counts only, with source labels and no charts', async () => {
     api.appApi.mockResolvedValue(dashboard)
     const { container } = await mount('analytics-overview', {}, reader)
