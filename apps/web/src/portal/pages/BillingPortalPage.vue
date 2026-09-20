@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { appApi, type BrowserSession } from '../../api'
 import type { PortalRoute } from '../routes'
 import type { BillingInvoice, BillingInvoiceDetail, BillingOverview, BillingPayment, BillingPaymentMethod, BillingRefund, BillingSubscription, BillingWallet } from '../types'
@@ -47,6 +47,10 @@ const overview = computed(() => page.data.value as BillingOverview | null)
 const subscription = computed(() => page.data.value as BillingSubscription | null)
 const invoice = computed(() => page.data.value as BillingInvoiceDetail | null)
 const wallet = computed(() => page.data.value as BillingWallet | null)
+const checkoutEnabled = ref(false)
+const checkoutLoading = ref(false)
+const checkoutFailure = ref('')
+const canManageBilling = computed(() => props.session.capabilities?.includes('billing.manage') === true)
 const collection = computed(() => {
   const value = page.data.value as Collection<RecordItem> | RecordItem[] | null
   return Array.isArray(value) ? { items: value, has_more: false } : value || { items: [], has_more: false }
@@ -81,6 +85,36 @@ function displayRecord(item: RecordItem): Record<string, unknown> {
 function applyFilter() { offset.value = 0; void page.reload() }
 function previous() { offset.value = Math.max(0, offset.value - limit); void page.reload() }
 function next() { offset.value += limit; void page.reload() }
+
+watch(() => [routeName.value, invoice.value?.id] as const, async ([name, id]) => {
+  checkoutEnabled.value = false
+  if (name !== 'billing-invoice' || !id || !canManageBilling.value) return
+  try {
+    const capabilities = await appApi<{ checkout_enabled?: boolean; stripe?: { available?: boolean } }>('/app/api/billing/capabilities')
+    checkoutEnabled.value = capabilities.checkout_enabled === true && capabilities.stripe?.available === true
+  } catch {
+    checkoutEnabled.value = false
+  }
+}, { immediate: true })
+
+async function startCheckout() {
+  if (!invoice.value?.id || checkoutLoading.value) return
+  checkoutLoading.value = true
+  checkoutFailure.value = ''
+  try {
+    const key = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `checkout-${Date.now()}`
+    const result = await appApi<{ hosted_checkout_url?: string }>(
+      `/app/api/billing/invoices/${encodeURIComponent(invoice.value.id)}/checkout`,
+      { method: 'POST', headers: { 'Idempotency-Key': key } },
+    )
+    if (!result.hosted_checkout_url) throw new Error('checkout_url_missing')
+    window.location.assign(result.hosted_checkout_url)
+  } catch (error) {
+    checkoutFailure.value = error instanceof Error ? error.message : 'checkout_unavailable'
+  } finally {
+    checkoutLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -106,7 +140,7 @@ function next() { offset.value += limit; void page.reload() }
       <PanelCard v-if="subscription?.usage?.length" title="Usage summary" eyebrow="Reported by billing"><ul class="kp-list"><li v-for="entry in subscription.usage" :key="entry.label">{{ entry.label }}: {{ entry.used }}{{ entry.limit == null ? '' : ` / ${entry.limit}` }} {{ entry.unit || '' }}</li></ul></PanelCard>
     </div>
     <div v-else-if="routeName === 'billing-invoice' && invoice" class="kp-stack">
-      <PanelCard title="Invoice details" eyebrow="Canonical record"><dl class="kp-definition-list"><div><dt>Reference</dt><dd>{{ invoice.reference }}</dd></div><div><dt>Status</dt><dd>{{ readable(invoice.status) }}</dd></div><div><dt>Issued</dt><dd>{{ date(invoice.issued_at) }}</dd></div><div><dt>Due</dt><dd>{{ date(invoice.due_at) }}</dd></div><div><dt>Total</dt><dd>{{ money(invoice.total, invoice.currency) }}</dd></div></dl></PanelCard>
+      <PanelCard title="Invoice details" eyebrow="Canonical record"><dl class="kp-definition-list"><div><dt>Reference</dt><dd>{{ invoice.reference }}</dd></div><div><dt>Status</dt><dd>{{ readable(invoice.status) }}</dd></div><div><dt>Issued</dt><dd>{{ date(invoice.issued_at) }}</dd></div><div><dt>Due</dt><dd>{{ date(invoice.due_at) }}</dd></div><div><dt>Total</dt><dd>{{ money(invoice.total, invoice.currency) }}</dd></div><div><dt>Amount due</dt><dd>{{ money(invoice.amount_due, invoice.currency) }}</dd></div></dl><div v-if="canManageBilling && checkoutEnabled && Number(invoice.amount_due || 0) > 0 && !invoice.active_checkout && !['VOID', 'CREDITED', 'PAID'].includes(invoice.status)" class="kp-inline-actions"><button type="button" class="kp-button" :disabled="checkoutLoading" @click="startCheckout">{{ checkoutLoading ? 'Opening checkout…' : 'Pay invoice' }}</button></div><p v-if="invoice.active_checkout" class="kp-notice" role="status">A hosted checkout is already in progress. Reload this invoice to see its current status.</p><p v-if="checkoutFailure" class="kp-notice" role="alert">{{ checkoutFailure }}</p><p v-if="['PAID', 'PARTIALLY_PAID'].includes(invoice.status)" class="kp-notice" role="status">{{ invoice.status === 'PAID' ? 'Payment confirmed.' : 'Payment partially received.' }}</p></PanelCard>
       <PanelCard title="Line items" eyebrow="Invoice contents"><DataTable caption="Invoice line items" :columns="[{ key: 'description', label: 'Description' }, { key: 'quantity', label: 'Quantity' }, { key: 'amount', label: 'Amount' }]" :rows="invoice.line_items" empty-message="No line items are reported."><template #cell-amount="{ row }">{{ money(Number(row.amount), String(row.currency || invoice.currency)) }}</template></DataTable></PanelCard>
     </div>
     <div v-else-if="routeName === 'billing-wallet' && wallet" class="kp-stack"><MetricCard label="Wallet balance" :value="money(wallet.balance, wallet.currency)" source="live" /><PanelCard title="Wallet transactions" eyebrow="Existing records"><DataTable caption="Wallet transactions" :columns="[{ key: 'description', label: 'Description' }, { key: 'status', label: 'Status' }, { key: 'created_at', label: 'Date' }, { key: 'amount', label: 'Amount' }]" :rows="wallet.transactions" empty-message="No wallet transactions are reported."><template #cell-status="{ row }"><StatusBadge :value="String(row.status)" /></template><template #cell-created_at="{ row }">{{ date(String(row.created_at)) }}</template><template #cell-amount="{ row }">{{ money(Number(row.amount), String(row.currency || wallet.currency)) }}</template></DataTable></PanelCard></div>

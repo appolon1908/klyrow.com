@@ -26,12 +26,12 @@ def test_checkout_uses_server_amount_and_stable_idempotency_key():
     def handler(request: httpx.Request) -> httpx.Response:
         captured["headers"] = request.headers
         captured["body"] = request.content.decode()
-        return httpx.Response(200, json={"id": "cs_test_123", "url": "https://checkout.stripe.test/cs_test_123"})
+        return httpx.Response(200, json={"id": "cs_test_123", "url": "https://checkout.stripe.com/cs_test_123"})
 
     adapter = StripeSandboxAdapter("sk_test_fixture", transport=httpx.MockTransport(handler))
     result = adapter.create_checkout(payment_attempt_id="attempt_123", invoice_id="inv_123", tenant_id="tenant_a", amount_minor=1250, currency="USD", idempotency_key="attempt_123", success_url="https://app.example/app/billing/invoices/inv_123", cancel_url="https://app.example/app/billing/invoices/inv_123")
     assert result.session_id == "cs_test_123"
-    assert result.checkout_url == "https://checkout.stripe.test/cs_test_123"
+    assert result.checkout_url == "https://checkout.stripe.com/cs_test_123"
     assert captured["headers"]["Idempotency-Key"] == "attempt_123"
     assert "line_items%5B0%5D%5Bprice_data%5D%5Bunit_amount%5D=1250" in captured["body"]
     assert "metadata%5Binvoice_id%5D=inv_123" in captured["body"]

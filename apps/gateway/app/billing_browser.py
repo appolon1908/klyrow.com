@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -21,6 +21,9 @@ from .billing import (
     WalletTransaction,
 )
 from .billing_ledger import invoice_balance
+from .auth_bff import csrf_guard
+from .billing_checkout import create_or_resume_stripe_checkout
+from .billing_config import BillingConfigError, load_billing_settings
 from .main import db
 from .tenancy import ROLE_PERMISSIONS
 
@@ -37,6 +40,23 @@ def billing_context(ctx: dict[str, Any] = Depends(browser_context_dependency)) -
     permissions = ROLE_PERMISSIONS.get(role, set())
     if "*" not in permissions and "billing.read" not in permissions:
         raise HTTPException(403, "billing_read_required")
+    return ctx
+
+
+def _has_permission(ctx: dict[str, Any], permission: str) -> bool:
+    role = str(ctx.get("role", "")).upper()
+    permissions = ROLE_PERMISSIONS.get(role, set())
+    return "*" in permissions or permission in permissions
+
+
+def billing_manage_context(
+    request: Request,
+    current=Depends(csrf_guard),
+    s: Session = Depends(db),
+) -> dict[str, Any]:
+    ctx = browser_context_dependency(request=request, s=s)
+    if not _has_permission(ctx, "billing.manage"):
+        raise HTTPException(403, "billing_manage_required")
     return ctx
 
 
@@ -70,7 +90,7 @@ def subscription_payload(s: Session, item: Optional[BillingSubscription]) -> Opt
     }
 
 
-def invoice_summary(s: Session, item: Invoice) -> dict[str, Any]:
+def financial_invoice_summary(s: Session, item: Invoice) -> dict[str, Any]:
     balance = invoice_balance(s, item)
     return {
         "id": item.id,
@@ -116,7 +136,7 @@ def overview(ctx: dict[str, Any] = Depends(billing_context), s: Session = Depend
         "outstanding_balance": decimal(outstanding_by_currency.get(display_currency, Decimal("0"))),
         "currency": display_currency,
         "wallet_balance": decimal(wallet.balance if wallet else 0),
-        "most_recent_invoice": invoice_summary(s, invoices[0]) if invoices else None,
+        "most_recent_invoice": financial_invoice_summary(s, invoices[0]) if invoices else None,
         "recent_payments": [payment_summary(item, invoice_refs.get(item.invoice_id)) for item in payments],
         "capabilities": [{"key": "historical_billing", "available": True, "reason": "available"}],
         "outstanding_by_currency": [
@@ -147,17 +167,25 @@ def invoices(
         query = query.where(Invoice.status == status.upper())
     rows = s.scalars(query.order_by(Invoice.created_at.desc(), Invoice.id.desc()).offset(offset).limit(limit + 1)).all()
     more = len(rows) > limit
-    return {"items": [invoice_summary(s, item) for item in rows[:limit]], "limit": limit, "offset": offset, "has_more": more}
+    return {"items": [financial_invoice_summary(s, item) for item in rows[:limit]], "limit": limit, "offset": offset, "has_more": more}
 
 
 @router.get("/invoices/{invoice_id}")
 def invoice_detail(invoice_id: str, ctx: dict[str, Any] = Depends(billing_context), s: Session = Depends(db)) -> dict[str, Any]:
+    from .payment_attempts import ACTIVE_CHECKOUT_STATES, PaymentAttempt
+
     item = s.scalar(select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == ctx["tenant"]))
     if not item:
         raise HTTPException(404, "invoice_not_found")
-    result = invoice_summary(s, item)
+    result = financial_invoice_summary(s, item)
     result["line_items"] = [{"description": line.description, "quantity": line.quantity, "unit_amount": decimal(line.unit_amount), "amount": decimal(line.amount), "currency": item.currency} for line in s.scalars(select(InvoiceLine).where(InvoiceLine.invoice_id == item.id)).all()]
     result["billing_identity"] = None
+    result["active_checkout"] = s.scalar(select(PaymentAttempt.id).where(
+        PaymentAttempt.tenant_id == ctx["tenant"],
+        PaymentAttempt.invoice_id == item.id,
+        PaymentAttempt.provider == "stripe",
+        PaymentAttempt.status.in_(ACTIVE_CHECKOUT_STATES),
+    )) is not None
     return result
 
 
@@ -180,6 +208,82 @@ def refunds(ctx: dict[str, Any] = Depends(billing_context), s: Session = Depends
 def payment_methods(ctx: dict[str, Any] = Depends(billing_context), s: Session = Depends(db)) -> list[dict[str, Any]]:
     rows = s.scalars(select(PaymentMethodReference).where(PaymentMethodReference.tenant_id == ctx["tenant"], PaymentMethodReference.revoked_at.is_(None))).all()
     return [{"id": item.id, "type": item.provider, "display": item.label, "brand": None, "last4": None, "expires_at": None, "status": "default" if item.is_default else "active"} for item in rows]
+
+
+@router.get("/capabilities")
+def capabilities(ctx: dict[str, Any] = Depends(billing_context)) -> dict[str, Any]:
+    try:
+        settings = load_billing_settings()
+    except BillingConfigError:
+        return {
+            "billing_enabled": False,
+            "checkout_enabled": False,
+            "stripe": {"available": False, "environment": "sandbox"},
+            "live_charging": False,
+        }
+    stripe_available = (
+        settings.enabled
+        and settings.webhook_processing_enabled
+        and settings.stripe.enabled
+        and settings.stripe.environment == "sandbox"
+    )
+    return {
+        "billing_enabled": settings.enabled,
+        "checkout_enabled": stripe_available and _has_permission(ctx, "billing.manage"),
+        "stripe": {"available": stripe_available, "environment": settings.stripe.environment},
+        "live_charging": settings.live_charging_enabled,
+    }
+
+
+@router.post("/invoices/{invoice_id}/checkout", status_code=201)
+def checkout_invoice(
+    invoice_id: str,
+    ctx: dict[str, Any] = Depends(billing_manage_context),
+    s: Session = Depends(db),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
+) -> dict[str, Any]:
+    result = create_or_resume_stripe_checkout(
+        s,
+        tenant_id=ctx["tenant"],
+        actor_id=ctx["sub"],
+        invoice_id=invoice_id,
+        idempotency_key=idempotency_key,
+    )
+    return {
+        "payment_attempt_id": result.attempt_id,
+        "invoice_id": result.invoice_id,
+        "status": result.status,
+        "hosted_checkout_url": result.checkout_url,
+        "expires_at": iso(result.expires_at),
+    }
+
+
+@router.get("/payment-attempts/{payment_attempt_id}")
+def browser_payment_attempt(
+    payment_attempt_id: str,
+    ctx: dict[str, Any] = Depends(billing_context),
+    s: Session = Depends(db),
+) -> dict[str, Any]:
+    from .payment_attempts import PaymentAttempt
+
+    attempt = s.scalar(select(PaymentAttempt).where(
+        PaymentAttempt.id == payment_attempt_id,
+        PaymentAttempt.tenant_id == ctx["tenant"],
+    ))
+    if attempt is None:
+        raise HTTPException(404, "payment_attempt_not_found")
+    return {
+        "id": attempt.id,
+        "invoice_id": attempt.invoice_id,
+        "provider": attempt.provider,
+        "status": attempt.status,
+        "next_action_type": attempt.next_action_type,
+        "expires_at": iso(attempt.expires_at),
+        "failure_code": attempt.failure_code,
+        "created_at": iso(attempt.created_at),
+        "updated_at": iso(attempt.updated_at),
+        "next_action_reference": attempt.next_action_reference if attempt.next_action_type == "hosted_checkout" else None,
+    }
 
 
 @router.get("/wallet")

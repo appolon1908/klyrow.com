@@ -14,10 +14,31 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, 
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .main import Base, Tenant, audit, auth, db, require, sha
+from .billing_config import BillingConfigError, load_billing_settings
 
 router=APIRouter(prefix="/v1",tags=["Klyrow billing"])
 now=lambda:datetime.now(timezone.utc)
 money=lambda value:Decimal(value).quantize(Decimal("0.01"),rounding=ROUND_HALF_UP)
+
+
+def _billing_authorized(ctx: dict, permission: str) -> dict:
+    from .tenancy import ROLE_PERMISSIONS
+
+    role = str(ctx.get("role", "")).upper()
+    permissions = ROLE_PERMISSIONS.get(role, set())
+    if str(ctx.get("role", "")).lower() in {"tenant_admin", "platform_admin"}:
+        return ctx
+    if "*" not in permissions and permission not in permissions:
+        raise HTTPException(403, "billing_management_denied" if permission == "billing.manage" else "billing_read_required")
+    return ctx
+
+
+def require_billing_read(ctx=Depends(auth)):
+    return _billing_authorized(ctx, "billing.read")
+
+
+def require_billing_manage(ctx=Depends(auth)):
+    return _billing_authorized(ctx, "billing.manage")
 def expected_invoice_status(current:str,total,paid,refunded)->str:
     if current in {"VOID","CREDITED"}:return current
     net=money(paid)-money(refunded)
@@ -101,6 +122,7 @@ def catalog(x:CatalogIn,ctx=Depends(require("platform_admin")),s:Session=Depends
 
 @router.post("/billing/subscription",status_code=201)
 def subscribe(x:SubscribeIn,ctx=Depends(auth),s:Session=Depends(db)):
+    _billing_authorized(ctx, "billing.manage")
     plan=s.scalar(select(BillingPlan).where(BillingPlan.code==x.plan_code,BillingPlan.active==True));
     if not plan:raise HTTPException(404,"plan_not_found")
     price=s.scalar(select(BillingPrice).where(BillingPrice.plan_id==plan.id,BillingPrice.retired_at==None).order_by(BillingPrice.version.desc()))
@@ -121,6 +143,7 @@ def billing_subscription_cancel(ctx=Depends(auth),s:Session=Depends(db)):return 
 
 @router.post("/billing/subscription/{status}")
 def transition(status:str,ctx=Depends(auth),s:Session=Depends(db)):
+    _billing_authorized(ctx, "billing.manage")
     target=status.upper();sub=s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id==ctx["tenant"]).with_for_update())
     if not sub:raise HTTPException(404,"subscription_not_found")
     if target not in STATES.get(sub.status,set()):raise HTTPException(409,"invalid_subscription_transition")
@@ -128,6 +151,7 @@ def transition(status:str,ctx=Depends(auth),s:Session=Depends(db)):
 
 @router.post("/billing/usage-events",status_code=202)
 def meter(x:UsageIn,ctx=Depends(auth),s:Session=Depends(db)):
+    _billing_authorized(ctx, "billing.manage")
     sub=s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id==ctx["tenant"]));
     if not sub or sub.status not in {"TRIALING","ACTIVE","PAST_DUE","GRACE_PERIOD"}:raise HTTPException(402,"subscription_not_billable")
     old=s.scalar(select(UsageEvent).where(UsageEvent.tenant_id==ctx["tenant"],UsageEvent.event_key==x.event_key))
@@ -138,12 +162,7 @@ def meter(x:UsageIn,ctx=Depends(auth),s:Session=Depends(db)):
 
 @router.post("/billing/wallet/transactions",status_code=201)
 def wallet_tx(x:WalletIn,ctx=Depends(auth),s:Session=Depends(db)):
-    if ctx.get("role") not in {"platform_admin","tenant_admin","OWNER","ADMIN","BILLING"}:
-        from .tenancy import ROLE_PERMISSIONS,TenantMember
-        membership=s.scalar(select(TenantMember).where(TenantMember.tenant_id==ctx["tenant"],TenantMember.user_id==ctx["sub"],TenantMember.active==True))
-        permissions=ROLE_PERMISSIONS.get(membership.role,set()) if membership else set()
-        if "*" not in permissions and "billing.manage" not in permissions:
-            raise HTTPException(403,"billing_management_denied")
+    _billing_authorized(ctx, "billing.manage")
     old=s.scalar(select(WalletTransaction).where(WalletTransaction.tenant_id==ctx["tenant"],WalletTransaction.reference==x.reference));
     if old:return {"id":old.id,"duplicate":True}
     wallet=s.scalar(select(Wallet).where(Wallet.tenant_id==ctx["tenant"]).with_for_update()) or Wallet(tenant_id=ctx["tenant"],currency=x.currency,balance=0,version=0)
@@ -154,6 +173,7 @@ def wallet_tx(x:WalletIn,ctx=Depends(auth),s:Session=Depends(db)):
 
 @router.post("/billing/invoices",status_code=201)
 def invoice_create(x:InvoiceIn,ctx=Depends(auth),s:Session=Depends(db),idempotency_key:Optional[str]=Header(default=None,alias="Idempotency-Key",min_length=8,max_length=200)):
+    _billing_authorized(ctx, "billing.manage")
     sub=s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id==ctx["tenant"]));
     if not sub:raise HTTPException(404,"subscription_not_found")
     existing=s.scalar(select(Invoice).where(Invoice.tenant_id==ctx["tenant"],Invoice.request_key==idempotency_key)) if idempotency_key else None
@@ -168,6 +188,7 @@ def invoice_create(x:InvoiceIn,ctx=Depends(auth),s:Session=Depends(db),idempoten
 
 @router.post("/billing/payment-methods",status_code=201)
 def payment_method(x:PaymentMethodIn,ctx=Depends(auth),s:Session=Depends(db)):
+    _billing_authorized(ctx, "billing.manage")
     forbidden=("card_number","pan","cvv","cvc")
     if any(word in x.provider_reference.lower() for word in forbidden):raise HTTPException(422,"raw_card_data_forbidden")
     if x.is_default:
@@ -176,12 +197,11 @@ def payment_method(x:PaymentMethodIn,ctx=Depends(auth),s:Session=Depends(db)):
 
 @router.post("/billing/payments",status_code=201)
 def pay(x:PaymentIn,ctx=Depends(auth),s:Session=Depends(db)):
+    _billing_authorized(ctx, "billing.manage")
     inv=tenant_item(s,Invoice,x.invoice_id,ctx["tenant"])
     if inv.status in {"PAID","VOID","CREDITED"}:raise HTTPException(409,"invoice_not_payable")
     if x.provider=="SANDBOX":
-        from .billing_ledger import post_settlement
-        try: payment=post_settlement(s,tenant_id=ctx["tenant"],invoice_id=inv.id,provider=x.provider,provider_reference=x.provider_reference,amount=x.amount,currency=inv.currency,confirmed_by="sandbox-adapter")
-        except ValueError as exc:raise HTTPException(409,str(exc)) from None
+        raise HTTPException(409, "sandbox_payment_requires_hosted_checkout")
     else:
         payment=Payment(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],invoice_id=inv.id,provider=x.provider,provider_reference=x.provider_reference,amount=money(x.amount),currency=inv.currency,status="PENDING_RECONCILIATION",confirmed_by=None);s.add(payment)
     audit(s,ctx,"billing.payment.created");s.commit();return {"id":payment.id,"status":payment.status,"invoice_status":inv.status}
@@ -197,19 +217,26 @@ def confirm_manual(payment_id:str,ctx=Depends(require("platform_admin")),s:Sessi
 
 @router.post("/billing/payments/{payment_id}/refunds",status_code=201)
 def refund(payment_id:str,x:RefundIn,ctx=Depends(auth),s:Session=Depends(db)):
+    _billing_authorized(ctx, "billing.manage")
+    try:
+        settings = load_billing_settings()
+    except BillingConfigError:
+        raise HTTPException(503, "billing_disabled") from None
+    if not settings.refunds_enabled:
+        raise HTTPException(503, "billing_refunds_disabled")
     payment=tenant_item(s,Payment,payment_id,ctx["tenant"])
     if payment.status!="CONFIRMED":raise HTTPException(409,"payment_not_settled")
     if payment.currency!=s.get(Invoice,payment.invoice_id).currency:raise HTTPException(409,"payment_currency_mismatch")
     already=s.scalar(select(func.sum(Refund.amount)).where(Refund.payment_id==payment.id,Refund.status=="CONFIRMED")) or 0
     if money(already)+money(x.amount)>money(payment.amount):raise HTTPException(409,"refund_exceeds_payment")
-    item=Refund(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],payment_id=payment.id,amount=money(x.amount),status="CONFIRMED" if payment.provider=="SANDBOX" else "PENDING_RECONCILIATION",provider_reference=x.provider_reference);s.add(item)
-    if item.status=="CONFIRMED":
-        from .billing_ledger import invoice_balance
-        s.flush();invoice=s.get(Invoice,payment.invoice_id);invoice.status=invoice_balance(s,invoice).financial_status
+    item=Refund(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],payment_id=payment.id,amount=money(x.amount),status="PENDING_RECONCILIATION",provider_reference=x.provider_reference);s.add(item)
     audit(s,ctx,"billing.refund.created");s.commit();return {"id":item.id,"status":item.status}
 
 @router.post("/billing/checkout",status_code=201)
 def checkout(x:CheckoutIn,ctx=Depends(auth),s:Session=Depends(db)):
+    _billing_authorized(ctx, "billing.manage")
+    if x.provider == "SANDBOX":
+        raise HTTPException(409, "sandbox_checkout_requires_hosted_checkout")
     if s.scalar(select(CheckoutSession).where(CheckoutSession.provider==x.provider,CheckoutSession.provider_reference==x.provider_reference)):raise HTTPException(409,"checkout_reference_exists")
     plan=s.scalar(select(BillingPlan).where(BillingPlan.code==x.plan_code,BillingPlan.active==True))
     if not plan:raise HTTPException(404,"plan_not_found")
@@ -217,7 +244,7 @@ def checkout(x:CheckoutIn,ctx=Depends(auth),s:Session=Depends(db)):
     if not price:raise HTTPException(409,"plan_has_no_active_price")
     existing=s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id==ctx["tenant"]))
     if existing and existing.status not in {"CANCELLED","CLOSED"}:raise HTTPException(409,"active_subscription_exists")
-    state="COMPLETED" if x.provider=="SANDBOX" else "PAYMENT_PENDING"
+    state="PAYMENT_PENDING"
     item=CheckoutSession(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],plan_id=plan.id,price_id=price.id,provider=x.provider,state=state,provider_reference=x.provider_reference)
     start=now();sub=existing or BillingSubscription(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],plan_id=plan.id,price_id=price.id,period_end=start+timedelta(days=30))
     sub.plan_id=plan.id;sub.price_id=price.id;sub.period_start=start;sub.period_end=start+timedelta(days=365 if price.billing_cycle=="ANNUAL" else 30);sub.status="ACTIVE" if state=="COMPLETED" else "TRIALING"
@@ -226,6 +253,7 @@ def checkout(x:CheckoutIn,ctx=Depends(auth),s:Session=Depends(db)):
 
 @router.post("/billing/subscription-plan-change")
 def change_plan(x:PlanChangeIn,ctx=Depends(auth),s:Session=Depends(db)):
+    _billing_authorized(ctx, "billing.manage")
     sub=s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id==ctx["tenant"]).with_for_update())
     if not sub or sub.status not in {"TRIALING","ACTIVE"}:raise HTTPException(409,"subscription_not_changeable")
     plan=s.scalar(select(BillingPlan).where(BillingPlan.code==x.plan_code,BillingPlan.active==True));new=s.scalar(select(BillingPrice).where(BillingPrice.plan_id==plan.id,BillingPrice.retired_at==None).order_by(BillingPrice.version.desc())) if plan else None
@@ -239,6 +267,7 @@ def change_plan(x:PlanChangeIn,ctx=Depends(auth),s:Session=Depends(db)):
 
 @router.post("/billing/invoices/{invoice_id}/credit-notes",status_code=201)
 def credit_note(invoice_id:str,x:CreditNoteIn,ctx=Depends(auth),s:Session=Depends(db)):
+    _billing_authorized(ctx, "billing.manage")
     inv=tenant_item(s,Invoice,invoice_id,ctx["tenant"]);amount=money(x.amount)
     if amount>money(inv.total)-money(inv.credits):raise HTTPException(409,"credit_exceeds_invoice_balance")
     item=CreditNote(id=str(uuid.uuid4()),number="KLY-CN-"+now().strftime("%Y%m%d")+"-"+secrets.token_hex(4).upper(),tenant_id=ctx["tenant"],invoice_id=inv.id,amount=amount,currency=inv.currency,reason=x.reason)
@@ -301,7 +330,7 @@ def billing_invoice(invoice_id:str,ctx=Depends(auth),s:Session=Depends(db)):
 @router.get("/billing/credits")
 def billing_credits(ctx=Depends(auth),s:Session=Depends(db)):return s.scalars(select(Credit).where(Credit.tenant_id==ctx["tenant"]).order_by(Credit.created_at.desc())).all()
 @router.post("/billing/payments/manual",status_code=201)
-def billing_manual_payment(x:PaymentIn,ctx=Depends(auth),s:Session=Depends(db)):
+def billing_manual_payment(x:PaymentIn,ctx=Depends(require("platform_admin")),s:Session=Depends(db)):
     if x.provider!="MANUAL_OFFLINE":raise HTTPException(422,"manual_offline_provider_required")
     return pay(x,ctx,s)
 @router.post("/billing/refunds",status_code=201)
