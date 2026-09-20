@@ -326,6 +326,51 @@ def test_amount_exceeding_remaining_balance_is_rejected(monkeypatch):
     assert response.json()["detail"] == "amount_exceeds_remaining_balance"
 
 
+def test_two_sibling_attempts_may_both_be_created_below_invoice_total(monkeypatch):
+    """Creation-time eligibility only counts already-CAPTURED attempts (per the
+    remaining-balance definition); two merely PENDING/CREATED sibling attempts
+    may coexist even if their sum would exceed the invoice total, since only an
+    actual capture can overpay. Capture-time re-validation (see below) is what
+    prevents the collective overpayment."""
+    enable_billing(monkeypatch)
+    invoice_id = make_invoice("a", total="10.00")
+    first = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=700)
+    assert first.status_code == 201
+    second = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=700)
+    assert second.status_code == 201
+
+
+def test_capture_is_revalidated_against_invoice_balance_at_transition_time(monkeypatch):
+    """Capture-time integrity: two attempts that were each individually eligible
+    at creation must not both be allowed to reach CAPTURED if doing so would
+    collectively overpay the invoice."""
+    enable_billing(monkeypatch)
+    invoice_id = make_invoice("a", total="10.00")
+    first = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=600).json()
+    second = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=500).json()
+
+    def advance_to_captured(attempt_id):
+        pending = client.post(
+            f"/v1/internal/billing/payment-attempts/{attempt_id}/transition",
+            json={"target_status": "PENDING"},
+            headers=login("root@example.com"),
+        )
+        assert pending.status_code == 200
+        return client.post(
+            f"/v1/internal/billing/payment-attempts/{attempt_id}/transition",
+            json={"target_status": "CAPTURED"},
+            headers=login("root@example.com"),
+        )
+
+    first_captured = advance_to_captured(first["id"])
+    assert first_captured.status_code == 200
+    assert first_captured.json()["status"] == CAPTURED
+
+    second_captured = advance_to_captured(second["id"])
+    assert second_captured.status_code == 409
+    assert second_captured.json()["detail"] == "amount_exceeds_remaining_balance"
+
+
 def test_void_invoice_rejects_new_attempts(monkeypatch):
     enable_billing(monkeypatch)
     invoice_id = make_invoice("a", status="VOID")
