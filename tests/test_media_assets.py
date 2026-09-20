@@ -235,6 +235,7 @@ def test_fake_storage_delete_removes_uploaded_bytes():
     deleted = client.request("DELETE", f"/app/api/media/{prepared['id']}", headers=login("media-a"), json={"expected_version": complete.json()["version"]})
     assert deleted.status_code == 200
     assert prepared["upload_reference"] not in _fake_store.objects
+    assert prepared["upload_reference"] not in _fake_store.references
     assert client.get(f"/app/api/media/{prepared['id']}", headers=login("media-a")).status_code == 404
 
 
@@ -254,3 +255,6 @@ def test_webp_vp8_and_vp8l_dimensions_are_parsed_and_limited():
     vp8x = b"RIFF" + (len(wide) + 12).to_bytes(4, "little") + b"WEBPVP8X" + len(wide).to_bytes(4, "little") + wide
     with pytest.raises(ValueError, match="dimensions_exceeded"):
         validate_object(vp8x, "image/webp", len(vp8x), None)
+    malformed_vp8x = vp8x[:16] + (9).to_bytes(4, "little") + vp8x[20:]
+    with pytest.raises(ValueError, match="malformed_image"):
+        dimensions_and_type(malformed_vp8x)

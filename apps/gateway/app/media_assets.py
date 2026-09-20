@@ -118,7 +118,9 @@ class FakeMediaObjectStore:
         return None
 
     def delete_object(self, command: dict[str, Any]) -> None:
-        self.objects.pop(command.get("upload_reference", ""), None)
+        reference = command.get("upload_reference", "")
+        self.objects.pop(reference, None)
+        self.references.pop(reference, None)
 
 
 class UnavailableMediaObjectStore:
@@ -269,9 +271,14 @@ def dimensions_and_type(content: bytes) -> tuple[str, int, int]:
             position += length
         raise ValueError("malformed_image")
     if content.startswith(b"RIFF") and len(content) >= 30 and content[8:12] == b"WEBP":
-        if content[12:16] == b"VP8X" and len(content) >= 30:
+        if content[12:16] == b"VP8X":
+            chunk_size = int.from_bytes(content[16:20], "little")
+            if chunk_size != 10 or len(content) < 30 or 20 + chunk_size > len(content):
+                raise ValueError("malformed_image")
             width = 1 + int.from_bytes(content[24:27], "little")
             height = 1 + int.from_bytes(content[27:30], "little")
+            if width == 0 or height == 0:
+                raise ValueError("invalid_dimensions")
             return "image/webp", width, height
         chunk_size = int.from_bytes(content[16:20], "little")
         chunk_end = 20 + chunk_size
