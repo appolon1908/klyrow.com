@@ -1357,6 +1357,8 @@ from .agent_mailboxes import router as agent_mailbox_router
 app.include_router(agent_mailbox_router)
 from .billing import router as billing_router
 app.include_router(billing_router)
+from .billing_browser import router as billing_browser_router
+app.include_router(billing_browser_router)
 from .media_assets import router as media_assets_router
 app.include_router(media_assets_router)
 from .payment_attempts import router as payment_attempts_router
@@ -1402,4 +1404,3 @@ def reconcile_provider_registry_on_startup():
 @app.on_event("startup")
 async def start_provider_worker():
     if os.getenv("KLYROW_EMBEDDED_WORKERS","true").lower()=="true":asyncio.create_task(provider_worker_loop())
-
