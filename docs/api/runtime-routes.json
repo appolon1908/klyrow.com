@@ -13,6 +13,12 @@
   },
   {
     "documented": true,
+    "handler": "media_delete",
+    "method": "DELETE",
+    "path": "/app/api/media/{asset_id}"
+  },
+  {
+    "documented": true,
     "handler": "revoke_user_session",
     "method": "DELETE",
     "path": "/auth/sessions/{session_id}"
@@ -232,6 +238,24 @@
     "handler": "get_attachment",
     "method": "GET",
     "path": "/app/api/mailboxes/{mailbox_id}/messages/{message_id}/attachments/{attachment_id}"
+  },
+  {
+    "documented": true,
+    "handler": "media_list",
+    "method": "GET",
+    "path": "/app/api/media"
+  },
+  {
+    "documented": true,
+    "handler": "media_get",
+    "method": "GET",
+    "path": "/app/api/media/{asset_id}"
+  },
+  {
+    "documented": true,
+    "handler": "media_events",
+    "method": "GET",
+    "path": "/app/api/media/{asset_id}/events"
   },
   {
     "documented": true,
@@ -1336,6 +1360,24 @@
     "handler": "send_message",
     "method": "POST",
     "path": "/app/api/mailboxes/{mailbox_id}/send"
+  },
+  {
+    "documented": true,
+    "handler": "media_upload_prepare",
+    "method": "POST",
+    "path": "/app/api/media/uploads"
+  },
+  {
+    "documented": true,
+    "handler": "media_archive",
+    "method": "POST",
+    "path": "/app/api/media/{asset_id}/archive"
+  },
+  {
+    "documented": true,
+    "handler": "media_complete",
+    "method": "POST",
+    "path": "/app/api/media/{asset_id}/complete"
   },
   {
     "documented": true,
@@ -2476,6 +2518,12 @@
     "handler": "update_draft",
     "method": "PUT",
     "path": "/app/api/mailboxes/{mailbox_id}/drafts/{message_id}"
+  },
+  {
+    "documented": true,
+    "handler": "media_upload_bytes",
+    "method": "PUT",
+    "path": "/app/api/media/uploads/{upload_reference}"
   },
   {
     "documented": true,

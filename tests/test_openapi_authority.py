@@ -44,7 +44,7 @@ def test_every_documented_operation_has_one_canonical_audience_and_auth_model():
     schema = app.openapi()
     rows = list(operations(schema))
     assert len(rows) == schema["x-klyrow-operation-count"]
-    assert len(rows) == 391
+    assert len(rows) == 399
     assert all(row[2]["x-klyrow-audience"] in AUDIENCES for row in rows)
     assert all(row[2]["x-klyrow-auth-model"] for row in rows)
     assert all("security" in row[2] for row in rows)
@@ -219,6 +219,7 @@ def test_non_atomic_bulk_idempotency_is_truthfully_described():
 def test_optional_invoice_idempotency_remains_optional_and_explicit():
     schema = app.openapi()
     assert OPTIONAL_IDEMPOTENCY == {
+        ("post", "/app/api/media/uploads"),
         ("post", "/v1/billing/invoices"),
         ("post", "/v1/events"),
         ("post", "/v1/events/batch"),
@@ -257,7 +258,7 @@ def test_schema_generation_is_cached_and_deterministic():
     assert first is second
     assert first["x-klyrow-audience-counts"] == {
         "ADMIN": 22,
-        "BROWSER_BFF": 58,
+        "BROWSER_BFF": 66,
         "INTERNAL": 49,
         "LEGACY": 1,
         "PUBLIC": 252,
