@@ -117,7 +117,7 @@ test('8. one-time credential display never persists and the API keys page expose
   await page.getByLabel('Email address').fill('new@example.com')
   await page.getByLabel('Role').selectOption('DEVELOPER')
   await page.getByRole('button', { name: 'Send invitation' }).click()
-  await expect(page.getByText('shown once')).toBeVisible()
+  await expect(page.getByRole('region', { name: 'Development invitation token' }).getByText(/shown once/i)).toBeVisible()
   await expect(page.getByText('one-time-invitation-token')).toHaveCount(0)
   await page.getByRole('button', { name: 'Reveal' }).click()
   await expect(page.getByText('one-time-invitation-token')).toBeVisible()

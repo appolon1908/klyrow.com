@@ -98,3 +98,14 @@ export interface BrowserSessionRow {
   user_agent_hash?: string | null
   ip_hash?: string | null
 }
+
+export interface BillingCapability { key: string; available: boolean; reason?: string | null }
+export interface BillingSubscription { product: string; plan: string; status: string; interval: string; trial_end?: string | null; price?: number | null; currency?: string | null; renews_at?: string | null; cancels_at?: string | null; usage?: Array<{ label: string; used: number; limit?: number | null; unit?: string }> }
+export interface BillingInvoice { id: string; reference: string; status: string; issued_at: string; due_at?: string | null; total: number; currency: string; amount_due?: number | null; amount_paid?: number | null }
+export interface BillingInvoiceDetail extends BillingInvoice { billing_identity?: { name?: string | null; email?: string | null; address?: string | null } | null; line_items: Array<{ description: string; quantity: number; unit_amount: number; amount: number; currency: string }> }
+export interface BillingPayment { id: string; reference: string; status: string; created_at: string; amount: number; currency: string; invoice_reference?: string | null }
+export interface BillingPaymentMethod { id: string; type: string; display: string; brand?: string | null; last4?: string | null; expires_at?: string | null; status: string }
+export interface BillingRefund { id: string; reference: string; status: string; created_at: string; amount: number; currency: string; payment_reference?: string | null }
+export interface BillingWalletTransaction { id: string; type: string; status: string; created_at: string; amount: number; currency: string; description?: string | null }
+export interface BillingWallet { balance: number; currency: string; transactions: BillingWalletTransaction[] }
+export interface BillingOverview { subscription: BillingSubscription | null; outstanding_balance: number; currency: string; wallet_balance: number; most_recent_invoice: BillingInvoice | null; recent_payments: BillingPayment[]; capabilities: BillingCapability[] }
