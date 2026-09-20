@@ -73,8 +73,8 @@ export const portalRoutes: readonly PortalRoute[] = [
     dependency: missing('GET /app/api/templates/{id} with version history'), apis: [] }),
   tenant({ name: 'content-builder', pattern: '/app/content/builder/:id', group: 'Content', title: 'Builder', breadcrumb: 'Builder', capability: 'campaign.manage', availability: 'unavailable',
     dependency: missing('template version create/publish/rollback/render browser APIs'), apis: [] }),
-  tenant({ name: 'content-media', pattern: '/app/content/media', group: 'Content', title: 'Media', breadcrumb: 'Media', capability: 'campaign.manage', availability: 'unavailable', nav: true,
-    dependency: missing('a media library API (none exists in any audience)'), apis: [] }),
+  tenant({ name: 'content-media', pattern: '/app/content/media', group: 'Content', title: 'Media', breadcrumb: 'Media', capability: 'campaign.manage', availability: 'implemented', nav: true,
+    dependency: 'Tenant-isolated media metadata and lifecycle use the authenticated same-origin Media Library APIs.', apis: ['GET /app/api/media', 'POST /app/api/media/uploads', 'POST /app/api/media/{asset_id}/complete', 'GET /app/api/media/{asset_id}', 'GET /app/api/media/{asset_id}/events', 'POST /app/api/media/{asset_id}/archive', 'DELETE /app/api/media/{asset_id}'] }),
   tenant({ name: 'content-brand', pattern: '/app/content/brand', group: 'Content', title: 'Brand', breadcrumb: 'Brand', capability: 'campaign.manage', availability: 'unavailable', nav: true,
     dependency: missing('a brand settings API (none exists in any audience)'), apis: [] }),
 

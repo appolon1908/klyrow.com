@@ -18,6 +18,7 @@ import SettingsOrganizationPage from './SettingsOrganizationPage.vue'
 import SettingsTeamPage from './SettingsTeamPage.vue'
 import SettingsSecurityPage from './SettingsSecurityPage.vue'
 import AdminCountsPage from './AdminCountsPage.vue'
+import MediaLibraryPage from './MediaLibraryPage.vue'
 
 /** Pages backed by a browser API. Every other route renders the honest unavailable page. */
 const pages: Record<string, Component> = {
@@ -29,6 +30,7 @@ const pages: Record<string, Component> = {
   'email-domain': EmailDomainPage,
   'email-senders': EmailSendersPage,
   'email-inbound': EmailInboundPage,
+  'content-media': MediaLibraryPage,
   'analytics-overview': AnalyticsOverviewPage,
   deliverability: DeliverabilityPage,
   'deliverability-domain': EmailDomainPage,

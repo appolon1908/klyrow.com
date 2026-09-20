@@ -1357,6 +1357,8 @@ from .agent_mailboxes import router as agent_mailbox_router
 app.include_router(agent_mailbox_router)
 from .billing import router as billing_router
 app.include_router(billing_router)
+from .media_assets import router as media_assets_router
+app.include_router(media_assets_router)
 from .tenancy import router as tenancy_router
 app.include_router(tenancy_router)
 from .messaging import router as messaging_router
