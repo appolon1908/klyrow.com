@@ -7,7 +7,7 @@ const root = fileURLToPath(new URL('../dist/', import.meta.url))
 const types = { '.css':'text/css', '.html':'text/html', '.js':'text/javascript', '.svg':'image/svg+xml' }
 createServer(async (request, response) => {
   const pathname = new URL(request.url || '/', 'http://127.0.0.1').pathname
-  const relative = pathname.startsWith('/assets/') ? pathname.slice(1) : 'index.html'
+  const relative = pathname.startsWith('/auth-assets/assets/') ? pathname.slice('/auth-assets/'.length) : pathname.startsWith('/assets/') ? pathname.slice(1) : 'index.html'
   try {
     const body = await readFile(join(root, normalize(relative)))
     response.writeHead(200, { 'Content-Type':types[extname(relative)] || 'application/octet-stream', 'Cache-Control':'no-store' }); response.end(body)

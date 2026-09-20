@@ -13,7 +13,7 @@ const REQUIRED_TENANT_ROUTES = [
   '/app/analytics/overview', '/app/analytics/campaigns', '/app/analytics/journeys', '/app/analytics/segments', '/app/analytics/links',
   '/app/deliverability', '/app/deliverability/domains/:id', '/app/deliverability/ip-pools', '/app/deliverability/alerts',
   '/app/developer/api-keys', '/app/developer/service-accounts', '/app/developer/smtp', '/app/developer/webhooks', '/app/developer/logs', '/app/developer/openapi',
-  '/app/billing/plan', '/app/billing/usage', '/app/billing/invoices', '/app/billing/invoices/:id', '/app/billing/payment-methods',
+  '/app/billing/overview', '/app/billing/plan', '/app/billing/usage', '/app/billing/subscription', '/app/billing/invoices', '/app/billing/invoices/:id', '/app/billing/payments', '/app/billing/refunds', '/app/billing/payment-methods', '/app/billing/wallet',
   '/app/settings/organization', '/app/settings/team', '/app/settings/security', '/app/settings/sso', '/app/settings/scim',
   '/app/settings/retention', '/app/settings/audit', '/app/settings/integrations',
   '/app/support', '/app/support/tickets/:id',
@@ -67,7 +67,7 @@ describe('portal route table', () => {
   it('resolves navigation group index paths to the first visible page', () => {
     expect(groupIndexPath('/app/email')).toBe('/app/email/messages')
     expect(groupIndexPath('/app/settings')).toBe('/app/settings/organization')
-    expect(groupIndexPath('/app/billing')).toBe('/app/billing/plan')
+    expect(groupIndexPath('/app/billing')).toBe('/app/billing/overview')
     expect(groupIndexPath('/app/unknown')).toBeNull()
   })
 
@@ -76,6 +76,13 @@ describe('portal route table', () => {
     for (const path of ['https://example.com/app/overview', '//evil.example/app', '/app/api/dashboard', '/auth/logout', 'javascript:alert(1)', '/app/\\overview', '']) {
       expect(safePortalPath(path)).toBe('/app/overview')
     }
+  })
+
+  it('keeps billing routes tenant-scoped and read-only', () => {
+    const billing = portalRoutes.filter(route => route.group === 'Billing')
+    expect(billing.every(route => route.audience === 'tenant' && route.capability === 'billing.read')).toBe(true)
+    expect(billing.flatMap(route => route.apis).some(api => /\b(POST|PUT|PATCH|DELETE)\b/.test(api))).toBe(false)
+    expect(billing.flatMap(route => route.apis).every(api => api.startsWith('GET /app/api/billing/') || api === 'GET /app/api/dashboard')).toBe(true)
   })
 })
 
