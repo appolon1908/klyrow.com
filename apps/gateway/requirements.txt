@@ -12,6 +12,7 @@ email-validator==2.2.0
 dnspython==2.7.0
 cryptography==50.0.0
 aiosmtpd==1.4.6
+Pillow==10.4.0
 
 # Complete, exact transitive closure. Container builds install with --no-deps
 # and then run pip check, so resolver drift cannot change protected artifacts.

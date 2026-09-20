@@ -1,20 +1,20 @@
 """Tenant-isolated media metadata and provider-neutral object lifecycle."""
 import hashlib
-import html
 import io
 import json
 import os
 import re
 import secrets
-import struct
 import uuid
-import zlib
+import warnings
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Protocol
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Body, Depends, Header, HTTPException, Query, Request
+from PIL import Image, UnidentifiedImageError
+from PIL.Image import DecompressionBombError, DecompressionBombWarning
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
@@ -26,6 +26,7 @@ router = APIRouter(tags=["Tenant media"])
 
 MAX_SIZE_BYTES = 10 * 1024 * 1024
 MAX_DIMENSION = 8192
+MAX_PIXEL_COUNT = MAX_DIMENSION * MAX_DIMENSION
 ALLOWED_TYPES = {"image/png", "image/jpeg", "image/webp"}
 STATUSES = {
     "PENDING_UPLOAD", "UPLOADED", "VALIDATING", "READY", "REJECTED", "QUARANTINED", "ARCHIVED", "DELETED"
@@ -241,91 +242,28 @@ def safe_name(filename: str) -> str:
 
 
 def dimensions_and_type(content: bytes) -> tuple[str, int, int]:
-    if content.startswith(b"\x89PNG\r\n\x1a\n"):
-        if len(content) < 33 or int.from_bytes(content[8:12], "big") != 13 or content[12:16] != b"IHDR":
-            raise ValueError("malformed_image")
-        width, height = struct.unpack(">II", content[16:24])
-        if width == 0 or height == 0:
-            raise ValueError("invalid_dimensions")
-        position = 8
-        saw_iend = False
-        while position + 12 <= len(content):
-            length = int.from_bytes(content[position:position + 4], "big")
-            chunk_end = position + 12 + length
-            if chunk_end > len(content):
-                raise ValueError("malformed_image")
-            chunk_type = content[position + 4:position + 8]
-            stored_crc = int.from_bytes(content[position + 8 + length:position + 12 + length], "big")
-            calculated_crc = zlib.crc32(content[position + 4:position + 8 + length]) & 0xFFFFFFFF
-            if stored_crc != calculated_crc:
-                raise ValueError("malformed_image")
-            if chunk_type == b"IEND":
-                if length != 0 or chunk_end != len(content):
-                    raise ValueError("malformed_image")
-                saw_iend = True
-                break
-            position = chunk_end
-        if not saw_iend:
-            raise ValueError("malformed_image")
-        return "image/png", width, height
-    if content.startswith(b"\xff\xd8\xff"):
-        position = 2
-        while position + 9 < len(content):
-            if content[position] != 0xFF:
-                raise ValueError("malformed_image")
-            marker = content[position + 1]
-            position += 2
-            if marker in {0xD8, 0xD9}:
-                continue
-            if position + 2 > len(content):
-                raise ValueError("malformed_image")
-            length = struct.unpack(">H", content[position:position + 2])[0]
-            if length < 2 or position + length > len(content):
-                raise ValueError("malformed_image")
-            if marker in set(range(0xC0, 0xC4)) | set(range(0xC5, 0xC8)) | set(range(0xC9, 0xCC)) | set(range(0xCD, 0xD0)):
-                if length < 7:
-                    raise ValueError("malformed_image")
-                height, width = struct.unpack(">HH", content[position + 3:position + 7])
-                if width == 0 or height == 0:
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DecompressionBombWarning)
+            with Image.open(io.BytesIO(content)) as image:
+                detected = {"PNG": "image/png", "JPEG": "image/jpeg", "WEBP": "image/webp"}.get(image.format)
+                if detected is None:
+                    raise ValueError("unsupported_or_malformed_image")
+                width, height = image.size
+                if width <= 0 or height <= 0:
                     raise ValueError("invalid_dimensions")
-                return "image/jpeg", width, height
-            position += length
-        raise ValueError("malformed_image")
-    if content.startswith(b"RIFF") and len(content) >= 20 and content[8:12] == b"WEBP":
-        riff_size = int.from_bytes(content[4:8], "little")
-        if riff_size != len(content) - 8:
-            raise ValueError("malformed_image")
-        if content[12:16] == b"VP8X":
-            chunk_size = int.from_bytes(content[16:20], "little")
-            if chunk_size != 10 or len(content) < 30 or 20 + chunk_size != len(content):
-                raise ValueError("malformed_image")
-            width = 1 + int.from_bytes(content[24:27], "little")
-            height = 1 + int.from_bytes(content[27:30], "little")
-            if width == 0 or height == 0:
-                raise ValueError("invalid_dimensions")
-            return "image/webp", width, height
-        chunk_size = int.from_bytes(content[16:20], "little")
-        chunk_end = 20 + chunk_size
-        if chunk_end != len(content):
-            raise ValueError("malformed_image")
-        payload = content[20:chunk_end]
-        if content[12:16] == b"VP8 ":
-            if len(payload) < 10 or payload[3:6] != b"\x9d\x01\x2a":
-                raise ValueError("malformed_image")
-            width = int.from_bytes(payload[6:8], "little") & 0x3FFF
-            height = int.from_bytes(payload[8:10], "little") & 0x3FFF
-        elif content[12:16] == b"VP8L":
-            if len(payload) < 5 or payload[0] != 0x2F:
-                raise ValueError("malformed_image")
-            bits = int.from_bytes(payload[1:5], "little")
-            width = 1 + (bits & 0x3FFF)
-            height = 1 + ((bits >> 14) & 0x3FFF)
-        else:
-            raise ValueError("unsupported_or_malformed_image")
-        if width == 0 or height == 0:
-            raise ValueError("invalid_dimensions")
-        return "image/webp", width, height
-    raise ValueError("unsupported_or_malformed_image")
+                if width > MAX_DIMENSION or height > MAX_DIMENSION:
+                    raise ValueError("dimensions_exceeded")
+                if width * height > MAX_PIXEL_COUNT:
+                    raise ValueError("pixel_count_exceeded")
+                image.verify()
+            with Image.open(io.BytesIO(content)) as image:
+                image.load()
+                if image.size != (width, height):
+                    raise ValueError("malformed_image")
+                return detected, width, height
+    except (DecompressionBombError, DecompressionBombWarning, UnidentifiedImageError, OSError, SyntaxError) as exc:
+        raise ValueError("malformed_image") from exc
 
 
 def validate_object(content: bytes, declared: str, expected_size: int, expected_digest: Optional[str]) -> dict[str, Any]:
@@ -338,8 +276,6 @@ def validate_object(content: bytes, declared: str, expected_size: int, expected_
     detected, width, height = dimensions_and_type(content)
     if detected not in ALLOWED_TYPES or declared != detected:
         raise ValueError("content_type_mismatch")
-    if width > MAX_DIMENSION or height > MAX_DIMENSION:
-        raise ValueError("dimensions_exceeded")
     digest = hashlib.sha256(content).hexdigest()
     if expected_digest and digest != expected_digest.lower():
         raise ValueError("digest_mismatch")
@@ -414,10 +350,23 @@ async def media_upload_bytes(upload_reference: str, request: Request, ctx=Depend
     item = s.scalar(select(MediaAsset).where(MediaAsset.upload_reference == upload_reference, MediaAsset.tenant_id == ctx["tenant"], MediaAsset.status == "PENDING_UPLOAD"))
     if not item:
         raise HTTPException(404, "media_upload_not_found")
-    content = await request.body()
-    if not content or len(content) > MAX_SIZE_BYTES or len(content) != item.size_bytes:
+    content = bytearray()
+    received = 0
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            if int(content_length) > MAX_SIZE_BYTES or int(content_length) != item.size_bytes:
+                raise HTTPException(422, "size_mismatch_or_oversized")
+        except ValueError as exc:
+            raise HTTPException(422, "invalid_content_length") from exc
+    async for chunk in request.stream():
+        received += len(chunk)
+        if received > MAX_SIZE_BYTES or received > item.size_bytes:
+            raise HTTPException(422, "size_mismatch_or_oversized")
+        content.extend(chunk)
+    if not content or received != item.size_bytes:
         raise HTTPException(422, "size_mismatch_or_oversized")
-    result = object_store().put_object({"tenant_id": item.tenant_id, "asset_id": item.id, "upload_reference": upload_reference, "content": content})
+    result = object_store().put_object({"tenant_id": item.tenant_id, "asset_id": item.id, "upload_reference": upload_reference, "content": bytes(content)})
     return {"upload_reference": upload_reference, "size_bytes": result["size_bytes"]}
 
 

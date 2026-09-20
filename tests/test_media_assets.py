@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy import select
 
 from apps.gateway.app.auth_bff import BrowserSession, SESSION_COOKIE
@@ -16,10 +18,17 @@ client = TestClient(app)
 tokens = {}
 upload_counter = 0
 
-PNG_1X1 = bytes.fromhex(
-    "89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c489"
-    "0000000d49444154789c6360f8cf00000003000100560270710000000049454e44ae426082"
-)
+def encoded_image(format_name: str, mode: str = "RGB", size: tuple[int, int] = (1, 1)) -> bytes:
+    image = Image.new(mode, size, (12, 34, 56, 128) if mode == "RGBA" else (12, 34, 56))
+    output = BytesIO()
+    image.save(output, format=format_name)
+    return output.getvalue()
+
+
+PNG_1X1 = encoded_image("PNG")
+JPEG_1X1 = encoded_image("JPEG")
+WEBP_1X1 = encoded_image("WEBP")
+TRANSPARENT_WEBP_1X1 = encoded_image("WEBP", "RGBA")
 
 
 def setup_module():
@@ -267,40 +276,28 @@ def test_storage_failure_cleans_staged_upload(monkeypatch):
     assert prepared["upload_reference"] not in _fake_store.references
 
 
-def test_webp_vp8_and_vp8l_dimensions_are_parsed_and_limited():
-    from apps.gateway.app.media_assets import dimensions_and_type, validate_object
-    vp8_payload = b"\x00\x00\x00\x9d\x01\x2a" + (320).to_bytes(2, "little") + (240).to_bytes(2, "little") + b"\x00" * 8
-    vp8 = b"RIFF" + (len(vp8_payload) + 12).to_bytes(4, "little") + b"WEBPVP8 " + len(vp8_payload).to_bytes(4, "little") + vp8_payload
-    vp8l_bits = (319) | (239 << 14)
-    vp8l_payload = b"\x2f" + vp8l_bits.to_bytes(4, "little") + b"\x00" * 14
-    vp8l = b"RIFF" + (len(vp8l_payload) + 12).to_bytes(4, "little") + b"WEBPVP8L" + len(vp8l_payload).to_bytes(4, "little") + vp8l_payload
-    assert dimensions_and_type(vp8) == ("image/webp", 320, 240)
-    assert dimensions_and_type(vp8l) == ("image/webp", 320, 240)
+@pytest.mark.parametrize(
+    ("content", "declared", "expected_type"),
+    [
+        (PNG_1X1, "image/png", "image/png"),
+        (JPEG_1X1, "image/jpeg", "image/jpeg"),
+        (WEBP_1X1, "image/webp", "image/webp"),
+        (TRANSPARENT_WEBP_1X1, "image/webp", "image/webp"),
+    ],
+)
+def test_real_images_are_decoder_validated(content, declared, expected_type):
+    from apps.gateway.app.media_assets import validate_object
+
+    result = validate_object(content, declared, len(content), None)
+    assert result["detected_content_type"] == expected_type
+    assert result["width"] == 1
+    assert result["height"] == 1
+    assert result["sha256_digest"]
+
+
+@pytest.mark.parametrize("content", [PNG_1X1[:-8], JPEG_1X1[:-8], WEBP_1X1[:-8], b"RIFF\x00\x00\x00\x00WEBP"])
+def test_decoder_rejects_truncated_or_fake_images(content):
+    from apps.gateway.app.media_assets import validate_object
 
     with pytest.raises(ValueError, match="malformed_image"):
-        dimensions_and_type(b"RIFF\x12\x00\x00\x00WEBPVP8 \x04\x00\x00\x00\x00")
-    wide = bytes([0, 0, 0, 0]) + (8192).to_bytes(3, "little") + (1).to_bytes(3, "little")
-    vp8x = b"RIFF" + (len(wide) + 12).to_bytes(4, "little") + b"WEBPVP8X" + len(wide).to_bytes(4, "little") + wide
-    with pytest.raises(ValueError, match="dimensions_exceeded"):
-        validate_object(vp8x, "image/webp", len(vp8x), None)
-    malformed_vp8x = vp8x[:16] + (9).to_bytes(4, "little") + vp8x[20:]
-    with pytest.raises(ValueError, match="malformed_image"):
-        dimensions_and_type(malformed_vp8x)
-    valid_vp8x_payload = b"\x00\x00\x00\x00" + b"\x00\x00\x00" + b"\x00\x00\x00"
-    valid_vp8x = b"RIFF" + (len(valid_vp8x_payload) + 12).to_bytes(4, "little") + b"WEBPVP8X" + len(valid_vp8x_payload).to_bytes(4, "little") + valid_vp8x_payload
-    trailing_vp8x = valid_vp8x + b"JUNK"
-    trailing_vp8x = trailing_vp8x[:4] + (len(trailing_vp8x) - 8).to_bytes(4, "little") + trailing_vp8x[8:]
-    with pytest.raises(ValueError, match="malformed_image"):
-        dimensions_and_type(trailing_vp8x)
-    with pytest.raises(ValueError, match="malformed_image"):
-        dimensions_and_type(PNG_1X1[:-8])
-    corrupted_png = bytearray(PNG_1X1)
-    corrupted_png[29] ^= 1
-    with pytest.raises(ValueError, match="malformed_image"):
-        dimensions_and_type(bytes(corrupted_png))
-    with pytest.raises(ValueError, match="malformed_image"):
-        dimensions_and_type(vp8[:-1])
-    trailing = vp8 + b"JUNK"
-    trailing = trailing[:4] + (len(trailing) - 8).to_bytes(4, "little") + trailing[8:]
-    with pytest.raises(ValueError, match="malformed_image"):
-        dimensions_and_type(trailing)
+        validate_object(content, "image/png", len(content), None)
