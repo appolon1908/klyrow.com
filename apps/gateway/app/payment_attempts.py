@@ -319,8 +319,11 @@ def _serialize_event(event: PaymentAttemptEvent) -> dict[str, Any]:
     }
 
 
-def _tenant_invoice(session: Session, invoice_id: str, tenant_id: str) -> Invoice:
-    invoice = session.scalar(select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id))
+def _tenant_invoice(session: Session, invoice_id: str, tenant_id: str, *, for_update: bool = False) -> Invoice:
+    query = select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id)
+    if for_update:
+        query = query.with_for_update()
+    invoice = session.scalar(query)
     if not invoice:
         raise HTTPException(404, "invoice_not_found")
     return invoice
@@ -397,7 +400,10 @@ def create_payment_attempt(
         IDEMPOTENT_REPLAY_TOTAL.labels(x.provider).inc()
         return _serialize(existing)
 
-    invoice = _tenant_invoice(s, x.invoice_id, ctx["tenant"])
+    # Lock the invoice row so concurrent creation requests against the same
+    # invoice serialize their remaining-balance check (PostgreSQL; SQLite
+    # ignores FOR UPDATE, matching this repository's existing convention).
+    invoice = _tenant_invoice(s, x.invoice_id, ctx["tenant"], for_update=True)
     _validate_invoice_eligibility(s, invoice, ctx["tenant"], x.amount_minor, x.currency)
     select_adapter(x.provider)  # fail closed early for unsupported providers
 
@@ -587,6 +593,13 @@ def transition_payment_attempt(
         raise HTTPException(404, "payment_attempt_not_found")
     if x.target_status in {AUTHORIZED, CAPTURED}:
         enforce_billing_capability(attempt.provider, require_live_charging=True)
+    if x.target_status == CAPTURED and attempt.status != CAPTURED:
+        # Re-validate under an invoice row lock so concurrent captures of
+        # sibling attempts on the same invoice cannot collectively overpay it.
+        invoice = _tenant_invoice(s, attempt.invoice_id, attempt.tenant_id, for_update=True)
+        remaining = _remaining_eligible_minor(s, invoice)
+        if attempt.amount_minor > remaining:
+            raise HTTPException(409, "amount_exceeds_remaining_balance")
     _apply_transition(
         s,
         attempt,

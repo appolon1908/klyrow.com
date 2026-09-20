@@ -103,6 +103,26 @@ deferral, documented at the top of `apps/gateway/app/payment_attempts.py`.
 - Refunds (`billing.Refund`) and wallet transactions are untouched by this
   calculation; they are not payment attempts.
 
+### Concurrency and overpayment integrity
+
+- **Creation**: the invoice row is locked (`SELECT ... FOR UPDATE`) before the
+  remaining-balance check, so two concurrent creation requests against the
+  same invoice serialize and cannot both be admitted past the same
+  already-captured total (PostgreSQL; SQLite ignores `FOR UPDATE`, matching
+  this repository's existing convention elsewhere in `billing.py`).
+- Two merely `CREATED`/`PENDING` sibling attempts *may* coexist even if their
+  amounts would sum past the invoice total — only `CAPTURED` attempts count
+  against the balance, matching an authorization-hold vs. actual-charge
+  model.
+- **Capture**: `POST /v1/internal/billing/payment-attempts/{id}/transition`
+  re-locks the invoice and re-validates the remaining eligible balance
+  immediately before allowing a transition into `CAPTURED` (excluding this
+  attempt's own not-yet-captured amount). If capturing this attempt would
+  push the invoice past its remaining balance, the transition is rejected
+  with `409 amount_exceeds_remaining_balance` and no state changes. This is
+  what actually prevents two individually-eligible sibling attempts from
+  both being captured.
+
 ## Provider-disabled behavior (fail-closed)
 
 `enforce_billing_capability` reads the canonical Mission 01
