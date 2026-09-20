@@ -51,3 +51,13 @@ def test_billing_worker_ledger_is_idempotent_and_reclaims_expired_lease():
     with DB() as s:
         item=s.scalar(select(BillingWorkItem).where(BillingWorkItem.billing_event_id=="billing-event"))
         assert item.state=="COMPLETED" and item.attempts==2
+
+
+def test_billing_worker_dead_letter_retains_unknown_kind_error():
+    with DB() as s:
+        s.add(BillingWorkItem(id="unknown-kind", billing_event_id="unknown-event", tenant_id="boundary-a", kind="unknown.kind", state="PENDING", available_at=datetime.now(timezone.utc)-timedelta(seconds=1)))
+        s.commit()
+    assert billing_tick()==1
+    with DB() as s:
+        item=s.get(BillingWorkItem, "unknown-kind")
+        assert item.state=="DEAD_LETTER" and item.last_error=="unknown_billing_work_kind"

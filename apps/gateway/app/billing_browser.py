@@ -20,6 +20,7 @@ from .billing import (
     Wallet,
     WalletTransaction,
 )
+from .billing_ledger import invoice_balance
 from .main import db
 from .tenancy import ROLE_PERMISSIONS
 
@@ -69,18 +70,19 @@ def subscription_payload(s: Session, item: Optional[BillingSubscription]) -> Opt
     }
 
 
-def invoice_summary(item: Invoice, paid: Decimal = Decimal("0"), refunded: Decimal = Decimal("0")) -> dict[str, Any]:
+def invoice_summary(s: Session, item: Invoice) -> dict[str, Any]:
+    balance = invoice_balance(s, item)
     return {
         "id": item.id,
         "reference": item.number,
-        "status": item.status,
+        "status": balance.financial_status,
         "issued_at": iso(item.created_at),
         "due_at": iso(item.due_at),
-        "total": decimal(item.total),
+        "total": decimal(balance.total),
         "currency": item.currency,
-        "amount_due": decimal(Decimal(item.total) - Decimal(paid) - Decimal(item.credits)),
-        "amount_paid": decimal(paid),
-        "amount_refunded": decimal(refunded),
+        "amount_due": decimal(balance.remaining_due),
+        "amount_paid": decimal(balance.settled),
+        "amount_refunded": decimal(balance.refunded),
     }
 
 
@@ -103,18 +105,24 @@ def overview(ctx: dict[str, Any] = Depends(billing_context), s: Session = Depend
     invoices = s.scalars(select(Invoice).where(Invoice.tenant_id == tenant).order_by(Invoice.created_at.desc())).all()
     payments = s.scalars(select(Payment).where(Payment.tenant_id == tenant).order_by(Payment.created_at.desc()).limit(5)).all()
     wallet = s.get(Wallet, tenant)
-    paid = s.scalar(select(func.sum(Payment.amount)).where(Payment.tenant_id == tenant, Payment.status == "CONFIRMED")) or 0
-    refunded = s.scalar(select(func.sum(Refund.amount)).where(Refund.tenant_id == tenant, Refund.status == "CONFIRMED")) or 0
-    outstanding = sum((Decimal(item.total) - Decimal(item.credits) for item in invoices if item.status not in {"PAID", "VOID", "CREDITED"}), Decimal("0")) - Decimal(paid) + Decimal(refunded)
+    outstanding_by_currency: dict[str, Decimal] = {}
+    for item in invoices:
+        balance = invoice_balance(s, item)
+        outstanding_by_currency[item.currency] = outstanding_by_currency.get(item.currency, Decimal("0")) + balance.remaining_due
+    display_currency = invoices[0].currency if invoices else (wallet.currency if wallet else "USD")
     invoice_refs = {item.id: item.number for item in invoices}
     return {
         "subscription": subscription_payload(s, subscription),
-        "outstanding_balance": decimal(max(outstanding, Decimal("0"))),
-        "currency": invoices[0].currency if invoices else (wallet.currency if wallet else "USD"),
+        "outstanding_balance": decimal(outstanding_by_currency.get(display_currency, Decimal("0"))),
+        "currency": display_currency,
         "wallet_balance": decimal(wallet.balance if wallet else 0),
-        "most_recent_invoice": invoice_summary(invoices[0]) if invoices else None,
+        "most_recent_invoice": invoice_summary(s, invoices[0]) if invoices else None,
         "recent_payments": [payment_summary(item, invoice_refs.get(item.invoice_id)) for item in payments],
         "capabilities": [{"key": "historical_billing", "available": True, "reason": "available"}],
+        "outstanding_by_currency": [
+            {"currency": currency, "amount_due": decimal(amount)}
+            for currency, amount in sorted(outstanding_by_currency.items())
+        ],
     }
 
 
@@ -139,7 +147,7 @@ def invoices(
         query = query.where(Invoice.status == status.upper())
     rows = s.scalars(query.order_by(Invoice.created_at.desc(), Invoice.id.desc()).offset(offset).limit(limit + 1)).all()
     more = len(rows) > limit
-    return {"items": [invoice_summary(item) for item in rows[:limit]], "limit": limit, "offset": offset, "has_more": more}
+    return {"items": [invoice_summary(s, item) for item in rows[:limit]], "limit": limit, "offset": offset, "has_more": more}
 
 
 @router.get("/invoices/{invoice_id}")
@@ -147,9 +155,7 @@ def invoice_detail(invoice_id: str, ctx: dict[str, Any] = Depends(billing_contex
     item = s.scalar(select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == ctx["tenant"]))
     if not item:
         raise HTTPException(404, "invoice_not_found")
-    paid = s.scalar(select(func.sum(Payment.amount)).where(Payment.invoice_id == item.id, Payment.status == "CONFIRMED")) or 0
-    refunded = s.scalar(select(func.sum(Refund.amount)).where(Refund.payment_id.in_(select(Payment.id).where(Payment.invoice_id == item.id)), Refund.status == "CONFIRMED")) or 0
-    result = invoice_summary(item, paid, refunded)
+    result = invoice_summary(s, item)
     result["line_items"] = [{"description": line.description, "quantity": line.quantity, "unit_amount": decimal(line.unit_amount), "amount": decimal(line.amount), "currency": item.currency} for line in s.scalars(select(InvoiceLine).where(InvoiceLine.invoice_id == item.id)).all()]
     result["billing_identity"] = None
     return result

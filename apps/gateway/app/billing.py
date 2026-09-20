@@ -42,7 +42,7 @@ class InvoiceLine(Base):
 class PaymentMethodReference(Base):
     __tablename__="klyrow_payment_method_references"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); provider:Mapped[str]=mapped_column(String); provider_reference:Mapped[str]=mapped_column(String); label:Mapped[str]=mapped_column(String); is_default:Mapped[bool]=mapped_column(Boolean,default=False); revoked_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True)
 class Payment(Base):
-    __tablename__="klyrow_payments"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); invoice_id:Mapped[str]=mapped_column(String,index=True); provider:Mapped[str]=mapped_column(String); provider_reference:Mapped[str]=mapped_column(String); amount:Mapped[Decimal]=mapped_column(Numeric(18,2)); currency:Mapped[str]=mapped_column(String); status:Mapped[str]=mapped_column(String); confirmed_by:Mapped[Optional[str]]=mapped_column(String,nullable=True); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); __table_args__=(UniqueConstraint("provider","provider_reference",name="uq_klyrow_payment_provider_ref"),)
+    __tablename__="klyrow_payments"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); invoice_id:Mapped[str]=mapped_column(String,index=True); payment_attempt_id:Mapped[Optional[str]]=mapped_column(String,nullable=True,unique=True); provider:Mapped[str]=mapped_column(String); provider_reference:Mapped[str]=mapped_column(String); amount:Mapped[Decimal]=mapped_column(Numeric(18,2)); currency:Mapped[str]=mapped_column(String); status:Mapped[str]=mapped_column(String); confirmed_by:Mapped[Optional[str]]=mapped_column(String,nullable=True); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); __table_args__=(UniqueConstraint("provider","provider_reference",name="uq_klyrow_payment_provider_ref"),)
 class Credit(Base):
     __tablename__="klyrow_credits"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); invoice_id:Mapped[Optional[str]]=mapped_column(String,nullable=True); amount:Mapped[Decimal]=mapped_column(Numeric(18,2)); currency:Mapped[str]=mapped_column(String); reason:Mapped[str]=mapped_column(String); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
 class Refund(Base):
@@ -161,7 +161,7 @@ def invoice_create(x:InvoiceIn,ctx=Depends(auth),s:Session=Depends(db),idempoten
     price=s.get(BillingPrice,sub.price_id);quantity=s.scalar(select(func.sum(UsageEvent.quantity)).where(UsageEvent.subscription_id==sub.id,UsageEvent.occurred_at>=sub.period_start,UsageEvent.occurred_at<sub.period_end)) or 0
     over=max(0,quantity-price.included_units);base=money(price.base_amount);overage=money(Decimal(over)*Decimal(price.overage_amount));subtotal=base+overage
     rule=s.scalar(select(TaxRule).where(TaxRule.jurisdiction==x.jurisdiction,TaxRule.active==True)) if x.jurisdiction else None;tax=money(subtotal*Decimal(rule.rate)) if rule and rule.mode!="NO_TAX" else Decimal("0.00")
-    inv=Invoice(id=str(uuid.uuid4()),number="KLY-"+now().strftime("%Y%m%d")+"-"+secrets.token_hex(4).upper(),tenant_id=ctx["tenant"],subscription_id=sub.id,request_key=idempotency_key,currency=price.currency,subtotal=subtotal,tax=tax,total=subtotal+tax,due_at=x.due_at,evidence_json=json.dumps({"price_id":price.id,"price_version":price.version,"usage_quantity":quantity,"tax_rule_id":rule.id if rule else None},sort_keys=True))
+    inv=Invoice(id=str(uuid.uuid4()),number="KLY-"+now().strftime("%Y%m%d")+"-"+secrets.token_hex(4).upper(),tenant_id=ctx["tenant"],subscription_id=sub.id,request_key=idempotency_key,currency=price.currency,subtotal=subtotal,tax=tax,total=subtotal+tax,status="OPEN",due_at=x.due_at,evidence_json=json.dumps({"price_id":price.id,"price_version":price.version,"usage_quantity":quantity,"tax_rule_id":rule.id if rule else None},sort_keys=True))
     lines=[InvoiceLine(id=str(uuid.uuid4()),invoice_id=inv.id,kind="BASE",description="Subscription",quantity=1,unit_amount=price.base_amount,amount=base,reference=price.id)]
     if over:lines.append(InvoiceLine(id=str(uuid.uuid4()),invoice_id=inv.id,kind="OVERAGE",description="Email overage",quantity=over,unit_amount=price.overage_amount,amount=overage,reference=sub.period_end.isoformat()))
     s.add(inv);s.add_all(lines);audit(s,ctx,"billing.invoice.created");s.commit();return {"id":inv.id,"number":inv.number,"status":inv.status,"total":str(inv.total),"currency":inv.currency,"duplicate":False}
@@ -178,23 +178,35 @@ def payment_method(x:PaymentMethodIn,ctx=Depends(auth),s:Session=Depends(db)):
 def pay(x:PaymentIn,ctx=Depends(auth),s:Session=Depends(db)):
     inv=tenant_item(s,Invoice,x.invoice_id,ctx["tenant"])
     if inv.status in {"PAID","VOID","CREDITED"}:raise HTTPException(409,"invoice_not_payable")
-    payment=Payment(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],invoice_id=inv.id,provider=x.provider,provider_reference=x.provider_reference,amount=money(x.amount),currency=inv.currency,status="CONFIRMED" if x.provider=="SANDBOX" else "PENDING_RECONCILIATION",confirmed_by=ctx["sub"] if x.provider=="MANUAL_OFFLINE" else "sandbox-adapter")
-    s.add(payment)
-    if payment.status=="CONFIRMED" and payment.amount>=inv.total:inv.status="PAID"
+    if x.provider=="SANDBOX":
+        from .billing_ledger import post_settlement
+        try: payment=post_settlement(s,tenant_id=ctx["tenant"],invoice_id=inv.id,provider=x.provider,provider_reference=x.provider_reference,amount=x.amount,currency=inv.currency,confirmed_by="sandbox-adapter")
+        except ValueError as exc:raise HTTPException(409,str(exc)) from None
+    else:
+        payment=Payment(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],invoice_id=inv.id,provider=x.provider,provider_reference=x.provider_reference,amount=money(x.amount),currency=inv.currency,status="PENDING_RECONCILIATION",confirmed_by=None);s.add(payment)
     audit(s,ctx,"billing.payment.created");s.commit();return {"id":payment.id,"status":payment.status,"invoice_status":inv.status}
 
 @router.post("/billing/payments/{payment_id}/confirm")
 def confirm_manual(payment_id:str,ctx=Depends(require("platform_admin")),s:Session=Depends(db)):
     payment=s.get(Payment,payment_id)
     if not payment or payment.provider!="MANUAL_OFFLINE":raise HTTPException(404,"manual_payment_not_found")
-    payment.status="CONFIRMED";payment.confirmed_by=ctx["sub"];inv=s.get(Invoice,payment.invoice_id)
-    total=s.scalar(select(func.sum(Payment.amount)).where(Payment.invoice_id==inv.id,Payment.status=="CONFIRMED")) or 0;inv.status="PAID" if money(total)>=money(inv.total) else "PARTIALLY_PAID";audit(s,ctx,"billing.manual_payment.confirmed");s.commit();return {"status":payment.status,"invoice_status":inv.status}
+    from .billing_ledger import post_settlement
+    try: settled=post_settlement(s,tenant_id=payment.tenant_id,invoice_id=payment.invoice_id,provider=payment.provider,provider_reference=payment.provider_reference,amount=payment.amount,currency=payment.currency,confirmed_by=ctx["sub"])
+    except ValueError as exc:raise HTTPException(409,str(exc)) from None
+    audit(s,ctx,"billing.manual_payment.confirmed");s.commit();return {"status":settled.status,"invoice_status":s.get(Invoice,payment.invoice_id).status}
 
 @router.post("/billing/payments/{payment_id}/refunds",status_code=201)
 def refund(payment_id:str,x:RefundIn,ctx=Depends(auth),s:Session=Depends(db)):
-    payment=tenant_item(s,Payment,payment_id,ctx["tenant"]);already=s.scalar(select(func.sum(Refund.amount)).where(Refund.payment_id==payment.id,Refund.status=="CONFIRMED")) or 0
+    payment=tenant_item(s,Payment,payment_id,ctx["tenant"])
+    if payment.status!="CONFIRMED":raise HTTPException(409,"payment_not_settled")
+    if payment.currency!=s.get(Invoice,payment.invoice_id).currency:raise HTTPException(409,"payment_currency_mismatch")
+    already=s.scalar(select(func.sum(Refund.amount)).where(Refund.payment_id==payment.id,Refund.status=="CONFIRMED")) or 0
     if money(already)+money(x.amount)>money(payment.amount):raise HTTPException(409,"refund_exceeds_payment")
-    item=Refund(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],payment_id=payment.id,amount=money(x.amount),status="CONFIRMED" if payment.provider=="SANDBOX" else "PENDING_RECONCILIATION",provider_reference=x.provider_reference);s.add(item);audit(s,ctx,"billing.refund.created");s.commit();return {"id":item.id,"status":item.status}
+    item=Refund(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],payment_id=payment.id,amount=money(x.amount),status="CONFIRMED" if payment.provider=="SANDBOX" else "PENDING_RECONCILIATION",provider_reference=x.provider_reference);s.add(item)
+    if item.status=="CONFIRMED":
+        from .billing_ledger import invoice_balance
+        s.flush();invoice=s.get(Invoice,payment.invoice_id);invoice.status=invoice_balance(s,invoice).financial_status
+    audit(s,ctx,"billing.refund.created");s.commit();return {"id":item.id,"status":item.status}
 
 @router.post("/billing/checkout",status_code=201)
 def checkout(x:CheckoutIn,ctx=Depends(auth),s:Session=Depends(db)):
