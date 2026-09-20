@@ -29,6 +29,14 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/admin/dashboard` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `platform_dashboard` |
 | GET | `/app/api/admin/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `admin_provisioning` |
 | GET | `/app/api/admin/security/platform-owner` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_platform_owner_status` |
+| GET | `/app/api/billing/invoices` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoices` |
+| GET | `/app/api/billing/invoices/{invoice_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoice_detail` |
+| GET | `/app/api/billing/overview` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `overview` |
+| GET | `/app/api/billing/payment-methods` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payment_methods` |
+| GET | `/app/api/billing/payments` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payments` |
+| GET | `/app/api/billing/refunds` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `refunds` |
+| GET | `/app/api/billing/subscription` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `subscription` |
+| GET | `/app/api/billing/wallet` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `wallet` |
 | GET | `/app/api/context` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `context` |
 | GET | `/app/api/dashboard` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `dashboard` |
 | GET | `/app/api/domains` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_domains` |
