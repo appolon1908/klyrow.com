@@ -23,7 +23,7 @@ from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Optional, Protocol
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from prometheus_client import Counter
 from pydantic import BaseModel, Field
 from sqlalchemy import (
@@ -38,7 +38,7 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from .billing import Invoice, Payment, money
+from .billing import Invoice, Payment, PaymentMethodReference, money
 from .billing_config import BillingConfigError, load_billing_settings
 from .main import (
     Base,
@@ -58,6 +58,11 @@ now = lambda: datetime.now(timezone.utc)
 # --------------------------------------------------------------------------
 # Amount conversion boundary
 # --------------------------------------------------------------------------
+
+TWO_DECIMAL_CURRENCIES = frozenset({
+    "AUD", "CAD", "CHF", "CNY", "EUR", "GBP", "HKD", "NZD", "SGD", "USD",
+})
+
 
 def _minor_from_decimal(amount: Decimal) -> int:
     return int((money(amount) * 100).to_integral_value(rounding=ROUND_HALF_UP))
@@ -154,6 +159,8 @@ class PaymentAttemptEvent(Base):
     to_status: Mapped[str] = mapped_column(String)
     event_type: Mapped[str] = mapped_column(String)
     source: Mapped[str] = mapped_column(String)
+    provider: Mapped[str] = mapped_column(String)
+    provider_account_reference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     provider_event_reference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     idempotency_key: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     payload_digest: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -162,7 +169,7 @@ class PaymentAttemptEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     __table_args__ = (
         UniqueConstraint(
-            "payment_attempt_id", "provider_event_reference",
+            "provider", "provider_account_reference", "provider_event_reference",
             name="uq_klyrow_payment_attempt_events_provider_event",
         ),
     )
@@ -249,8 +256,11 @@ def enforce_billing_capability(provider: str, *, require_live_charging: bool = F
         provider_settings = getattr(settings, provider, None)
         if provider_settings is None or not provider_settings.enabled:
             raise HTTPException(503, "provider_disabled")
-    if require_live_charging and provider != "disabled" and not settings.live_charging_enabled:
-        raise HTTPException(503, "live_charging_disabled")
+    if require_live_charging:
+        if provider == "disabled":
+            raise HTTPException(503, "provider_disabled")
+        if not settings.live_charging_enabled:
+            raise HTTPException(503, "live_charging_disabled")
 
 
 # --------------------------------------------------------------------------
@@ -350,10 +360,12 @@ def _remaining_eligible_minor(session: Session, invoice: Invoice) -> int:
 
 
 def _validate_invoice_eligibility(session: Session, invoice: Invoice, tenant_id: str, amount_minor: int, currency: str) -> None:
-    if invoice.status in {"VOID", "CREDITED"}:
+    if invoice.status in {"PAID", "VOID", "CREDITED"}:
         raise HTTPException(409, "invoice_not_payable")
     if invoice.currency != currency:
         raise HTTPException(422, "currency_mismatch")
+    if currency not in TWO_DECIMAL_CURRENCIES:
+        raise HTTPException(422, "unsupported_currency_minor_units")
     remaining = _remaining_eligible_minor(session, invoice)
     if remaining <= 0:
         raise HTTPException(409, "invoice_not_payable")
@@ -405,6 +417,16 @@ def create_payment_attempt(
     # ignores FOR UPDATE, matching this repository's existing convention).
     invoice = _tenant_invoice(s, x.invoice_id, ctx["tenant"], for_update=True)
     _validate_invoice_eligibility(s, invoice, ctx["tenant"], x.amount_minor, x.currency)
+    if x.payment_method_reference_id:
+        method = s.scalar(
+            select(PaymentMethodReference).where(
+                PaymentMethodReference.id == x.payment_method_reference_id,
+                PaymentMethodReference.tenant_id == ctx["tenant"],
+                PaymentMethodReference.revoked_at.is_(None),
+            )
+        )
+        if not method or x.provider == "disabled" or method.provider != "EXTERNAL_TOKENIZED":
+            raise HTTPException(422, "invalid_payment_method_reference")
     select_adapter(x.provider)  # fail closed early for unsupported providers
 
     attempt = PaymentAttempt(
@@ -430,6 +452,8 @@ def create_payment_attempt(
         to_status=CREATED,
         event_type="payment_attempt.created",
         source="api",
+        provider=attempt.provider,
+        provider_account_reference=attempt.provider_account_reference,
         idempotency_key=storage_key,
         payload_digest=fingerprint,
         correlation_id=x_correlation_id,
@@ -456,9 +480,18 @@ def create_payment_attempt(
 
 
 @router.get("/billing/payment-attempts")
-def list_payment_attempts(ctx=Depends(auth), s: Session = Depends(db)):
+def list_payment_attempts(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    ctx=Depends(auth),
+    s: Session = Depends(db),
+):
     rows = s.scalars(
-        select(PaymentAttempt).where(PaymentAttempt.tenant_id == ctx["tenant"]).order_by(PaymentAttempt.created_at.desc())
+        select(PaymentAttempt)
+        .where(PaymentAttempt.tenant_id == ctx["tenant"])
+        .order_by(PaymentAttempt.created_at.desc(), PaymentAttempt.id.desc())
+        .offset(offset)
+        .limit(limit)
     ).all()
     return [_serialize(row) for row in rows]
 
@@ -507,14 +540,29 @@ def _apply_transition(
     """Centralized, transactional transition authority. Callers must already
     hold a row lock (``with_for_update``) on ``attempt``."""
 
+    payload_digest = semantic_request_hash(
+        action=event_type,
+        resource="payment_attempt_events",
+        payload={
+            "to_status": target,
+            "failure_code": failure_code,
+            "failure_message": failure_message,
+            "next_action_type": next_action_type,
+            "next_action_reference": next_action_reference,
+        },
+    )
     if provider_event_reference:
         duplicate = s.scalar(
             select(PaymentAttemptEvent).where(
-                PaymentAttemptEvent.payment_attempt_id == attempt.id,
+                PaymentAttemptEvent.provider == attempt.provider,
+                PaymentAttemptEvent.provider_account_reference == attempt.provider_account_reference,
                 PaymentAttemptEvent.provider_event_reference == provider_event_reference,
             )
         )
         if duplicate:
+            if duplicate.payment_attempt_id != attempt.id or duplicate.payload_digest != payload_digest:
+                CONFLICT_TOTAL.labels(attempt.provider).inc()
+                raise PaymentAttemptConflict("provider_event_payload_mismatch")
             IDEMPOTENT_REPLAY_TOTAL.labels(attempt.provider).inc()
             return attempt
 
@@ -551,9 +599,11 @@ def _apply_transition(
         to_status=target,
         event_type=event_type,
         source=source,
+        provider=attempt.provider,
+        provider_account_reference=attempt.provider_account_reference,
         provider_event_reference=provider_event_reference,
         idempotency_key=idempotency_key,
-        payload_digest=semantic_request_hash(action=event_type, resource="payment_attempt_events", payload={"to_status": target}),
+        payload_digest=payload_digest,
         correlation_id=correlation_id or attempt.correlation_id,
         created_by=ctx["sub"],
     )
@@ -591,12 +641,19 @@ def transition_payment_attempt(
     )
     if not attempt:
         raise HTTPException(404, "payment_attempt_not_found")
+    if attempt.status != x.target_status and (
+        attempt.status in TERMINAL_STATES
+        or x.target_status not in TRANSITIONS.get(attempt.status, frozenset())
+    ):
+        raise PaymentAttemptConflict("invalid_payment_attempt_transition")
     if x.target_status in {AUTHORIZED, CAPTURED}:
         enforce_billing_capability(attempt.provider, require_live_charging=True)
     if x.target_status == CAPTURED and attempt.status != CAPTURED:
         # Re-validate under an invoice row lock so concurrent captures of
         # sibling attempts on the same invoice cannot collectively overpay it.
         invoice = _tenant_invoice(s, attempt.invoice_id, attempt.tenant_id, for_update=True)
+        if invoice.status in {"PAID", "VOID", "CREDITED"}:
+            raise HTTPException(409, "invoice_not_payable")
         remaining = _remaining_eligible_minor(s, invoice)
         if attempt.amount_minor > remaining:
             raise HTTPException(409, "amount_exceeds_remaining_balance")
