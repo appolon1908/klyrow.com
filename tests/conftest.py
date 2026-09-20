@@ -99,6 +99,7 @@ def canonical_api_owner(monkeypatch, request):
     helper_names = {
         "test_agent_mailboxes": ("hdr", None),
         "test_billing": ("login", "root@example.com"),
+        "test_payment_attempts": ("login", "root@example.com"),
         "test_operations": ("h", None),
         "test_delivery_controls": ("h", None),
         "test_reseller": ("headers", None),
