@@ -315,6 +315,13 @@
     "method": "GET"
   },
   {
+    "declared_path": "/subscription",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "subscription",
+    "line": 130,
+    "method": "GET"
+  },
+  {
     "declared_path": "/invoices",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "invoices",
@@ -354,13 +361,6 @@
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "wallet",
     "line": 186,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/subscription",
-    "file": "apps/gateway/app/billing_browser.py",
-    "handler": "subscription",
-    "line": 130,
     "method": "GET"
   },
   {
