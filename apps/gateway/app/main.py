@@ -1359,6 +1359,8 @@ from .billing import router as billing_router
 app.include_router(billing_router)
 from .media_assets import router as media_assets_router
 app.include_router(media_assets_router)
+from .payment_attempts import router as payment_attempts_router
+app.include_router(payment_attempts_router)
 from .tenancy import router as tenancy_router
 app.include_router(tenancy_router)
 from .messaging import router as messaging_router
@@ -1400,3 +1402,4 @@ def reconcile_provider_registry_on_startup():
 @app.on_event("startup")
 async def start_provider_worker():
     if os.getenv("KLYROW_EMBEDDED_WORKERS","true").lower()=="true":asyncio.create_task(provider_worker_loop())
+
