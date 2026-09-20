@@ -48,6 +48,27 @@
         "title": "BrowserInviteIn",
         "type": "object"
       },
+      "CompleteIn": {
+        "properties": {
+          "expected_version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "upload_reference": {
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Upload Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "upload_reference"
+        ],
+        "title": "CompleteIn",
+        "type": "object"
+      },
       "ComposeIn": {
         "properties": {
           "draft_id": {
@@ -343,6 +364,30 @@
         "title": "MessageUpdate",
         "type": "object"
       },
+      "MutationIn": {
+        "properties": {
+          "expected_version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "MutationIn",
+        "type": "object"
+      },
       "OnboardingUpdate": {
         "properties": {
           "checklist": {
@@ -432,6 +477,55 @@
           "email"
         ],
         "title": "RecoveryRequest",
+        "type": "object"
+      },
+      "UploadIn": {
+        "properties": {
+          "declared_content_type": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Declared Content Type",
+            "type": "string"
+          },
+          "media_kind": {
+            "pattern": "^[a-zA-Z0-9_-]{1,40}$",
+            "title": "Media Kind",
+            "type": "string"
+          },
+          "original_filename": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Original Filename",
+            "type": "string"
+          },
+          "sha256_digest": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 64,
+                "pattern": "^[0-9a-fA-F]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sha256 Digest"
+          },
+          "size_bytes": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 10485760.0,
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "original_filename",
+          "media_kind",
+          "declared_content_type",
+          "size_bytes"
+        ],
+        "title": "UploadIn",
         "type": "object"
       },
       "ValidationError": {
@@ -2334,6 +2428,543 @@
           "browser_context",
           "csrf_guard"
         ]
+      }
+    },
+    "/app/api/media": {
+      "get": {
+        "operationId": "media_list_app_api_media_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Media List",
+        "tags": [
+          "Tenant media"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/media/uploads": {
+      "post": {
+        "operationId": "media_upload_prepare_app_api_media_uploads_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 8,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Media Upload Prepare",
+        "tags": [
+          "Tenant media"
+        ],
+        "x-durable-idempotency": true,
+        "x-idempotency-model": "OPTIONAL_REQUEST_SCOPED",
+        "x-idempotency-required": false,
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/media/uploads/{upload_reference}": {
+      "put": {
+        "operationId": "media_upload_bytes_app_api_media_uploads__upload_reference__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "upload_reference",
+            "required": true,
+            "schema": {
+              "title": "Upload Reference",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Media Upload Bytes",
+        "tags": [
+          "Tenant media"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/media/{asset_id}": {
+      "delete": {
+        "operationId": "media_delete_app_api_media__asset_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationIn",
+                "default": {
+                  "expected_version": 1
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Media Delete",
+        "tags": [
+          "Tenant media"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": []
+      },
+      "get": {
+        "operationId": "media_get_app_api_media__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Media Get",
+        "tags": [
+          "Tenant media"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/media/{asset_id}/archive": {
+      "post": {
+        "operationId": "media_archive_app_api_media__asset_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Media Archive",
+        "tags": [
+          "Tenant media"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/media/{asset_id}/complete": {
+      "post": {
+        "operationId": "media_complete_app_api_media__asset_id__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Media Complete",
+        "tags": [
+          "Tenant media"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/media/{asset_id}/events": {
+      "get": {
+        "operationId": "media_events_app_api_media__asset_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "title": "Asset Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Media Events",
+        "tags": [
+          "Tenant media"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": []
       }
     },
     "/app/api/messages": {

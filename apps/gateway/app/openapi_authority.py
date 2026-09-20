@@ -99,6 +99,7 @@ OPTIONAL_IDEMPOTENCY = {
     ("post", "/v1/profile-exports"),
     *OPTIONAL_ITEM_IDEMPOTENCY,
     ("post", "/v1/billing/invoices"),
+    ("post", "/app/api/media/uploads"),
 }
 REQUIRED_IDEMPOTENCY = DURABLE_IDEMPOTENCY | NON_ATOMIC_ITEM_IDEMPOTENCY
 CLASSIFIED_IDEMPOTENCY = REQUIRED_IDEMPOTENCY | OPTIONAL_IDEMPOTENCY
