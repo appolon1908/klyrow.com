@@ -1,0 +1,13 @@
+{
+  "authority": "Klyrow source repository",
+  "base_sha": "8d41ec081119335ab995ade15bee781d2902009a",
+  "policy": "Retention and deletion are domain-specific and must preserve audit, billing, provider-event, and reconciliation evidence.",
+  "categories": {
+    "financial": {"retention": "durable", "deletion": "never silently rewrite financial history"},
+    "audit": {"retention": "durable according to compliance policy", "deletion": "controlled policy only"},
+    "provider_events": {"retention": "durable through reconciliation", "deletion": "after documented retention window"},
+    "tenant_content": {"retention": "tenant lifecycle policy", "deletion": "tenant-authorized and audited"},
+    "ephemeral_coordination": {"retention": "short-lived", "deletion": "automatic expiry allowed"}
+  },
+  "runtime_certification_required": true
+}
