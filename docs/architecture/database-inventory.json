@@ -916,6 +916,8 @@
       "to_status",
       "event_type",
       "source",
+      "provider",
+      "provider_account_reference",
       "provider_event_reference",
       "idempotency_key",
       "payload_digest",

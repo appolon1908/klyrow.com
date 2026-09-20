@@ -10,7 +10,7 @@ pytestmark = pytest.mark.usefixtures("canonical_api_owner")
 from fastapi.testclient import TestClient
 
 from apps.gateway.app.main import Base, DB, Tenant, User, app, engine, ph, rate_buckets
-from apps.gateway.app.billing import Invoice, Payment
+from apps.gateway.app.billing import Invoice, Payment, PaymentMethodReference
 from apps.gateway.app.payment_attempts import (
     AUTHORIZED,
     CANCELLED,
@@ -86,6 +86,15 @@ def make_invoice(tenant_id, *, total="100.00", currency="USD", status="OPEN", cr
 
 def enable_billing(monkeypatch):
     monkeypatch.setenv("KLYROW_BILLING_ENABLED", "true")
+
+
+def enable_live_stripe(monkeypatch, tmp_path):
+    enable_billing(monkeypatch)
+    secret_path = tmp_path / "stripe-secret"
+    secret_path.write_text("SYNTHETIC-FIXTURE-VALUE-NOT-A-CREDENTIAL")
+    monkeypatch.setenv("KLYROW_STRIPE_ENABLED", "true")
+    monkeypatch.setenv("KLYROW_STRIPE_SECRET_FILE", str(secret_path))
+    monkeypatch.setenv("KLYROW_LIVE_CHARGING_ENABLED", "true")
 
 
 def create_attempt(headers, *, invoice_id, amount_minor=1000, currency="USD", provider="disabled",
@@ -340,14 +349,14 @@ def test_two_sibling_attempts_may_both_be_created_below_invoice_total(monkeypatc
     assert second.status_code == 201
 
 
-def test_capture_is_revalidated_against_invoice_balance_at_transition_time(monkeypatch):
+def test_capture_is_revalidated_against_invoice_balance_at_transition_time(monkeypatch, tmp_path):
     """Capture-time integrity: two attempts that were each individually eligible
     at creation must not both be allowed to reach CAPTURED if doing so would
     collectively overpay the invoice."""
-    enable_billing(monkeypatch)
+    enable_live_stripe(monkeypatch, tmp_path)
     invoice_id = make_invoice("a", total="10.00")
-    first = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=600).json()
-    second = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=500).json()
+    first = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=600, provider="stripe").json()
+    second = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=500, provider="stripe").json()
 
     def advance_to_captured(attempt_id):
         pending = client.post(
@@ -369,6 +378,47 @@ def test_capture_is_revalidated_against_invoice_balance_at_transition_time(monke
     second_captured = advance_to_captured(second["id"])
     assert second_captured.status_code == 409
     assert second_captured.json()["detail"] == "amount_exceeds_remaining_balance"
+
+
+def test_paid_invoice_rejects_new_attempts(monkeypatch):
+    enable_billing(monkeypatch)
+    invoice_id = make_invoice("a", status="PAID")
+    response = create_attempt(login("a@example.com"), invoice_id=invoice_id)
+    assert response.status_code == 409
+    assert response.json()["detail"] == "invoice_not_payable"
+
+
+@pytest.mark.parametrize("currency", ["JPY", "BHD"])
+def test_non_two_decimal_currency_fails_closed(monkeypatch, currency):
+    enable_billing(monkeypatch)
+    invoice_id = make_invoice("a", currency=currency)
+    response = create_attempt(login("a@example.com"), invoice_id=invoice_id, currency=currency)
+    assert response.status_code == 422
+    assert response.json()["detail"] == "unsupported_currency_minor_units"
+
+
+def test_payment_method_reference_must_be_active_and_tenant_scoped(monkeypatch):
+    enable_billing(monkeypatch)
+    invoice_id = make_invoice("a")
+    with DB() as session:
+        foreign = PaymentMethodReference(
+            id=str(uuid.uuid4()), tenant_id="b", provider="EXTERNAL_TOKENIZED",
+            provider_reference="token-foreign", label="Foreign", is_default=False,
+        )
+        revoked = PaymentMethodReference(
+            id=str(uuid.uuid4()), tenant_id="a", provider="EXTERNAL_TOKENIZED",
+            provider_reference="token-revoked", label="Revoked", is_default=False,
+            revoked_at=datetime.now(timezone.utc),
+        )
+        session.add_all([foreign, revoked])
+        session.commit()
+    for reference_id in (foreign.id, revoked.id, "missing-reference"):
+        response = create_attempt(
+            login("a@example.com"), invoice_id=invoice_id,
+            payment_method_reference_id=reference_id,
+        )
+        assert response.status_code == 422
+        assert response.json()["detail"] == "invalid_payment_method_reference"
 
 
 def test_void_invoice_rejects_new_attempts(monkeypatch):
@@ -431,6 +481,24 @@ def test_list_and_detail_are_tenant_scoped(monkeypatch):
 
     cross_tenant_list = client.get("/v1/billing/payment-attempts", headers=login("b@example.com"))
     assert all(row["id"] != created["id"] for row in cross_tenant_list.json())
+
+
+def test_list_is_bounded_and_paginated(monkeypatch):
+    enable_billing(monkeypatch)
+    invoice_id = make_invoice("a")
+    for _ in range(3):
+        assert create_attempt(login("a@example.com"), invoice_id=invoice_id).status_code == 201
+    response = client.get(
+        "/v1/billing/payment-attempts?limit=2&offset=1",
+        headers=login("a@example.com"),
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+    invalid = client.get(
+        "/v1/billing/payment-attempts?limit=201",
+        headers=login("a@example.com"),
+    )
+    assert invalid.status_code == 422
 
 
 def test_event_history_is_tenant_scoped_and_available_after_cancel(monkeypatch):
@@ -521,7 +589,27 @@ def test_live_charging_disabled_blocks_authorize_for_real_provider(monkeypatch):
     assert response.json()["detail"] == "live_charging_disabled"
 
 
-def test_duplicate_provider_event_transition_is_idempotent(monkeypatch):
+def test_disabled_provider_cannot_authorize_or_capture(monkeypatch):
+    enable_billing(monkeypatch)
+    invoice_id = make_invoice("a")
+    created = create_attempt(login("a@example.com"), invoice_id=invoice_id).json()
+    pending = client.post(
+        f"/v1/internal/billing/payment-attempts/{created['id']}/transition",
+        json={"target_status": "PENDING"},
+        headers=login("root@example.com"),
+    )
+    assert pending.status_code == 200
+    for target in ("AUTHORIZED", "CAPTURED"):
+        response = client.post(
+            f"/v1/internal/billing/payment-attempts/{created['id']}/transition",
+            json={"target_status": target},
+            headers=login("root@example.com"),
+        )
+        assert response.status_code == 503
+        assert response.json()["detail"] == "provider_disabled"
+
+
+def test_duplicate_provider_event_with_changed_payload_is_rejected(monkeypatch):
     enable_billing(monkeypatch)
     invoice_id = make_invoice("a")
     created = create_attempt(login("a@example.com"), invoice_id=invoice_id).json()
@@ -537,9 +625,49 @@ def test_duplicate_provider_event_transition_is_idempotent(monkeypatch):
         json={"target_status": "FAILED", "provider_event_reference": provider_event_reference},
         headers=login("root@example.com"),
     )
-    # Same provider event replayed: idempotent no-op, does not apply the new target.
-    assert second.status_code == 200
-    assert second.json()["status"] == "PENDING"
+    assert second.status_code == 409
+    assert second.json()["detail"] == "provider_event_payload_mismatch"
+
+
+def test_identical_provider_event_replay_is_idempotent(monkeypatch):
+    enable_billing(monkeypatch)
+    invoice_id = make_invoice("a")
+    created = create_attempt(login("a@example.com"), invoice_id=invoice_id).json()
+    event_reference = "evt-" + uuid.uuid4().hex
+    payload = {"target_status": "PENDING", "provider_event_reference": event_reference}
+    first = client.post(
+        f"/v1/internal/billing/payment-attempts/{created['id']}/transition",
+        json=payload,
+        headers=login("root@example.com"),
+    )
+    second = client.post(
+        f"/v1/internal/billing/payment-attempts/{created['id']}/transition",
+        json=payload,
+        headers=login("root@example.com"),
+    )
+    assert first.status_code == second.status_code == 200
+    assert second.json()["status"] == PENDING
+
+
+def test_provider_event_reference_cannot_move_between_attempts(monkeypatch):
+    enable_billing(monkeypatch)
+    invoice_id = make_invoice("a")
+    first = create_attempt(login("a@example.com"), invoice_id=invoice_id).json()
+    second = create_attempt(login("a@example.com"), invoice_id=invoice_id).json()
+    event_reference = "evt-" + uuid.uuid4().hex
+    applied = client.post(
+        f"/v1/internal/billing/payment-attempts/{first['id']}/transition",
+        json={"target_status": "PENDING", "provider_event_reference": event_reference},
+        headers=login("root@example.com"),
+    )
+    replayed_elsewhere = client.post(
+        f"/v1/internal/billing/payment-attempts/{second['id']}/transition",
+        json={"target_status": "PENDING", "provider_event_reference": event_reference},
+        headers=login("root@example.com"),
+    )
+    assert applied.status_code == 200
+    assert replayed_elsewhere.status_code == 409
+    assert replayed_elsewhere.json()["detail"] == "provider_event_payload_mismatch"
 
 
 def test_invalid_transition_returns_conflict(monkeypatch):
