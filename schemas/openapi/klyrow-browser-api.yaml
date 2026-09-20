@@ -747,11 +747,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Invoices App Api Billing Invoices Get",
-                  "type": "object"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -778,7 +774,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/invoices/{invoice_id}": {
@@ -799,11 +797,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Invoice Detail App Api Billing Invoices  Invoice Id  Get",
-                  "type": "object"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -830,7 +824,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/overview": {
@@ -840,11 +836,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Overview App Api Billing Overview Get",
-                  "type": "object"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -861,7 +853,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/payment-methods": {
@@ -871,14 +865,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  "title": "Response Payment Methods App Api Billing Payment Methods Get",
-                  "type": "array"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -895,59 +882,22 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/payments": {
       "get": {
         "operationId": "payments_app_api_billing_payments_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 50,
-              "maximum": 100,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "offset",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "minimum": 0,
-              "title": "Offset",
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Payments App Api Billing Payments Get",
-                  "type": "object"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
         "security": [
@@ -961,59 +911,22 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/refunds": {
       "get": {
         "operationId": "refunds_app_api_billing_refunds_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 50,
-              "maximum": 100,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "offset",
-            "required": false,
-            "schema": {
-              "default": 0,
-              "minimum": 0,
-              "title": "Offset",
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Refunds App Api Billing Refunds Get",
-                  "type": "object"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
         },
         "security": [
@@ -1027,7 +940,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/subscription": {
@@ -1037,11 +952,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Subscription App Api Billing Subscription Get",
-                  "type": "object"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -1058,7 +969,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/wallet": {
@@ -1068,11 +981,7 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Wallet App Api Billing Wallet Get",
-                  "type": "object"
-                }
+                "schema": {}
               }
             },
             "description": "Successful Response"
@@ -1089,7 +998,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/context": {

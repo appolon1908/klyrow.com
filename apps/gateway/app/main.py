@@ -1359,6 +1359,8 @@ from .billing import router as billing_router
 app.include_router(billing_router)
 from .billing_browser import router as billing_browser_router
 app.include_router(billing_browser_router)
+from .billing_provider_events import router as billing_provider_events_router
+app.include_router(billing_provider_events_router)
 from .payment_attempts import router as payment_attempts_router
 app.include_router(payment_attempts_router)
 from .tenancy import router as tenancy_router

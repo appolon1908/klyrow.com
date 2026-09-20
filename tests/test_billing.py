@@ -49,10 +49,14 @@ def test_versioned_catalog_subscription_usage_invoice_and_sandbox_payment():
     invoice=client.post("/v1/billing/invoices",headers=tenant,json={"due_at":(datetime.now(timezone.utc)+timedelta(days=14)).isoformat()})
     assert invoice.status_code==201,invoice.text
     assert invoice.json()["total"]=="12.75"
+    with DB() as session:
+        assert session.get(Invoice,invoice.json()["id"]).status=="OPEN"
     payment=client.post("/v1/billing/payments",headers=tenant,json={"invoice_id":invoice.json()["id"],"provider":"SANDBOX","provider_reference":"sandbox-payment-0001","amount":"12.75"})
     assert payment.status_code==201 and payment.json()["invoice_status"]=="PAID"
     refund=client.post(f"/v1/billing/payments/{payment.json()['id']}/refunds",headers=tenant,json={"amount":"2.75","provider_reference":"sandbox-refund-0001"})
     assert refund.status_code==201 and refund.json()["status"]=="CONFIRMED"
+    with DB() as session:
+        assert session.get(Invoice,invoice.json()["id"]).status=="PARTIALLY_PAID"
 
 
 def test_wallet_is_immutable_idempotent_and_cannot_overspend():

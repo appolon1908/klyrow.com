@@ -19,6 +19,8 @@ from sqlalchemy import select
 from .delivery_safety import email_activation_status
 from .main import DB, email_outbox_loop, postal_retry_loop, recover_middleware_commands
 from .billing import BillingEvent, BillingWorkItem, now
+from .billing_provider_events import claim_provider_events, mark_provider_event_failure
+from .billing_settlement_worker import process_stripe_provider_event
 from .mautic_adapter import dispatch_mautic_outbox
 from .postal_provisioning import provisioning_tick
 from .provider import (
@@ -104,6 +106,22 @@ async def health(reader, writer):
 
 def billing_tick(max_attempts=8):
     with DB() as session:
+        provider_events = claim_provider_events(session, "billing-worker", limit=20)
+        session.commit()
+        for provider_event in provider_events:
+            provider_event = session.get(type(provider_event), provider_event.id)
+            try:
+                if provider_event.provider == "stripe":
+                    process_stripe_provider_event(session, provider_event)
+                else:
+                    mark_provider_event_failure(provider_event, "provider_unsupported", retryable=False)
+                session.commit()
+            except Exception:
+                session.rollback()
+                provider_event = session.get(type(provider_event), provider_event.id)
+                if provider_event:
+                    mark_provider_event_failure(provider_event, "processing_transient_failure", retryable=True)
+                    session.commit()
         for event in session.scalars(
             select(BillingEvent)
             .where(~select(BillingWorkItem.id).where(
@@ -157,7 +175,11 @@ def billing_tick(max_attempts=8):
         item.lease_expires_at = now() + timedelta(seconds=60)
         session.commit()
         item = session.get(BillingWorkItem, item.id)
-        item.state = "COMPLETED"
+        if item.kind not in {"subscription.created", "subscription.upgraded", "subscription.downgrade_scheduled"}:
+            item.state = "DEAD_LETTER"
+            item.last_error = "unknown_billing_work_kind"
+        else:
+            item.state = "COMPLETED"
         item.completed_at = now()
         item.lease_expires_at = None
         item.last_error = None

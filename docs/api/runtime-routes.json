@@ -145,9 +145,27 @@
   },
   {
     "documented": true,
+    "handler": "invoices",
+    "method": "GET",
+    "path": "/app/api/billing/invoices"
+  },
+  {
+    "documented": true,
     "handler": "invoice_detail",
     "method": "GET",
     "path": "/app/api/billing/invoices/{invoice_id}"
+  },
+  {
+    "documented": true,
+    "handler": "invoice_detail",
+    "method": "GET",
+    "path": "/app/api/billing/invoices/{invoice_id}"
+  },
+  {
+    "documented": true,
+    "handler": "overview",
+    "method": "GET",
+    "path": "/app/api/billing/overview"
   },
   {
     "documented": true,
@@ -163,6 +181,18 @@
   },
   {
     "documented": true,
+    "handler": "payment_methods",
+    "method": "GET",
+    "path": "/app/api/billing/payment-methods"
+  },
+  {
+    "documented": true,
+    "handler": "payments",
+    "method": "GET",
+    "path": "/app/api/billing/payments"
+  },
+  {
+    "documented": true,
     "handler": "payments",
     "method": "GET",
     "path": "/app/api/billing/payments"
@@ -175,9 +205,27 @@
   },
   {
     "documented": true,
+    "handler": "refunds",
+    "method": "GET",
+    "path": "/app/api/billing/refunds"
+  },
+  {
+    "documented": true,
     "handler": "subscription",
     "method": "GET",
     "path": "/app/api/billing/subscription"
+  },
+  {
+    "documented": true,
+    "handler": "subscription",
+    "method": "GET",
+    "path": "/app/api/billing/subscription"
+  },
+  {
+    "documented": true,
+    "handler": "wallet",
+    "method": "GET",
+    "path": "/app/api/billing/wallet"
   },
   {
     "documented": true,
@@ -2002,6 +2050,12 @@
     "handler": "transition_payment_attempt",
     "method": "POST",
     "path": "/v1/internal/billing/payment-attempts/{payment_attempt_id}/transition"
+  },
+  {
+    "documented": true,
+    "handler": "stripe_webhook",
+    "method": "POST",
+    "path": "/v1/internal/billing/providers/stripe/webhook"
   },
   {
     "documented": true,

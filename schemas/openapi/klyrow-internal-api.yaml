@@ -4116,6 +4116,55 @@
         ]
       }
     },
+    "/v1/internal/billing/providers/stripe/webhook": {
+      "post": {
+        "operationId": "stripe_webhook_v1_internal_billing_providers_stripe_webhook_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Stripe-Signature",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Stripe-Signature",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Stripe Webhook",
+        "tags": [
+          "Billing provider webhooks"
+        ],
+        "x-klyrow-audience": "INTERNAL",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
     "/v1/internal/email/beyvra/send": {
       "post": {
         "operationId": "beyvra_send_v1_internal_email_beyvra_send_post",
