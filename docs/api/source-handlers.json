@@ -1018,56 +1018,56 @@
     "declared_path": "/app/api/media",
     "file": "apps/gateway/app/media_assets.py",
     "handler": "media_list",
-    "line": 351,
+    "line": 377,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/media/uploads",
     "file": "apps/gateway/app/media_assets.py",
     "handler": "media_upload_prepare",
-    "line": 363,
+    "line": 389,
     "method": "POST"
   },
   {
     "declared_path": "/app/api/media/uploads/{upload_reference}",
     "file": "apps/gateway/app/media_assets.py",
     "handler": "media_upload_bytes",
-    "line": 381,
+    "line": 407,
     "method": "PUT"
   },
   {
     "declared_path": "/app/api/media/{asset_id}/complete",
     "file": "apps/gateway/app/media_assets.py",
     "handler": "media_complete",
-    "line": 394,
+    "line": 420,
     "method": "POST"
   },
   {
     "declared_path": "/app/api/media/{asset_id}/events",
     "file": "apps/gateway/app/media_assets.py",
     "handler": "media_events",
-    "line": 418,
+    "line": 444,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/media/{asset_id}",
     "file": "apps/gateway/app/media_assets.py",
     "handler": "media_get",
-    "line": 424,
+    "line": 450,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/media/{asset_id}/archive",
     "file": "apps/gateway/app/media_assets.py",
     "handler": "media_archive",
-    "line": 429,
+    "line": 458,
     "method": "POST"
   },
   {
     "declared_path": "/app/api/media/{asset_id}",
     "file": "apps/gateway/app/media_assets.py",
     "handler": "media_delete",
-    "line": 436,
+    "line": 465,
     "method": "DELETE"
   },
   {

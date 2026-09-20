@@ -292,7 +292,7 @@ def dimensions_and_type(content: bytes) -> tuple[str, int, int]:
             raise ValueError("malformed_image")
         if content[12:16] == b"VP8X":
             chunk_size = int.from_bytes(content[16:20], "little")
-            if chunk_size != 10 or len(content) < 30 or 20 + chunk_size > len(content):
+            if chunk_size != 10 or len(content) < 30 or 20 + chunk_size != len(content):
                 raise ValueError("malformed_image")
             width = 1 + int.from_bytes(content[24:27], "little")
             height = 1 + int.from_bytes(content[27:30], "little")
@@ -301,7 +301,7 @@ def dimensions_and_type(content: bytes) -> tuple[str, int, int]:
             return "image/webp", width, height
         chunk_size = int.from_bytes(content[16:20], "little")
         chunk_end = 20 + chunk_size
-        if chunk_end > len(content):
+        if chunk_end != len(content):
             raise ValueError("malformed_image")
         payload = content[20:chunk_end]
         if content[12:16] == b"VP8 ":
@@ -429,7 +429,7 @@ def media_complete(asset_id: str, x: CompleteIn, ctx=Depends(browser_context_dep
     except HTTPException:
         raise
     except (ValueError, KeyError) as exc:
-        item.status = "REJECTED"; item.quarantine_reason = str(exc); item.version += 1; item.updated_at = utcnow(); event(s, item, "upload_rejected", "REJECTED", ctx, reason=str(exc), from_status="PENDING_UPLOAD"); s.commit(); raise HTTPException(422, str(exc))
+        item.status = "REJECTED"; item.quarantine_reason = str(exc); item.version += 1; item.updated_at = utcnow(); event(s, item, "upload_rejected", "REJECTED", ctx, reason=str(exc), from_status="PENDING_UPLOAD"); object_store().delete_object({"tenant_id": item.tenant_id, "asset_id": item.id, "upload_reference": x.upload_reference}); s.commit(); raise HTTPException(422, str(exc))
     if x.expected_version != item.version:
         raise HTTPException(409, "media_version_conflict")
     item.status = "UPLOADED"; item.version += 1; item.updated_at = utcnow(); event(s, item, "upload_completed", "UPLOADED", ctx, from_status="PENDING_UPLOAD")

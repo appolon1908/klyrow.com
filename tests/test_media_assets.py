@@ -236,7 +236,20 @@ def test_fake_storage_delete_removes_uploaded_bytes():
     assert deleted.status_code == 200
     assert prepared["upload_reference"] not in _fake_store.objects
     assert prepared["upload_reference"] not in _fake_store.references
-    assert client.get(f"/app/api/media/{prepared['id']}", headers=login("media-a")).status_code == 404
+
+
+def test_rejected_upload_cleans_fake_storage():
+    prepared = prepare(filename="bad.png", content=b"bad", declared="image/png")
+    rejected = client.post(
+        f"/app/api/media/{prepared['id']}/complete",
+        headers=login("media-a"),
+        json={"upload_reference": prepared["upload_reference"], "expected_version": prepared["version"]},
+    )
+    assert rejected.status_code == 422
+    assert prepared["upload_reference"] not in _fake_store.objects
+    assert prepared["upload_reference"] not in _fake_store.references
+    visible = client.get(f"/app/api/media/{prepared['id']}", headers=login("media-a"))
+    assert visible.status_code == 200 and visible.json()["status"] == "REJECTED"
 
 
 def test_webp_vp8_and_vp8l_dimensions_are_parsed_and_limited():
@@ -258,7 +271,17 @@ def test_webp_vp8_and_vp8l_dimensions_are_parsed_and_limited():
     malformed_vp8x = vp8x[:16] + (9).to_bytes(4, "little") + vp8x[20:]
     with pytest.raises(ValueError, match="malformed_image"):
         dimensions_and_type(malformed_vp8x)
+    valid_vp8x_payload = b"\x00\x00\x00\x00" + b"\x00\x00\x00" + b"\x00\x00\x00"
+    valid_vp8x = b"RIFF" + (len(valid_vp8x_payload) + 12).to_bytes(4, "little") + b"WEBPVP8X" + len(valid_vp8x_payload).to_bytes(4, "little") + valid_vp8x_payload
+    trailing_vp8x = valid_vp8x + b"JUNK"
+    trailing_vp8x = trailing_vp8x[:4] + (len(trailing_vp8x) - 8).to_bytes(4, "little") + trailing_vp8x[8:]
+    with pytest.raises(ValueError, match="malformed_image"):
+        dimensions_and_type(trailing_vp8x)
     with pytest.raises(ValueError, match="malformed_image"):
         dimensions_and_type(PNG_1X1[:-8])
     with pytest.raises(ValueError, match="malformed_image"):
         dimensions_and_type(vp8[:-1])
+    trailing = vp8 + b"JUNK"
+    trailing = trailing[:4] + (len(trailing) - 8).to_bytes(4, "little") + trailing[8:]
+    with pytest.raises(ValueError, match="malformed_image"):
+        dimensions_and_type(trailing)
