@@ -14,6 +14,7 @@ import DeliverabilityPage from './DeliverabilityPage.vue'
 import DeveloperLogsPage from './DeveloperLogsPage.vue'
 import BillingPlanPage from './BillingPlanPage.vue'
 import BillingUsagePage from './BillingUsagePage.vue'
+import BillingPortalPage from './BillingPortalPage.vue'
 import SettingsOrganizationPage from './SettingsOrganizationPage.vue'
 import SettingsTeamPage from './SettingsTeamPage.vue'
 import SettingsSecurityPage from './SettingsSecurityPage.vue'
@@ -35,6 +36,14 @@ const pages: Record<string, Component> = {
   'developer-logs': DeveloperLogsPage,
   'billing-plan': BillingPlanPage,
   'billing-usage': BillingUsagePage,
+  'billing-overview': BillingPortalPage,
+  'billing-subscription': BillingPortalPage,
+  'billing-invoices': BillingPortalPage,
+  'billing-invoice': BillingPortalPage,
+  'billing-payments': BillingPortalPage,
+  'billing-refunds': BillingPortalPage,
+  'billing-payment-methods': BillingPortalPage,
+  'billing-wallet': BillingPortalPage,
   'settings-organization': SettingsOrganizationPage,
   'settings-team': SettingsTeamPage,
   'settings-security': SettingsSecurityPage,
