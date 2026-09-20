@@ -119,62 +119,6 @@
     "method": "POST"
   },
   {
-    "declared_path": "/overview",
-    "file": "apps/gateway/app/billing_browser.py",
-    "handler": "overview",
-    "line": 100,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/subscription",
-    "file": "apps/gateway/app/billing_browser.py",
-    "handler": "subscription",
-    "line": 122,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/invoices",
-    "file": "apps/gateway/app/billing_browser.py",
-    "handler": "invoices",
-    "line": 130,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/invoices/{invoice_id}",
-    "file": "apps/gateway/app/billing_browser.py",
-    "handler": "invoice_detail",
-    "line": 146,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/payments",
-    "file": "apps/gateway/app/billing_browser.py",
-    "handler": "payments",
-    "line": 159,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/refunds",
-    "file": "apps/gateway/app/billing_browser.py",
-    "handler": "refunds",
-    "line": 167,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/payment-methods",
-    "file": "apps/gateway/app/billing_browser.py",
-    "handler": "payment_methods",
-    "line": 174,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/wallet",
-    "file": "apps/gateway/app/billing_browser.py",
-    "handler": "wallet",
-    "line": 180,
-    "method": "GET"
-  },
-  {
     "declared_path": "/admin/billing/catalog",
     "file": "apps/gateway/app/billing.py",
     "handler": "catalog",
@@ -362,6 +306,62 @@
     "handler": "billing_refund",
     "line": 296,
     "method": "POST"
+  },
+  {
+    "declared_path": "/overview",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "overview",
+    "line": 100,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/subscription",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "subscription",
+    "line": 122,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/invoices",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "invoices",
+    "line": 130,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/invoices/{invoice_id}",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "invoice_detail",
+    "line": 146,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/payments",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "payments",
+    "line": 159,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/refunds",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "refunds",
+    "line": 167,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/payment-methods",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "payment_methods",
+    "line": 174,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/wallet",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "wallet",
+    "line": 180,
+    "method": "GET"
   },
   {
     "declared_path": "/auth/callback",
@@ -1603,27 +1603,6 @@
     "method": "POST"
   },
   {
-    "declared_path": "/v1/admin/security/platform-owner",
-    "file": "apps/gateway/app/platform_owner_api.py",
-    "handler": "platform_owner_status",
-    "line": 126,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/auth/step-up",
-    "file": "apps/gateway/app/platform_owner.py",
-    "handler": "platform_owner_step_up",
-    "line": 344,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/app/api/admin/security/platform-owner",
-    "file": "apps/gateway/app/platform_owner.py",
-    "handler": "browser_platform_owner_status",
-    "line": 374,
-    "method": "GET"
-  },
-  {
     "declared_path": "/admin",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
@@ -1656,6 +1635,27 @@
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
     "line": 162,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/auth/step-up",
+    "file": "apps/gateway/app/platform_owner.py",
+    "handler": "platform_owner_step_up",
+    "line": 344,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/admin/security/platform-owner",
+    "file": "apps/gateway/app/platform_owner.py",
+    "handler": "browser_platform_owner_status",
+    "line": 374,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/v1/admin/security/platform-owner",
+    "file": "apps/gateway/app/platform_owner_api.py",
+    "handler": "platform_owner_status",
+    "line": 126,
     "method": "GET"
   },
   {
@@ -2779,104 +2779,6 @@
     "method": "GET"
   },
   {
-    "declared_path": "/app",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "product_app",
-    "line": 219,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/app/{path:path}",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "product_app",
-    "line": 219,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/onboarding",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "product_app",
-    "line": 219,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/app/api/context",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "context",
-    "line": 227,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/app/api/dashboard",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "dashboard",
-    "line": 237,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/app/api/messages",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "browser_messages",
-    "line": 276,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/app/api/email/send",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "browser_send",
-    "line": 284,
-    "method": "POST"
-  },
-  {
-    "declared_path": "/app/api/onboarding",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "onboarding_get",
-    "line": 295,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/app/api/onboarding",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "onboarding_update",
-    "line": 305,
-    "method": "PATCH"
-  },
-  {
-    "declared_path": "/app/api/onboarding/complete",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "onboarding_complete",
-    "line": 320,
-    "method": "POST"
-  },
-  {
-    "declared_path": "/app/api/organizations/{tenant_id}/switch",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "browser_switch",
-    "line": 333,
-    "method": "POST"
-  },
-  {
-    "declared_path": "/app/api/team",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "browser_team",
-    "line": 357,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/app/api/team/invitations",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "browser_invite",
-    "line": 367,
-    "method": "POST"
-  },
-  {
-    "declared_path": "/app/api/admin/dashboard",
-    "file": "apps/gateway/app/tenancy_onboarding.py",
-    "handler": "platform_dashboard",
-    "line": 382,
-    "method": "GET"
-  },
-  {
     "declared_path": "/organizations",
     "file": "apps/gateway/app/tenancy.py",
     "handler": "organization",
@@ -3036,6 +2938,104 @@
     "handler": "smtp_revoke",
     "line": 178,
     "method": "DELETE"
+  },
+  {
+    "declared_path": "/app",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "product_app",
+    "line": 219,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/{path:path}",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "product_app",
+    "line": 219,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/onboarding",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "product_app",
+    "line": 219,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/context",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "context",
+    "line": 227,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/dashboard",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "dashboard",
+    "line": 237,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/messages",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "browser_messages",
+    "line": 276,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/email/send",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "browser_send",
+    "line": 284,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/app/api/onboarding",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "onboarding_get",
+    "line": 295,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/onboarding",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "onboarding_update",
+    "line": 305,
+    "method": "PATCH"
+  },
+  {
+    "declared_path": "/app/api/onboarding/complete",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "onboarding_complete",
+    "line": 320,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/app/api/organizations/{tenant_id}/switch",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "browser_switch",
+    "line": 333,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/app/api/team",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "browser_team",
+    "line": 357,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/team/invitations",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "browser_invite",
+    "line": 367,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/app/api/admin/dashboard",
+    "file": "apps/gateway/app/tenancy_onboarding.py",
+    "handler": "platform_dashboard",
+    "line": 382,
+    "method": "GET"
   },
   {
     "declared_path": "/v1/usage/daily",

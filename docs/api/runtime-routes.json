@@ -126,12 +126,6 @@
     "path": "/app"
   },
   {
-    "documented": false,
-    "handler": "product_app_ui",
-    "method": "GET",
-    "path": "/app/{path:path}"
-  },
-  {
     "documented": true,
     "handler": "platform_dashboard",
     "method": "GET",
@@ -292,6 +286,12 @@
     "handler": "browser_team",
     "method": "GET",
     "path": "/app/api/team"
+  },
+  {
+    "documented": false,
+    "handler": "product_app_ui",
+    "method": "GET",
+    "path": "/app/{path:path}"
   },
   {
     "documented": false,
@@ -721,6 +721,12 @@
   },
   {
     "documented": true,
+    "handler": "domain_claims",
+    "method": "GET",
+    "path": "/v1/domains/claims"
+  },
+  {
+    "documented": true,
     "handler": "domain_detail",
     "method": "GET",
     "path": "/v1/domains/{domain_id}"
@@ -739,9 +745,9 @@
   },
   {
     "documented": true,
-    "handler": "domain_claims",
+    "handler": "readback",
     "method": "GET",
-    "path": "/v1/domains/claims"
+    "path": "/v1/email/messages/{command_id}"
   },
   {
     "documented": true,
@@ -754,12 +760,6 @@
     "handler": "events",
     "method": "GET",
     "path": "/v1/email/{mid}/events"
-  },
-  {
-    "documented": true,
-    "handler": "readback",
-    "method": "GET",
-    "path": "/v1/email/messages/{command_id}"
   },
   {
     "documented": true,
@@ -1027,6 +1027,12 @@
   },
   {
     "documented": true,
+    "handler": "profile_lookup",
+    "method": "GET",
+    "path": "/v1/profiles/lookup"
+  },
+  {
+    "documented": true,
     "handler": "profile_get",
     "method": "GET",
     "path": "/v1/profiles/{pid}"
@@ -1042,12 +1048,6 @@
     "handler": "timeline",
     "method": "GET",
     "path": "/v1/profiles/{pid}/timeline"
-  },
-  {
-    "documented": true,
-    "handler": "profile_lookup",
-    "method": "GET",
-    "path": "/v1/profiles/lookup"
   },
   {
     "documented": true,
@@ -1333,6 +1333,18 @@
   },
   {
     "documented": true,
+    "handler": "activate_inbound_mailboxes",
+    "method": "POST",
+    "path": "/app/api/mailboxes/inbound/activate"
+  },
+  {
+    "documented": true,
+    "handler": "sync_mailboxes",
+    "method": "POST",
+    "path": "/app/api/mailboxes/sync"
+  },
+  {
+    "documented": true,
     "handler": "grant_access",
     "method": "POST",
     "path": "/app/api/mailboxes/{mailbox_id}/access"
@@ -1351,15 +1363,9 @@
   },
   {
     "documented": true,
-    "handler": "activate_inbound_mailboxes",
+    "handler": "media_upload_prepare",
     "method": "POST",
-    "path": "/app/api/mailboxes/inbound/activate"
-  },
-  {
-    "documented": true,
-    "handler": "sync_mailboxes",
-    "method": "POST",
-    "path": "/app/api/mailboxes/sync"
+    "path": "/app/api/media/uploads"
   },
   {
     "documented": true,
@@ -1372,12 +1378,6 @@
     "handler": "media_complete",
     "method": "POST",
     "path": "/app/api/media/{asset_id}/complete"
-  },
-  {
-    "documented": true,
-    "handler": "media_upload_prepare",
-    "method": "POST",
-    "path": "/app/api/media/uploads"
   },
   {
     "documented": true,
@@ -1579,6 +1579,12 @@
   },
   {
     "documented": true,
+    "handler": "provision",
+    "method": "POST",
+    "path": "/v1/agent-mailboxes/provision"
+  },
+  {
+    "documented": true,
     "handler": "suspend",
     "method": "POST",
     "path": "/v1/agent-mailboxes/{mailbox_id}/suspend"
@@ -1588,12 +1594,6 @@
     "handler": "validate",
     "method": "POST",
     "path": "/v1/agent-mailboxes/{mailbox_id}/validate"
-  },
-  {
-    "documented": true,
-    "handler": "provision",
-    "method": "POST",
-    "path": "/v1/agent-mailboxes/provision"
   },
   {
     "documented": true,
@@ -1705,6 +1705,12 @@
   },
   {
     "documented": true,
+    "handler": "billing_manual_payment",
+    "method": "POST",
+    "path": "/v1/billing/payments/manual"
+  },
+  {
+    "documented": true,
     "handler": "confirm_manual",
     "method": "POST",
     "path": "/v1/billing/payments/{payment_id}/confirm"
@@ -1714,12 +1720,6 @@
     "handler": "refund",
     "method": "POST",
     "path": "/v1/billing/payments/{payment_id}/refunds"
-  },
-  {
-    "documented": true,
-    "handler": "billing_manual_payment",
-    "method": "POST",
-    "path": "/v1/billing/payments/manual"
   },
   {
     "documented": true,
@@ -1741,12 +1741,6 @@
   },
   {
     "documented": true,
-    "handler": "transition",
-    "method": "POST",
-    "path": "/v1/billing/subscription/{status}"
-  },
-  {
-    "documented": true,
     "handler": "billing_subscription_cancel",
     "method": "POST",
     "path": "/v1/billing/subscription/cancel"
@@ -1756,6 +1750,12 @@
     "handler": "billing_subscription_change",
     "method": "POST",
     "path": "/v1/billing/subscription/change"
+  },
+  {
+    "documented": true,
+    "handler": "transition",
+    "method": "POST",
+    "path": "/v1/billing/subscription/{status}"
   },
   {
     "documented": true,
@@ -1933,12 +1933,6 @@
   },
   {
     "documented": true,
-    "handler": "domain_verify",
-    "method": "POST",
-    "path": "/v1/domains/{did}/verify"
-  },
-  {
-    "documented": true,
     "handler": "domain_claim",
     "method": "POST",
     "path": "/v1/domains/claims"
@@ -1954,6 +1948,12 @@
     "handler": "domain_verify",
     "method": "POST",
     "path": "/v1/domains/claims/{item_id}/verify"
+  },
+  {
+    "documented": true,
+    "handler": "domain_verify",
+    "method": "POST",
+    "path": "/v1/domains/{did}/verify"
   },
   {
     "documented": true,
@@ -2059,15 +2059,27 @@
   },
   {
     "documented": true,
-    "handler": "dkim_verify",
+    "handler": "domain_register",
     "method": "POST",
-    "path": "/v1/internal/email/domains/{domain_id}/dkim/{key_id}/verify"
+    "path": "/v1/internal/email/domains/register"
+  },
+  {
+    "documented": true,
+    "handler": "domain_verify",
+    "method": "POST",
+    "path": "/v1/internal/email/domains/verify"
   },
   {
     "documented": true,
     "handler": "dkim_rotate",
     "method": "POST",
     "path": "/v1/internal/email/domains/{domain_id}/dkim/rotate"
+  },
+  {
+    "documented": true,
+    "handler": "dkim_verify",
+    "method": "POST",
+    "path": "/v1/internal/email/domains/{domain_id}/dkim/{key_id}/verify"
   },
   {
     "documented": true,
@@ -2080,18 +2092,6 @@
     "handler": "domain_suspend",
     "method": "POST",
     "path": "/v1/internal/email/domains/{domain_id}/suspend"
-  },
-  {
-    "documented": true,
-    "handler": "domain_register",
-    "method": "POST",
-    "path": "/v1/internal/email/domains/register"
-  },
-  {
-    "documented": true,
-    "handler": "domain_verify",
-    "method": "POST",
-    "path": "/v1/internal/email/domains/verify"
   },
   {
     "documented": true,
@@ -2275,15 +2275,15 @@
   },
   {
     "documented": true,
-    "handler": "message_cancel",
-    "method": "POST",
-    "path": "/v1/messages/{message_id}/cancel"
-  },
-  {
-    "documented": true,
     "handler": "messages_batch",
     "method": "POST",
     "path": "/v1/messages/batch"
+  },
+  {
+    "documented": true,
+    "handler": "message_cancel",
+    "method": "POST",
+    "path": "/v1/messages/{message_id}/cancel"
   },
   {
     "documented": true,
@@ -2479,24 +2479,6 @@
   },
   {
     "documented": true,
-    "handler": "webhook_delivery_replay",
-    "method": "POST",
-    "path": "/v1/webhooks/{webhook_id}/deliveries/{delivery_id}/replay"
-  },
-  {
-    "documented": true,
-    "handler": "webhook_rotate_secret",
-    "method": "POST",
-    "path": "/v1/webhooks/{webhook_id}/rotate-secret"
-  },
-  {
-    "documented": true,
-    "handler": "webhook_rotate",
-    "method": "POST",
-    "path": "/v1/webhooks/{wid}/rotate"
-  },
-  {
-    "documented": true,
     "handler": "postal_hook",
     "method": "POST",
     "path": "/v1/webhooks/postal"
@@ -2512,6 +2494,24 @@
     "handler": "postal_native_hook",
     "method": "POST",
     "path": "/v1/webhooks/postal-native"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_delivery_replay",
+    "method": "POST",
+    "path": "/v1/webhooks/{webhook_id}/deliveries/{delivery_id}/replay"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_rotate_secret",
+    "method": "POST",
+    "path": "/v1/webhooks/{webhook_id}/rotate-secret"
+  },
+  {
+    "documented": true,
+    "handler": "webhook_rotate",
+    "method": "POST",
+    "path": "/v1/webhooks/{wid}/rotate"
   },
   {
     "documented": true,
