@@ -33,6 +33,10 @@ def process_stripe_provider_event(session, event: BillingProviderEvent) -> None:
         event.processing_state = "IGNORED"; event.processed_at = now(); return
     if event.event_type not in SUCCESS_EVENTS:
         event.processing_state = "IGNORED"; event.processed_at = now(); return
+    if event.event_type == "checkout.session.completed" and obj.get("payment_status") != "paid":
+        event.processing_state = "PROCESSED"; event.processed_at = now()
+        event.last_error_code = "stripe_checkout_not_paid"; event.last_error_message = "stripe_checkout_not_paid"; event.updated_at = now()
+        return
     attempt_id = metadata.get("payment_attempt_id") or event.payment_attempt_id
     invoice_id = metadata.get("invoice_id") or event.invoice_id
     tenant_id = metadata.get("tenant_id") or event.tenant_id

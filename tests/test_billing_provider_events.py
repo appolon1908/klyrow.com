@@ -2,11 +2,12 @@ import hashlib
 import hmac
 import json
 import time
+from datetime import timedelta
 
 from fastapi.testclient import TestClient
 
 from apps.gateway.app.main import Base, DB, app, engine
-from apps.gateway.app.billing_provider_events import BillingProviderEvent
+from apps.gateway.app.billing_provider_events import BillingProviderEvent, claim_provider_events, now, recover_expired_provider_events
 
 
 def _signature(secret: str, body: bytes) -> str:
@@ -57,3 +58,24 @@ def test_invalid_signature_does_not_persist_event(monkeypatch, tmp_path):
         with DB() as session: assert session.query(BillingProviderEvent).count() == 0
     finally:
         client.close()
+
+
+def test_expired_processing_provider_events_are_recovered():
+    Base.metadata.drop_all(engine); Base.metadata.create_all(engine)
+    with DB() as session:
+        retry = BillingProviderEvent(id="retry", provider="stripe", provider_event_id="evt_retry", event_type="payment_intent.succeeded", payload_json="{}", payload_hash="hash", processing_state="PROCESSING", attempt_count=1, claimed_at=now()-timedelta(seconds=61), claimed_by="dead-worker")
+        dead = BillingProviderEvent(id="dead", provider="stripe", provider_event_id="evt_dead", event_type="payment_intent.succeeded", payload_json="{}", payload_hash="hash", processing_state="PROCESSING", attempt_count=8, claimed_at=now()-timedelta(seconds=61), claimed_by="dead-worker")
+        session.add_all([retry, dead]); session.commit()
+        assert recover_expired_provider_events(session) == 2
+        assert retry.processing_state == "RETRY" and retry.claimed_by is None
+        assert dead.processing_state == "DEAD_LETTER" and dead.last_error_code == "provider_event_claim_expired"
+
+
+def test_expired_provider_event_is_claimable_again():
+    Base.metadata.drop_all(engine); Base.metadata.create_all(engine)
+    with DB() as session:
+        event = BillingProviderEvent(id="claim", provider="stripe", provider_event_id="evt_claim", event_type="payment_intent.succeeded", payload_json="{}", payload_hash="hash", processing_state="PROCESSING", attempt_count=1, claimed_at=now()-timedelta(seconds=61), claimed_by="dead-worker")
+        session.add(event); session.commit()
+        claimed = claim_provider_events(session, "new-worker")
+        assert claimed == [event]
+        assert event.processing_state == "PROCESSING" and event.claimed_by == "new-worker"

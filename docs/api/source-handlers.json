@@ -367,7 +367,7 @@
     "declared_path": "/v1/internal/billing/providers/stripe/webhook",
     "file": "apps/gateway/app/billing_provider_events.py",
     "handler": "stripe_webhook",
-    "line": 58,
+    "line": 59,
     "method": "POST"
   },
   {

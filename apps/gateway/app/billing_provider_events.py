@@ -18,6 +18,7 @@ from .stripe_sandbox import StripeWebhookError, verify_stripe_signature
 
 router = APIRouter(tags=["Billing provider webhooks"])
 now = lambda: datetime.now(timezone.utc)
+PROVIDER_EVENT_LEASE_SECONDS = 60
 SUPPORTED = {"checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "payment_intent.succeeded", "payment_intent.payment_failed"}
 
 
@@ -82,10 +83,29 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(defaul
 
 
 def claim_provider_events(session: Session, worker_id: str, limit: int = 20) -> list[BillingProviderEvent]:
+    recover_expired_provider_events(session)
     rows = session.scalars(select(BillingProviderEvent).where(BillingProviderEvent.processing_state.in_(("RECEIVED", "RETRY")), (BillingProviderEvent.next_retry_at.is_(None) | (BillingProviderEvent.next_retry_at <= now()))).order_by(BillingProviderEvent.received_at).with_for_update(skip_locked=True).limit(limit)).all()
     for event in rows:
         event.processing_state = "PROCESSING"; event.claimed_by = worker_id; event.claimed_at = now(); event.attempt_count += 1; event.updated_at = now()
     return rows
+
+
+def recover_expired_provider_events(session: Session, max_attempts: int = 8) -> int:
+    cutoff = now() - timedelta(seconds=PROVIDER_EVENT_LEASE_SECONDS)
+    rows = session.scalars(select(BillingProviderEvent).where(
+        BillingProviderEvent.processing_state == "PROCESSING",
+        BillingProviderEvent.claimed_at.is_not(None),
+        BillingProviderEvent.claimed_at <= cutoff,
+    ).with_for_update(skip_locked=True)).all()
+    for event in rows:
+        event.processing_state = "DEAD_LETTER" if event.attempt_count >= max_attempts else "RETRY"
+        event.next_retry_at = None if event.processing_state == "DEAD_LETTER" else now()
+        event.last_error_code = "provider_event_claim_expired"
+        event.last_error_message = "provider_event_claim_expired"
+        event.claimed_at = None
+        event.claimed_by = None
+        event.updated_at = now()
+    return len(rows)
 
 
 def mark_provider_event_failure(event: BillingProviderEvent, code: str, *, retryable: bool) -> None:

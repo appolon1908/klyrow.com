@@ -180,9 +180,9 @@ def billing_tick(max_attempts=8):
             item.last_error = "unknown_billing_work_kind"
         else:
             item.state = "COMPLETED"
+            item.last_error = None
         item.completed_at = now()
         item.lease_expires_at = None
-        item.last_error = None
         session.commit()
         return 1
 
