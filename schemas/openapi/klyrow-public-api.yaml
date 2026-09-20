@@ -1324,6 +1324,51 @@
         "title": "OrganizationView",
         "type": "object"
       },
+      "PaymentAttemptCreateIn": {
+        "properties": {
+          "amount_minor": {
+            "exclusiveMinimum": 0.0,
+            "title": "Amount Minor",
+            "type": "integer"
+          },
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "invoice_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Invoice Id",
+            "type": "string"
+          },
+          "payment_method_reference_id": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Method Reference Id"
+          },
+          "provider": {
+            "pattern": "^(disabled|stripe|paypal|stablecoin)$",
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id",
+          "amount_minor",
+          "currency",
+          "provider"
+        ],
+        "title": "PaymentAttemptCreateIn",
+        "type": "object"
+      },
       "PaymentIn": {
         "properties": {
           "amount": {
@@ -5738,6 +5783,487 @@
         "summary": "Billing Sync",
         "tags": [
           "Operations and integrations"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/billing/payment-attempts": {
+      "get": {
+        "operationId": "list_payment_attempts_v1_billing_payment_attempts_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Payment Attempts",
+        "tags": [
+          "Klyrow payment attempts"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      },
+      "post": {
+        "operationId": "create_payment_attempt_v1_billing_payment_attempts_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Correlation-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Correlation-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentAttemptCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Payment Attempt",
+        "tags": [
+          "Klyrow payment attempts"
+        ],
+        "x-durable-idempotency": true,
+        "x-idempotency-model": "REQUEST_SCOPED_ATOMIC",
+        "x-idempotency-required": true,
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/billing/payment-attempts/{payment_attempt_id}": {
+      "get": {
+        "operationId": "get_payment_attempt_v1_billing_payment_attempts__payment_attempt_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Payment Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Payment Attempt",
+        "tags": [
+          "Klyrow payment attempts"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/billing/payment-attempts/{payment_attempt_id}/cancel": {
+      "post": {
+        "operationId": "cancel_payment_attempt_v1_billing_payment_attempts__payment_attempt_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Payment Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Cancel Payment Attempt",
+        "tags": [
+          "Klyrow payment attempts"
+        ],
+        "x-klyrow-audience": "PUBLIC",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/billing/payment-attempts/{payment_attempt_id}/events": {
+      "get": {
+        "operationId": "get_payment_attempt_events_v1_billing_payment_attempts__payment_attempt_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Payment Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Payment Attempt Events",
+        "tags": [
+          "Klyrow payment attempts"
         ],
         "x-klyrow-audience": "PUBLIC",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY",
