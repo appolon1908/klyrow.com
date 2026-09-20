@@ -241,11 +241,27 @@ def safe_name(filename: str) -> str:
 
 def dimensions_and_type(content: bytes) -> tuple[str, int, int]:
     if content.startswith(b"\x89PNG\r\n\x1a\n"):
-        if len(content) < 33 or content[12:16] != b"IHDR":
+        if len(content) < 33 or int.from_bytes(content[8:12], "big") != 13 or content[12:16] != b"IHDR":
             raise ValueError("malformed_image")
         width, height = struct.unpack(">II", content[16:24])
         if width == 0 or height == 0:
             raise ValueError("invalid_dimensions")
+        position = 8
+        saw_iend = False
+        while position + 12 <= len(content):
+            length = int.from_bytes(content[position:position + 4], "big")
+            chunk_end = position + 12 + length
+            if chunk_end > len(content):
+                raise ValueError("malformed_image")
+            chunk_type = content[position + 4:position + 8]
+            if chunk_type == b"IEND":
+                if length != 0 or chunk_end != len(content):
+                    raise ValueError("malformed_image")
+                saw_iend = True
+                break
+            position = chunk_end
+        if not saw_iend:
+            raise ValueError("malformed_image")
         return "image/png", width, height
     if content.startswith(b"\xff\xd8\xff"):
         position = 2
@@ -270,7 +286,10 @@ def dimensions_and_type(content: bytes) -> tuple[str, int, int]:
                 return "image/jpeg", width, height
             position += length
         raise ValueError("malformed_image")
-    if content.startswith(b"RIFF") and len(content) >= 30 and content[8:12] == b"WEBP":
+    if content.startswith(b"RIFF") and len(content) >= 20 and content[8:12] == b"WEBP":
+        riff_size = int.from_bytes(content[4:8], "little")
+        if riff_size != len(content) - 8:
+            raise ValueError("malformed_image")
         if content[12:16] == b"VP8X":
             chunk_size = int.from_bytes(content[16:20], "little")
             if chunk_size != 10 or len(content) < 30 or 20 + chunk_size > len(content):

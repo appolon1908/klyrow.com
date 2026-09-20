@@ -258,3 +258,7 @@ def test_webp_vp8_and_vp8l_dimensions_are_parsed_and_limited():
     malformed_vp8x = vp8x[:16] + (9).to_bytes(4, "little") + vp8x[20:]
     with pytest.raises(ValueError, match="malformed_image"):
         dimensions_and_type(malformed_vp8x)
+    with pytest.raises(ValueError, match="malformed_image"):
+        dimensions_and_type(PNG_1X1[:-8])
+    with pytest.raises(ValueError, match="malformed_image"):
+        dimensions_and_type(vp8[:-1])
