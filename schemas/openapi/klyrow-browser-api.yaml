@@ -841,7 +841,11 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Invoices App Api Billing Invoices Get",
+                  "type": "object"
+                }
               }
             },
             "description": "Successful Response"
@@ -889,7 +893,11 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Invoice Detail App Api Billing Invoices  Invoice Id  Get",
+                  "type": "object"
+                }
               }
             },
             "description": "Successful Response"
@@ -926,7 +934,11 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Overview App Api Billing Overview Get",
+                  "type": "object"
+                }
               }
             },
             "description": "Successful Response"
@@ -953,7 +965,14 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Payment Methods App Api Billing Payment Methods Get",
+                  "type": "array"
+                }
               }
             },
             "description": "Successful Response"
@@ -976,14 +995,53 @@
     "/app/api/billing/payments": {
       "get": {
         "operationId": "payments_app_api_billing_payments_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Payments App Api Billing Payments Get",
+                  "type": "object"
+                }
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -1003,14 +1061,53 @@
     "/app/api/billing/refunds": {
       "get": {
         "operationId": "refunds_app_api_billing_refunds_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Refunds App Api Billing Refunds Get",
+                  "type": "object"
+                }
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -1034,7 +1131,11 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Subscription App Api Billing Subscription Get",
+                  "type": "object"
+                }
               }
             },
             "description": "Successful Response"
@@ -1061,7 +1162,11 @@
           "200": {
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Wallet App Api Billing Wallet Get",
+                  "type": "object"
+                }
               }
             },
             "description": "Successful Response"

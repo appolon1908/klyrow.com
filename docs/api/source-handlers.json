@@ -311,56 +311,56 @@
     "declared_path": "/overview",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "overview",
-    "line": 40,
+    "line": 102,
     "method": "GET"
   },
   {
     "declared_path": "/invoices",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "invoices",
-    "line": 52,
+    "line": 138,
     "method": "GET"
   },
   {
     "declared_path": "/invoices/{invoice_id}",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "invoice_detail",
-    "line": 60,
+    "line": 154,
     "method": "GET"
   },
   {
     "declared_path": "/payments",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "payments",
-    "line": 69,
+    "line": 165,
     "method": "GET"
   },
   {
     "declared_path": "/refunds",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "refunds",
-    "line": 74,
+    "line": 173,
     "method": "GET"
   },
   {
     "declared_path": "/payment-methods",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "payment_methods",
-    "line": 79,
+    "line": 180,
     "method": "GET"
   },
   {
     "declared_path": "/wallet",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "wallet",
-    "line": 84,
+    "line": 186,
     "method": "GET"
   },
   {
     "declared_path": "/subscription",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "subscription",
-    "line": 90,
+    "line": 130,
     "method": "GET"
   },
   {
