@@ -19,7 +19,7 @@ from .stripe_sandbox import StripeWebhookError, verify_stripe_signature
 router = APIRouter(tags=["Billing provider webhooks"])
 now = lambda: datetime.now(timezone.utc)
 PROVIDER_EVENT_LEASE_SECONDS = 60
-SUPPORTED = {"checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "payment_intent.succeeded", "payment_intent.payment_failed"}
+SUPPORTED = {"checkout.session.completed", "checkout.session.async_payment_succeeded", "checkout.session.async_payment_failed", "checkout.session.expired", "payment_intent.succeeded", "payment_intent.payment_failed"}
 
 
 class BillingProviderEvent(Base):
@@ -110,6 +110,6 @@ def recover_expired_provider_events(session: Session, max_attempts: int = 8) -> 
 
 def mark_provider_event_failure(event: BillingProviderEvent, code: str, *, retryable: bool) -> None:
     event.last_error_code = code; event.last_error_message = code; event.updated_at = now()
-    if not retryable: event.processing_state = "IGNORED"; event.processed_at = now(); return
+    if not retryable: event.processing_state = "DEAD_LETTER"; event.processed_at = now(); return
     event.processing_state = "DEAD_LETTER" if event.attempt_count >= 8 else "RETRY"
     event.next_retry_at = now() + timedelta(seconds=min(900, 2 ** event.attempt_count)) if event.processing_state == "RETRY" else None

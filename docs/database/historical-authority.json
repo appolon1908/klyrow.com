@@ -1,0 +1,60 @@
+{
+  "authority": "Klyrow source repository",
+  "base_sha": "8d41ec081119335ab995ade15bee781d2902009a",
+  "entries": [
+    {
+      "tables": ["contacts", "profiles"],
+      "purpose": "Contacts are the legacy/contact-facing audience entity; profiles are the normalized profile identity used by consent and preference records.",
+      "writers": ["apps/gateway/app/main.py:Contact", "apps/gateway/app/saas.py:Profile", "apps/gateway/app/production_api.py"],
+      "readers": ["apps/gateway/app/main.py:contacts", "apps/gateway/app/tenancy_onboarding.py", "apps/gateway/app/saas.py profile routes"],
+      "canonical_authority": "SEPARATE_AUTHORITIES",
+      "migration_required": false,
+      "retirement_plan": "Do not merge or retire either table without a data-model decision; add an explicit contact-to-profile relationship only through a reviewed migration."
+    },
+    {
+      "tables": ["api_keys", "scoped_api_keys"],
+      "purpose": "api_keys is the legacy tenant API-key record; scoped_api_keys is the scoped credential record used by the newer authorization path.",
+      "writers": ["apps/gateway/app/main.py:ApiKey", "apps/gateway/app/tenancy.py:ScopedApiKey"],
+      "readers": ["apps/gateway/app/main.py:api_keys", "apps/gateway/app/tenancy.py scoped-key authorization", "migrations/2026091302_m07_business_event_runtime.sql"],
+      "canonical_authority": "UNRESOLVED_COMPATIBILITY_BOUNDARY",
+      "migration_required": "DECISION_REQUIRED",
+      "retirement_plan": "Preserve both until authentication call sites and key rotation/revocation behavior are mapped; do not delete or silently alias either table."
+    },
+    {
+      "tables": ["plans", "klyrow_plans"],
+      "purpose": "plans is the SaaS entitlement/limits plan model; klyrow_plans is the billing product catalog model referenced by klyrow_prices.",
+      "writers": ["apps/gateway/app/saas.py:Plan", "apps/gateway/app/billing.py:KlyrowPlan"],
+      "readers": ["apps/gateway/app/saas.py plan administration", "apps/gateway/app/production_api.py billing_plans", "apps/gateway/app/billing.py"],
+      "canonical_authority": "SEPARATE_AUTHORITIES",
+      "migration_required": false,
+      "retirement_plan": "Keep entitlement limits and billing catalog distinct; document the mapping between them before any consolidation."
+    },
+    {
+      "tables": ["subscriptions", "klyrow_subscriptions"],
+      "purpose": "subscriptions is the SaaS entitlement subscription model; klyrow_subscriptions is the billing subscription authority tied to klyrow_plans.",
+      "writers": ["apps/gateway/app/saas.py:Subscription", "apps/gateway/app/billing.py:KlyrowSubscription"],
+      "readers": ["apps/gateway/app/saas.py subscription routes", "apps/gateway/app/billing.py billing flows"],
+      "canonical_authority": "SEPARATE_AUTHORITIES",
+      "migration_required": false,
+      "retirement_plan": "Billing remains authoritative for financial subscription state; entitlement subscription reads require an explicit billing-to-entitlement projection or mapping."
+    },
+    {
+      "tables": ["domain_claims", "provider_domains"],
+      "purpose": "domain_claims owns tenant domain verification state; provider_domains owns provider-engine domain routing and credentials relationships.",
+      "writers": ["apps/gateway/app/messaging.py:Domain", "apps/gateway/app/provider.py:ProviderDomain"],
+      "readers": ["apps/gateway/app/browser_email_setup.py", "apps/gateway/app/webmail.py", "apps/gateway/app/provider.py"],
+      "canonical_authority": "SEPARATE_AUTHORITIES",
+      "migration_required": false,
+      "retirement_plan": "Keep verification and provider routing separate; connect them through reviewed domain/provider bindings."
+    },
+    {
+      "tables": ["campaigns", "campaign_definitions"],
+      "purpose": "campaigns stores operational campaign/runtime state; campaign_definitions stores definition/configuration records used by definition routes.",
+      "writers": ["apps/gateway/app/main.py:Campaign", "apps/gateway/app/messaging.py:CampaignDefinition", "apps/gateway/app/production_api.py"],
+      "readers": ["apps/gateway/app/main.py campaign routes", "apps/gateway/app/messaging.py campaign_definitions", "apps/gateway/app/campaign_dispatcher.py", "apps/gateway/app/tenancy_onboarding.py"],
+      "canonical_authority": "SEPARATE_AUTHORITIES",
+      "migration_required": false,
+      "retirement_plan": "Lane 4 must define the version/configuration link and scheduling authority before adding BFF routes; do not create another campaign table."
+    }
+  ]
+}

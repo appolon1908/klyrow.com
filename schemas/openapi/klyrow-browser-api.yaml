@@ -793,6 +793,39 @@
         ]
       }
     },
+    "/app/api/billing/capabilities": {
+      "get": {
+        "operationId": "capabilities_app_api_billing_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Capabilities App Api Billing Capabilities Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Capabilities",
+        "tags": [
+          "Browser billing"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
     "/app/api/billing/invoices": {
       "get": {
         "operationId": "invoices_app_api_billing_invoices_get",
@@ -872,7 +905,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/invoices/{invoice_id}": {
@@ -924,7 +959,89 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/billing/invoices/{invoice_id}/checkout": {
+      "post": {
+        "operationId": "checkout_invoice_app_api_billing_invoices__invoice_id__checkout_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Checkout Invoice App Api Billing Invoices  Invoice Id  Checkout Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Checkout Invoice",
+        "tags": [
+          "Browser billing"
+        ],
+        "x-durable-idempotency": true,
+        "x-idempotency-model": "REQUEST_SCOPED_ATOMIC",
+        "x-idempotency-required": true,
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/overview": {
@@ -955,7 +1072,63 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/billing/payment-attempts/{payment_attempt_id}": {
+      "get": {
+        "operationId": "browser_payment_attempt_app_api_billing_payment_attempts__payment_attempt_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Payment Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Browser Payment Attempt App Api Billing Payment Attempts  Payment Attempt Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Payment Attempt",
+        "tags": [
+          "Browser billing"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/payment-methods": {
@@ -989,7 +1162,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/payments": {
@@ -1055,7 +1230,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/refunds": {
@@ -1121,7 +1298,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/subscription": {
@@ -1152,7 +1331,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/wallet": {
@@ -1183,7 +1364,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/context": {

@@ -87,6 +87,7 @@ EXPIRED = "EXPIRED"
 
 STATES = frozenset({CREATED, PENDING, REQUIRES_ACTION, AUTHORIZED, CAPTURED, FAILED, CANCELLED, EXPIRED})
 TERMINAL_STATES = frozenset({CAPTURED, FAILED, CANCELLED, EXPIRED})
+ACTIVE_CHECKOUT_STATES = frozenset({CREATED, PENDING, REQUIRES_ACTION, AUTHORIZED})
 
 TRANSITIONS: dict[str, frozenset[str]] = {
     CREATED: frozenset({PENDING, CANCELLED, EXPIRED}),
@@ -340,23 +341,11 @@ def _tenant_invoice(session: Session, invoice_id: str, tenant_id: str, *, for_up
 
 
 def _remaining_eligible_minor(session: Session, invoice: Invoice) -> int:
-    """Remaining balance in minor units after confirmed legacy payments, credits,
-    and already-captured PaymentAttempts. Refunds and wallet transactions are not
-    payment attempts and do not participate in this calculation."""
+    """Return the invoice balance from the one financial ledger authority."""
 
-    from sqlalchemy import func
-    confirmed_payments = money(
-        session.scalar(select(func.coalesce(func.sum(Payment.amount), 0)).where(
-            Payment.invoice_id == invoice.id, Payment.status == "CONFIRMED"
-        ))
-    )
-    captured_minor = session.scalar(
-        select(func.coalesce(func.sum(PaymentAttempt.amount_minor), 0)).where(
-            PaymentAttempt.invoice_id == invoice.id, PaymentAttempt.status == CAPTURED
-        )
-    ) or 0
-    remaining = money(invoice.total) - money(invoice.credits) - confirmed_payments - _decimal_from_minor(captured_minor)
-    return max(0, _minor_from_decimal(remaining))
+    from .billing_ledger import invoice_balance
+
+    return _minor_from_decimal(invoice_balance(session, invoice).remaining_due)
 
 
 def _validate_invoice_eligibility(session: Session, invoice: Invoice, tenant_id: str, amount_minor: int, currency: str) -> None:
@@ -657,6 +646,18 @@ def transition_payment_attempt(
         remaining = _remaining_eligible_minor(s, invoice)
         if attempt.amount_minor > remaining:
             raise HTTPException(409, "amount_exceeds_remaining_balance")
+        confirmed_payment = s.scalar(
+            select(Payment).where(
+                Payment.payment_attempt_id == attempt.id,
+                Payment.tenant_id == attempt.tenant_id,
+                Payment.invoice_id == attempt.invoice_id,
+                Payment.status == "CONFIRMED",
+                Payment.currency == attempt.currency,
+                Payment.amount == _decimal_from_minor(attempt.amount_minor),
+            )
+        )
+        if confirmed_payment is None:
+            raise HTTPException(409, "capture_requires_confirmed_payment")
     _apply_transition(
         s,
         attempt,

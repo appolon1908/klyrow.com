@@ -1,0 +1,22 @@
+{
+  "authority": "Klyrow source repository",
+  "base_sha": "8d41ec081119335ab995ade15bee781d2902009a",
+  "owners": {
+    "billing": "apps/gateway billing domain and ledger services",
+    "campaigns": "campaign application service (Lane 4 review)",
+    "contacts_profiles": "profile/contact application services (Lane 3 review)",
+    "imports": "import application service and import worker",
+    "business_events": "durable event/outbox service",
+    "worker_jobs": "worker/job service (Lane 5 review)",
+    "odoo": "external middleware only; no Klyrow database writer"
+  },
+  "historical_duplicates": [
+    ["contacts", "profiles"],
+    ["api_keys", "scoped_api_keys"],
+    ["plans", "klyrow_plans"],
+    ["subscriptions", "klyrow_subscriptions"],
+    ["domains", "domain_claims", "provider_domains"],
+    ["campaigns", "campaign_definitions"]
+  ],
+  "retirement_policy": "Do not delete or retire a historical table without reader/writer evidence and a forward migration plan."
+}

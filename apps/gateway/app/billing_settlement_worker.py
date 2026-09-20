@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from .billing_ledger import post_settlement
 from .billing_provider_events import BillingProviderEvent, mark_provider_event_failure, now
-from .payment_attempts import CAPTURED, PENDING, PaymentAttempt, _apply_transition
+from .payment_attempts import AUTHORIZED, CAPTURED, CREATED, EXPIRED, PENDING, REQUIRES_ACTION, PaymentAttempt, _apply_transition
 
 
 SUCCESS_EVENTS = {"checkout.session.completed", "checkout.session.async_payment_succeeded", "payment_intent.succeeded"}
@@ -33,10 +33,6 @@ def process_stripe_provider_event(session, event: BillingProviderEvent) -> None:
         event.processing_state = "IGNORED"; event.processed_at = now(); return
     if event.event_type not in SUCCESS_EVENTS:
         event.processing_state = "IGNORED"; event.processed_at = now(); return
-    if event.event_type == "checkout.session.completed" and obj.get("payment_status") != "paid":
-        event.processing_state = "PROCESSED"; event.processed_at = now()
-        event.last_error_code = "stripe_checkout_not_paid"; event.last_error_message = "stripe_checkout_not_paid"; event.updated_at = now()
-        return
     attempt_id = metadata.get("payment_attempt_id") or event.payment_attempt_id
     invoice_id = metadata.get("invoice_id") or event.invoice_id
     tenant_id = metadata.get("tenant_id") or event.tenant_id
@@ -46,6 +42,33 @@ def process_stripe_provider_event(session, event: BillingProviderEvent) -> None:
     attempt = session.scalar(__import__("sqlalchemy").select(PaymentAttempt).where(PaymentAttempt.id == attempt_id).with_for_update())
     if not attempt or attempt.provider != "stripe" or attempt.tenant_id != tenant_id or attempt.invoice_id != invoice_id:
         _failure(event, "stripe_correlation_mismatch")
+        return
+    if event.event_type == "checkout.session.expired":
+        if attempt.status in {CREATED, PENDING, REQUIRES_ACTION, AUTHORIZED}:
+            _apply_transition(
+                session,
+                attempt,
+                EXPIRED,
+                event_type="billing.checkout.expired",
+                source="provider_event",
+                ctx={"sub": "stripe-webhook"},
+                provider_event_reference=event.provider_event_id,
+            )
+        event.processing_state = "PROCESSED"; event.processed_at = now(); event.updated_at = now()
+        return
+    if event.event_type == "checkout.session.completed" and obj.get("payment_status") != "paid":
+        if attempt.status == CREATED:
+            _apply_transition(
+                session,
+                attempt,
+                PENDING,
+                event_type="billing.checkout.pending",
+                source="provider_event",
+                ctx={"sub": "stripe-webhook"},
+                provider_event_reference=event.provider_event_id,
+            )
+        event.processing_state = "PROCESSED"; event.processed_at = now()
+        event.last_error_code = "stripe_checkout_not_paid"; event.last_error_message = "stripe_checkout_not_paid"; event.updated_at = now()
         return
     currency = str(obj.get("currency") or "").upper()
     amount_minor = obj.get("amount_total", obj.get("amount_received"))
@@ -59,8 +82,8 @@ def process_stripe_provider_event(session, event: BillingProviderEvent) -> None:
         return
     if attempt.status == CAPTURED:
         event.processing_state = "PROCESSED"; event.processed_at = now(); return
-    if attempt.status != PENDING:
-        _failure(event, "stripe_attempt_not_pending")
+    if attempt.status not in {PENDING, REQUIRES_ACTION, AUTHORIZED}:
+        _failure(event, "stripe_attempt_not_active")
         return
     attempt.provider_attempt_reference = provider_reference
     payment = post_settlement(
