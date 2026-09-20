@@ -1353,6 +1353,8 @@ def admin_js():return FileResponse(Path(__file__).with_name("admin.js"),media_ty
 
 from .saas import router as saas_router
 app.include_router(saas_router)
+from .browser_audience import router as browser_audience_router
+app.include_router(browser_audience_router)
 from .agent_mailboxes import router as agent_mailbox_router
 app.include_router(agent_mailbox_router)
 from .billing import router as billing_router

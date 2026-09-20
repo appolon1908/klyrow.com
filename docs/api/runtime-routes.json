@@ -19,6 +19,12 @@
   },
   {
     "documented": true,
+    "handler": "browser_suppression_delete",
+    "method": "DELETE",
+    "path": "/app/api/suppressions/{suppression_id}"
+  },
+  {
+    "documented": true,
     "handler": "revoke_user_session",
     "method": "DELETE",
     "path": "/auth/sessions/{session_id}"
@@ -343,6 +349,18 @@
   },
   {
     "documented": true,
+    "handler": "browser_profiles",
+    "method": "GET",
+    "path": "/app/api/profiles"
+  },
+  {
+    "documented": true,
+    "handler": "browser_profile_detail",
+    "method": "GET",
+    "path": "/app/api/profiles/{profile_id}"
+  },
+  {
+    "documented": true,
     "handler": "provisioning_status",
     "method": "GET",
     "path": "/app/api/provisioning/postal"
@@ -352,6 +370,12 @@
     "handler": "browser_senders",
     "method": "GET",
     "path": "/app/api/senders"
+  },
+  {
+    "documented": true,
+    "handler": "browser_suppressions",
+    "method": "GET",
+    "path": "/app/api/suppressions"
   },
   {
     "documented": true,
@@ -1492,6 +1516,12 @@
     "handler": "browser_sender_create",
     "method": "POST",
     "path": "/app/api/senders"
+  },
+  {
+    "documented": true,
+    "handler": "browser_suppression_create",
+    "method": "POST",
+    "path": "/app/api/suppressions"
   },
   {
     "documented": true,

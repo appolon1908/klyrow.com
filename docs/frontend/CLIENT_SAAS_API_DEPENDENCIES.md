@@ -55,14 +55,14 @@ audience; same UI as MISSING, recorded for the backend owner).
 | `/app/email/domains/:id` | PARTIAL | row from domains list | DNS evidence (SPF/DMARC/PTR/TLS) and DKIM history via `GET /app/api/domains/{id}` |
 | `/app/email/senders` | IMPLEMENTED | senders list/create | suspension/approval actions |
 | `/app/email/inbound` | IMPLEMENTED | mailboxes list, inbound activate | inbound route listing |
-| `/app/email/suppressions` | MISSING | — | `GET/POST/DELETE /app/api/suppressions` |
+| `/app/email/suppressions` | PARTIAL | suppression list and CSRF-protected add/remove; portal page pending | — |
 | `/app/content/templates` | MISSING | — | `GET/POST /app/api/templates` |
 | `/app/content/templates/:id` | MISSING | — | `GET /app/api/templates/{id}` + versions |
 | `/app/content/builder/:id` | MISSING | — | template version publish/rollback/render |
 | `/app/content/media` | BLOCKED | — | no media API exists in any audience |
 | `/app/content/brand` | BLOCKED | — | no brand API exists in any audience |
-| `/app/audience/profiles` | MISSING | — | `GET /app/api/profiles` |
-| `/app/audience/profiles/:id` | MISSING | — | `GET /app/api/profiles/{id}` + timeline |
+| `/app/audience/profiles` | PARTIAL | tenant-scoped profile list; portal page pending | — |
+| `/app/audience/profiles/:id` | PARTIAL | profile detail, timeline, consent and preference records; portal page pending | — |
 | `/app/audience/imports` | MISSING | — | `GET/POST /app/api/imports` |
 | `/app/audience/segments` | MISSING | — | `GET/POST /app/api/segments` |
 | `/app/audience/segments/:id` | MISSING | — | `GET /app/api/segments/{id}` + preview |

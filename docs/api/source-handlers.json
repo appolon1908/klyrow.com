@@ -392,6 +392,41 @@
     "method": "POST"
   },
   {
+    "declared_path": "/app/api/profiles",
+    "file": "apps/gateway/app/browser_audience.py",
+    "handler": "browser_profiles",
+    "line": 39,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/profiles/{profile_id}",
+    "file": "apps/gateway/app/browser_audience.py",
+    "handler": "browser_profile_detail",
+    "line": 57,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/suppressions",
+    "file": "apps/gateway/app/browser_audience.py",
+    "handler": "browser_suppressions",
+    "line": 99,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/suppressions",
+    "file": "apps/gateway/app/browser_audience.py",
+    "handler": "browser_suppression_create",
+    "line": 112,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/app/api/suppressions/{suppression_id}",
+    "file": "apps/gateway/app/browser_audience.py",
+    "handler": "browser_suppression_delete",
+    "line": 136,
+    "method": "DELETE"
+  },
+  {
     "declared_path": "/auth/callback",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "oidc_callback",

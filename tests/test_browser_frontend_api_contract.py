@@ -71,6 +71,11 @@ def test_browser_api_contract_has_expected_methods():
         ("/app/api/domains/{item_id}/verify", "POST"),
         ("/app/api/senders", "GET"),
         ("/app/api/senders", "POST"),
+        ("/app/api/profiles", "GET"),
+        ("/app/api/profiles/{profile_id}", "GET"),
+        ("/app/api/suppressions", "GET"),
+        ("/app/api/suppressions", "POST"),
+        ("/app/api/suppressions/{suppression_id}", "DELETE"),
         ("/app/api/provisioning/postal", "GET"),
         ("/app/api/provisioning/postal", "POST"),
         ("/app/api/provisioning/postal/retry", "POST"),
@@ -97,6 +102,8 @@ def test_spa_fallback_does_not_shadow_browser_api_routes():
         "/app/api/dashboard",
         "/app/api/domains",
         "/app/api/senders",
+        "/app/api/profiles",
+        "/app/api/suppressions",
         "/app/api/provisioning/postal",
     ):
         response = client.get(path)
