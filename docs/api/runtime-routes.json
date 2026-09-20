@@ -139,6 +139,54 @@
   },
   {
     "documented": true,
+    "handler": "invoices",
+    "method": "GET",
+    "path": "/app/api/billing/invoices"
+  },
+  {
+    "documented": true,
+    "handler": "invoice_detail",
+    "method": "GET",
+    "path": "/app/api/billing/invoices/{invoice_id}"
+  },
+  {
+    "documented": true,
+    "handler": "overview",
+    "method": "GET",
+    "path": "/app/api/billing/overview"
+  },
+  {
+    "documented": true,
+    "handler": "payment_methods",
+    "method": "GET",
+    "path": "/app/api/billing/payment-methods"
+  },
+  {
+    "documented": true,
+    "handler": "payments",
+    "method": "GET",
+    "path": "/app/api/billing/payments"
+  },
+  {
+    "documented": true,
+    "handler": "refunds",
+    "method": "GET",
+    "path": "/app/api/billing/refunds"
+  },
+  {
+    "documented": true,
+    "handler": "subscription",
+    "method": "GET",
+    "path": "/app/api/billing/subscription"
+  },
+  {
+    "documented": true,
+    "handler": "wallet",
+    "method": "GET",
+    "path": "/app/api/billing/wallet"
+  },
+  {
+    "documented": true,
     "handler": "context",
     "method": "GET",
     "path": "/app/api/context"
