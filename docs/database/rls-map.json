@@ -1,0 +1,16 @@
+{
+  "authority": "Klyrow source repository",
+  "base_sha": "8d41ec081119335ab995ade15bee781d2902009a",
+  "status": "inventory_baseline",
+  "policy": {
+    "tenant_owned": "RLS required where PostgreSQL supports the tenant boundary",
+    "global_catalog": "no tenant RLS unless a tenant boundary is introduced",
+    "platform_only": "deliberate privileged path required",
+    "worker_shared": "bind tenant context before tenant-owned operations",
+    "missing_context": "fail closed",
+    "runtime_bypassrls": "forbidden for normal runtime connections"
+  },
+  "source_inventory": "docs/architecture/database-inventory.json",
+  "postgresql_tests_required": ["cross_tenant_select", "cross_tenant_insert", "cross_tenant_update", "cross_tenant_delete", "missing_context", "platform_access", "worker_tenant_switch"],
+  "status_note": "This packet does not claim PostgreSQL RLS runtime certification without disposable PostgreSQL evidence."
+}

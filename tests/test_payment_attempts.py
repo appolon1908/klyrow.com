@@ -355,23 +355,48 @@ def test_capture_is_revalidated_against_invoice_balance_at_transition_time(monke
     collectively overpay the invoice."""
     enable_live_stripe(monkeypatch, tmp_path)
     invoice_id = make_invoice("a", total="10.00")
-    first = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=600, provider="stripe").json()
-    second = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=500, provider="stripe").json()
+    first = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=400, provider="stripe").json()
+    second = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=700, provider="stripe").json()
 
-    def advance_to_captured(attempt_id):
-        pending = client.post(
-            f"/v1/internal/billing/payment-attempts/{attempt_id}/transition",
-            json={"target_status": "PENDING"},
-            headers=login("root@example.com"),
-        )
-        assert pending.status_code == 200
+    missing_payment = client.post(
+        f"/v1/internal/billing/payment-attempts/{first['id']}/transition",
+        json={"target_status": "PENDING"},
+        headers=login("root@example.com"),
+    )
+    assert missing_payment.status_code == 200
+
+    missing_capture_payment = client.post(
+        f"/v1/internal/billing/payment-attempts/{first['id']}/transition",
+        json={"target_status": "CAPTURED"},
+        headers=login("root@example.com"),
+    )
+    assert missing_capture_payment.status_code == 409
+    assert missing_capture_payment.json()["detail"] == "capture_requires_confirmed_payment"
+
+    with DB() as session:
+        session.add(Payment(
+            id=str(uuid.uuid4()), tenant_id="a", invoice_id=invoice_id,
+            payment_attempt_id=first["id"], provider="stripe",
+            provider_reference="pi_test_first", amount=Decimal("4.00"),
+            currency="USD", status="CONFIRMED", confirmed_by="stripe-webhook",
+        ))
+        session.commit()
+
+    def advance_to_captured(attempt_id, *, make_pending=True):
+        if make_pending:
+            pending = client.post(
+                f"/v1/internal/billing/payment-attempts/{attempt_id}/transition",
+                json={"target_status": "PENDING"},
+                headers=login("root@example.com"),
+            )
+            assert pending.status_code == 200
         return client.post(
             f"/v1/internal/billing/payment-attempts/{attempt_id}/transition",
             json={"target_status": "CAPTURED"},
             headers=login("root@example.com"),
         )
 
-    first_captured = advance_to_captured(first["id"])
+    first_captured = advance_to_captured(first["id"], make_pending=False)
     assert first_captured.status_code == 200
     assert first_captured.json()["status"] == CAPTURED
 

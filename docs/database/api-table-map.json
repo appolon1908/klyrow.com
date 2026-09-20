@@ -1,0 +1,12 @@
+{
+  "authority": "Klyrow source repository",
+  "base_sha": "8d41ec081119335ab995ade15bee781d2902009a",
+  "policy": "Route handlers call application/domain services; routes do not own independent business logic.",
+  "known_maps": {
+    "billing": ["invoices", "payments", "refunds", "payment_attempts", "billing_events"],
+    "media": ["klyrow_media_assets", "klyrow_media_asset_events"],
+    "campaigns": ["campaigns", "campaign_definitions", "campaign_version_snapshots", "campaign_audience_snapshots", "campaign_dispatch_runs", "campaign_dispatch_items"],
+    "business_events": ["business_events", "outbox", "inbox"]
+  },
+  "unresolved": "Complete operation-level mapping from generated source-handlers.json during Lane 2 review; no fabricated mappings are added here."
+}

@@ -1,0 +1,33 @@
+{
+  "authority": "scripts/migrate",
+  "base_sha": "8d41ec081119335ab995ade15bee781d2902009a",
+  "migration_count": 45,
+  "ordering": "lexicographic_filename",
+  "duplicate_numeric_prefixes": {
+    "004": [
+      "004_provider_engine.sql",
+      "004_reseller_platform.sql"
+    ],
+    "005": [
+      "005_billing_checkout_credit_notes.sql",
+      "005_provider_outbox_recovery.sql"
+    ],
+    "006": [
+      "006_delivery_controls.sql",
+      "006_tracking_and_spam.sql"
+    ],
+    "010": [
+      "010_billing_worker_ledger.sql",
+      "010_complete_provider_smtp_contract.sql"
+    ]
+  },
+  "checksum": "sha256_bytes_before_apply",
+  "lock": "postgresql_transaction_advisory_lock_1263294032",
+  "replay": "already_applied_filename_must_match_sha256",
+  "runtime_evidence": {
+    "fresh_database": "UNVERIFIED",
+    "replay": "UNVERIFIED",
+    "checksum_validation": "SOURCE_VERIFIED",
+    "migration_locking": "SOURCE_VERIFIED"
+  }
+}

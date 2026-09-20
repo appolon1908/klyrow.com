@@ -11,11 +11,30 @@ import hmac
 import time
 from dataclasses import dataclass
 from typing import Optional
+from urllib.parse import urlsplit
 
 import httpx
 
+from .billing_config import BillingConfigError, _read_secret_file, load_billing_settings
+
 
 STRIPE_SANDBOX_API = "https://api.stripe.com/v1"
+STRIPE_CHECKOUT_HOSTS = frozenset({"checkout.stripe.com"})
+
+
+def get_checkout_provider(provider: str, *, settings=None) -> "StripeSandboxAdapter":
+    if provider != "stripe":
+        raise StripeWebhookError("unsupported_checkout_provider")
+    try:
+        settings = settings or load_billing_settings()
+        if not settings.enabled or not settings.webhook_processing_enabled:
+            raise BillingConfigError("billing_checkout_disabled")
+        if not settings.stripe.enabled or settings.stripe.environment != "sandbox":
+            raise BillingConfigError("stripe_sandbox_required")
+        secret = _read_secret_file("KLYROW_STRIPE_SECRET_FILE", None)
+    except BillingConfigError as exc:
+        raise StripeWebhookError("billing_checkout_disabled") from exc
+    return StripeSandboxAdapter(secret)
 
 
 class StripeWebhookError(RuntimeError):
@@ -84,6 +103,17 @@ class StripeSandboxAdapter:
             raise StripeWebhookError("stripe_checkout_unavailable") from None
         session_id = data.get("id") if isinstance(data, dict) else None
         checkout_url = data.get("url") if isinstance(data, dict) else None
-        if not isinstance(session_id, str) or not isinstance(checkout_url, str) or not checkout_url.startswith("https://"):
+        parsed_url = urlsplit(checkout_url) if isinstance(checkout_url, str) else None
+        if (
+            not isinstance(session_id, str)
+            or not session_id.startswith("cs_")
+            or not isinstance(checkout_url, str)
+            or parsed_url is None
+            or parsed_url.scheme != "https"
+            or parsed_url.hostname not in STRIPE_CHECKOUT_HOSTS
+            or parsed_url.username is not None
+            or parsed_url.password is not None
+            or not parsed_url.path
+        ):
             raise StripeWebhookError("stripe_checkout_invalid_response")
         return StripeCheckoutResult(session_id=session_id, checkout_url=checkout_url)
