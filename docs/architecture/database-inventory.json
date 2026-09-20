@@ -817,34 +817,6 @@
   {
     "columns": [
       "id",
-      "provider",
-      "provider_event_id",
-      "event_type",
-      "tenant_id",
-      "payment_attempt_id",
-      "invoice_id",
-      "livemode",
-      "api_version",
-      "payload_json",
-      "payload_hash",
-      "processing_state",
-      "attempt_count",
-      "claimed_at",
-      "claimed_by",
-      "processed_at",
-      "next_retry_at",
-      "last_error_code",
-      "last_error_message",
-      "received_at",
-      "created_at",
-      "updated_at"
-    ],
-    "table": "klyrow_billing_provider_events",
-    "tenant_scoped": true
-  },
-  {
-    "columns": [
-      "id",
       "billing_event_id",
       "tenant_id",
       "kind",
@@ -938,6 +910,54 @@
   {
     "columns": [
       "id",
+      "asset_id",
+      "tenant_id",
+      "event_type",
+      "from_status",
+      "to_status",
+      "reason_code",
+      "metadata_json",
+      "correlation_id",
+      "created_by",
+      "created_at"
+    ],
+    "table": "klyrow_media_asset_events",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "original_filename",
+      "safe_filename",
+      "media_kind",
+      "declared_content_type",
+      "detected_content_type",
+      "size_bytes",
+      "sha256_digest",
+      "width",
+      "height",
+      "storage_provider",
+      "storage_object_key",
+      "status",
+      "quarantine_reason",
+      "created_by",
+      "created_at",
+      "updated_at",
+      "validated_at",
+      "ready_at",
+      "archived_at",
+      "deleted_at",
+      "version",
+      "upload_reference",
+      "idempotency_key"
+    ],
+    "table": "klyrow_media_assets",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
       "payment_attempt_id",
       "tenant_id",
       "from_status",
@@ -1007,7 +1027,6 @@
       "id",
       "tenant_id",
       "invoice_id",
-      "payment_attempt_id",
       "provider",
       "provider_reference",
       "amount",

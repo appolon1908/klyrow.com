@@ -8,6 +8,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | --- | --- | --- | --- | --- | --- |
 | DELETE | `/app/api/mailboxes/{mailbox_id}/access/{user_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `revoke_access` |
 | DELETE | `/app/api/mailboxes/{mailbox_id}/messages/{message_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `delete_message` |
+| DELETE | `/app/api/media/{asset_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_delete` |
 | DELETE | `/auth/sessions/{session_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `revoke_user_session` |
 | DELETE | `/v1/api-keys/{kid}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `revoke` |
 | DELETE | `/v1/auth/sessions/{sid}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `session_revoke` |
@@ -30,20 +31,12 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/admin/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `admin_provisioning` |
 | GET | `/app/api/admin/security/platform-owner` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_platform_owner_status` |
 | GET | `/app/api/billing/invoices` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoices` |
-| GET | `/app/api/billing/invoices` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoices` |
-| GET | `/app/api/billing/invoices/{invoice_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoice_detail` |
 | GET | `/app/api/billing/invoices/{invoice_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoice_detail` |
 | GET | `/app/api/billing/overview` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `overview` |
-| GET | `/app/api/billing/overview` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `overview` |
-| GET | `/app/api/billing/payment-methods` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payment_methods` |
 | GET | `/app/api/billing/payment-methods` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payment_methods` |
 | GET | `/app/api/billing/payments` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payments` |
-| GET | `/app/api/billing/payments` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payments` |
-| GET | `/app/api/billing/refunds` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `refunds` |
 | GET | `/app/api/billing/refunds` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `refunds` |
 | GET | `/app/api/billing/subscription` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `subscription` |
-| GET | `/app/api/billing/subscription` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `subscription` |
-| GET | `/app/api/billing/wallet` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `wallet` |
 | GET | `/app/api/billing/wallet` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `wallet` |
 | GET | `/app/api/context` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `context` |
 | GET | `/app/api/dashboard` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `dashboard` |
@@ -53,6 +46,9 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/mailboxes/{mailbox_id}/messages` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `list_messages` |
 | GET | `/app/api/mailboxes/{mailbox_id}/messages/{message_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `get_message` |
 | GET | `/app/api/mailboxes/{mailbox_id}/messages/{message_id}/attachments/{attachment_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `get_attachment` |
+| GET | `/app/api/media` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `media_list` |
+| GET | `/app/api/media/{asset_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `media_get` |
+| GET | `/app/api/media/{asset_id}/events` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `media_events` |
 | GET | `/app/api/messages` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_messages` |
 | GET | `/app/api/onboarding` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `onboarding_get` |
 | GET | `/app/api/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `provisioning_status` |
@@ -237,6 +233,9 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/app/api/mailboxes/{mailbox_id}/access` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `grant_access` |
 | POST | `/app/api/mailboxes/{mailbox_id}/drafts` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `create_draft` |
 | POST | `/app/api/mailboxes/{mailbox_id}/send` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `send_message` |
+| POST | `/app/api/media/uploads` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_upload_prepare` |
+| POST | `/app/api/media/{asset_id}/archive` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_archive` |
+| POST | `/app/api/media/{asset_id}/complete` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_complete` |
 | POST | `/app/api/onboarding/complete` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `onboarding_complete` |
 | POST | `/app/api/organizations/{tenant_id}/switch` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_switch` |
 | POST | `/app/api/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `request_provisioning` |
@@ -348,7 +347,6 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/integrations/mautic/operations/{operation_id}/reconcile` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `mautic_reconcile` |
 | POST | `/v1/integrations/results` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `result` |
 | POST | `/v1/internal/billing/payment-attempts/{payment_attempt_id}/transition` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `transition_payment_attempt` |
-| POST | `/v1/internal/billing/providers/stripe/webhook` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `stripe_webhook` |
 | POST | `/v1/internal/email/beyvra/send` | INTERNAL | DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE | true | `beyvra_send` |
 | POST | `/v1/internal/email/communications/messages` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `canonical_email_send` |
 | POST | `/v1/internal/email/domains/register` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `domain_register` |
@@ -428,6 +426,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/webhooks/{webhook_id}/rotate-secret` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `webhook_rotate_secret` |
 | POST | `/v1/webhooks/{wid}/rotate` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `webhook_rotate` |
 | PUT | `/app/api/mailboxes/{mailbox_id}/drafts/{message_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `update_draft` |
+| PUT | `/app/api/media/uploads/{upload_reference}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_upload_bytes` |
 | PUT | `/v1/campaigns/{campaign_id}/dispatch-configuration` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `campaign_dispatch_configuration` |
 | PUT | `/v1/customer-data/retention` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `customer_data_retention_update` |
 | PUT | `/v1/internal/email/policy` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `policy_update` |

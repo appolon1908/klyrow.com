@@ -13,6 +13,12 @@
   },
   {
     "documented": true,
+    "handler": "media_delete",
+    "method": "DELETE",
+    "path": "/app/api/media/{asset_id}"
+  },
+  {
+    "documented": true,
     "handler": "revoke_user_session",
     "method": "DELETE",
     "path": "/auth/sessions/{session_id}"
@@ -145,27 +151,9 @@
   },
   {
     "documented": true,
-    "handler": "invoices",
-    "method": "GET",
-    "path": "/app/api/billing/invoices"
-  },
-  {
-    "documented": true,
     "handler": "invoice_detail",
     "method": "GET",
     "path": "/app/api/billing/invoices/{invoice_id}"
-  },
-  {
-    "documented": true,
-    "handler": "invoice_detail",
-    "method": "GET",
-    "path": "/app/api/billing/invoices/{invoice_id}"
-  },
-  {
-    "documented": true,
-    "handler": "overview",
-    "method": "GET",
-    "path": "/app/api/billing/overview"
   },
   {
     "documented": true,
@@ -181,18 +169,6 @@
   },
   {
     "documented": true,
-    "handler": "payment_methods",
-    "method": "GET",
-    "path": "/app/api/billing/payment-methods"
-  },
-  {
-    "documented": true,
-    "handler": "payments",
-    "method": "GET",
-    "path": "/app/api/billing/payments"
-  },
-  {
-    "documented": true,
     "handler": "payments",
     "method": "GET",
     "path": "/app/api/billing/payments"
@@ -205,27 +181,9 @@
   },
   {
     "documented": true,
-    "handler": "refunds",
-    "method": "GET",
-    "path": "/app/api/billing/refunds"
-  },
-  {
-    "documented": true,
     "handler": "subscription",
     "method": "GET",
     "path": "/app/api/billing/subscription"
-  },
-  {
-    "documented": true,
-    "handler": "subscription",
-    "method": "GET",
-    "path": "/app/api/billing/subscription"
-  },
-  {
-    "documented": true,
-    "handler": "wallet",
-    "method": "GET",
-    "path": "/app/api/billing/wallet"
   },
   {
     "documented": true,
@@ -280,6 +238,24 @@
     "handler": "get_attachment",
     "method": "GET",
     "path": "/app/api/mailboxes/{mailbox_id}/messages/{message_id}/attachments/{attachment_id}"
+  },
+  {
+    "documented": true,
+    "handler": "media_list",
+    "method": "GET",
+    "path": "/app/api/media"
+  },
+  {
+    "documented": true,
+    "handler": "media_get",
+    "method": "GET",
+    "path": "/app/api/media/{asset_id}"
+  },
+  {
+    "documented": true,
+    "handler": "media_events",
+    "method": "GET",
+    "path": "/app/api/media/{asset_id}/events"
   },
   {
     "documented": true,
@@ -1387,6 +1363,24 @@
   },
   {
     "documented": true,
+    "handler": "media_upload_prepare",
+    "method": "POST",
+    "path": "/app/api/media/uploads"
+  },
+  {
+    "documented": true,
+    "handler": "media_archive",
+    "method": "POST",
+    "path": "/app/api/media/{asset_id}/archive"
+  },
+  {
+    "documented": true,
+    "handler": "media_complete",
+    "method": "POST",
+    "path": "/app/api/media/{asset_id}/complete"
+  },
+  {
+    "documented": true,
     "handler": "onboarding_complete",
     "method": "POST",
     "path": "/app/api/onboarding/complete"
@@ -2053,12 +2047,6 @@
   },
   {
     "documented": true,
-    "handler": "stripe_webhook",
-    "method": "POST",
-    "path": "/v1/internal/billing/providers/stripe/webhook"
-  },
-  {
-    "documented": true,
     "handler": "beyvra_send",
     "method": "POST",
     "path": "/v1/internal/email/beyvra/send"
@@ -2530,6 +2518,12 @@
     "handler": "update_draft",
     "method": "PUT",
     "path": "/app/api/mailboxes/{mailbox_id}/drafts/{message_id}"
+  },
+  {
+    "documented": true,
+    "handler": "media_upload_bytes",
+    "method": "PUT",
+    "path": "/app/api/media/uploads/{upload_reference}"
   },
   {
     "documented": true,
