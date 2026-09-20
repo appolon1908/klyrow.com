@@ -2047,6 +2047,12 @@
   },
   {
     "documented": true,
+    "handler": "stripe_webhook",
+    "method": "POST",
+    "path": "/v1/internal/billing/providers/stripe/webhook"
+  },
+  {
+    "documented": true,
     "handler": "beyvra_send",
     "method": "POST",
     "path": "/v1/internal/email/beyvra/send"

@@ -817,6 +817,34 @@
   {
     "columns": [
       "id",
+      "provider",
+      "provider_event_id",
+      "event_type",
+      "tenant_id",
+      "payment_attempt_id",
+      "invoice_id",
+      "livemode",
+      "api_version",
+      "payload_json",
+      "payload_hash",
+      "processing_state",
+      "attempt_count",
+      "claimed_at",
+      "claimed_by",
+      "processed_at",
+      "next_retry_at",
+      "last_error_code",
+      "last_error_message",
+      "received_at",
+      "created_at",
+      "updated_at"
+    ],
+    "table": "klyrow_billing_provider_events",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
       "billing_event_id",
       "tenant_id",
       "kind",
@@ -1027,6 +1055,7 @@
       "id",
       "tenant_id",
       "invoice_id",
+      "payment_attempt_id",
       "provider",
       "provider_reference",
       "amount",
