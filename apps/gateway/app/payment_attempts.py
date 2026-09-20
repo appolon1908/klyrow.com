@@ -257,12 +257,11 @@ def enforce_billing_capability(provider: str, *, require_live_charging: bool = F
 # Metrics (no high-cardinality dimensions: no attempt/invoice/tenant/reference ID)
 # --------------------------------------------------------------------------
 
-_LABELS = ["codestra_business", "application", "service", "environment", "server", "region", "deployment"]
-CREATED_TOTAL = platform_metric(Counter("billing_payment_attempt_created_total", "Payment attempts created", [*_LABELS, "provider"]))
-TRANSITION_TOTAL = platform_metric(Counter("billing_payment_attempt_transition_total", "Payment attempt transitions", [*_LABELS, "transition"]))
-FAILED_TOTAL = platform_metric(Counter("billing_payment_attempt_failed_total", "Payment attempts failed", [*_LABELS, "failure_class"]))
-IDEMPOTENT_REPLAY_TOTAL = platform_metric(Counter("billing_payment_attempt_idempotent_replay_total", "Idempotent payment attempt replays", [*_LABELS, "provider"]))
-CONFLICT_TOTAL = platform_metric(Counter("billing_payment_attempt_conflict_total", "Payment attempt idempotency/transition conflicts", [*_LABELS, "provider"]))
+CREATED_TOTAL = platform_metric(Counter("billing_payment_attempt_created_total", "Payment attempts created", ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "provider"]))
+TRANSITION_TOTAL = platform_metric(Counter("billing_payment_attempt_transition_total", "Payment attempt transitions", ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "transition"]))
+FAILED_TOTAL = platform_metric(Counter("billing_payment_attempt_failed_total", "Payment attempts failed", ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "failure_class"]))
+IDEMPOTENT_REPLAY_TOTAL = platform_metric(Counter("billing_payment_attempt_idempotent_replay_total", "Idempotent payment attempt replays", ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "provider"]))
+CONFLICT_TOTAL = platform_metric(Counter("billing_payment_attempt_conflict_total", "Payment attempt idempotency/transition conflicts", ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "provider"]))
 
 
 # --------------------------------------------------------------------------
