@@ -505,6 +505,24 @@
   },
   {
     "documented": true,
+    "handler": "list_payment_attempts",
+    "method": "GET",
+    "path": "/v1/billing/payment-attempts"
+  },
+  {
+    "documented": true,
+    "handler": "get_payment_attempt",
+    "method": "GET",
+    "path": "/v1/billing/payment-attempts/{payment_attempt_id}"
+  },
+  {
+    "documented": true,
+    "handler": "get_payment_attempt_events",
+    "method": "GET",
+    "path": "/v1/billing/payment-attempts/{payment_attempt_id}/events"
+  },
+  {
+    "documented": true,
     "handler": "billing_plan",
     "method": "GET",
     "path": "/v1/billing/plan"
@@ -1573,6 +1591,18 @@
   },
   {
     "documented": true,
+    "handler": "create_payment_attempt",
+    "method": "POST",
+    "path": "/v1/billing/payment-attempts"
+  },
+  {
+    "documented": true,
+    "handler": "cancel_payment_attempt",
+    "method": "POST",
+    "path": "/v1/billing/payment-attempts/{payment_attempt_id}/cancel"
+  },
+  {
+    "documented": true,
     "handler": "payment_method",
     "method": "POST",
     "path": "/v1/billing/payment-methods"
@@ -1918,6 +1948,12 @@
     "handler": "result",
     "method": "POST",
     "path": "/v1/integrations/results"
+  },
+  {
+    "documented": true,
+    "handler": "transition_payment_attempt",
+    "method": "POST",
+    "path": "/v1/internal/billing/payment-attempts/{payment_attempt_id}/transition"
   },
   {
     "documented": true,
