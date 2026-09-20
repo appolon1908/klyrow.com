@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import ast
 import copy
-import difflib
 import json
 import os
 from pathlib import Path
@@ -165,14 +164,6 @@ def main() -> int:
         path = ROOT / name
         if args.check:
             if not path.exists() or path.read_text() != content:
-                if name == "schemas/openapi/klyrow-browser-api.yaml" and path.exists():
-                    print("\n".join(difflib.unified_diff(
-                        path.read_text().splitlines(),
-                        content.splitlines(),
-                        fromfile="checked-in",
-                        tofile="generated",
-                        lineterm="",
-                    )), file=sys.stderr)
                 stale.append(name)
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
