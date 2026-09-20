@@ -51,6 +51,11 @@ level (never "fetch all, filter after"); cross-tenant reads/mutations return
 `404 payment_attempt_not_found`, matching the repository's existing
 `tenant_item` convention in `billing.py`.
 
+PaymentAttempt listings use deterministic `created_at DESC, id DESC` ordering
+with an offset and a bounded `limit` (default `50`, minimum `1`, maximum
+`100`). This prevents an unbounded tenant collection from becoming a billing
+workflow or availability shortcut.
+
 ## Authorization model
 
 Reuses the existing `auth`/`require` dependencies unchanged. The internal

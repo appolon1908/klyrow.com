@@ -481,7 +481,7 @@ def create_payment_attempt(
 
 @router.get("/billing/payment-attempts")
 def list_payment_attempts(
-    limit: int = Query(default=50, ge=1, le=200),
+    limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     ctx=Depends(auth),
     s: Session = Depends(db),

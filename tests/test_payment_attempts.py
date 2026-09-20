@@ -196,6 +196,24 @@ def test_apply_transition_identical_replay_is_idempotent_and_appends_no_event():
     assert session.added == []
 
 
+def test_conflicting_provider_replay_without_account_reference_is_rejected():
+    attempt = _fresh_attempt(CREATED, provider="stripe", provider_account_reference=None)
+    reference = "evt-" + uuid.uuid4().hex
+    with DB() as session:
+        session.add(attempt)
+        _apply_transition(
+            session, attempt, PENDING, event_type="test.transition", source="test",
+            ctx={"sub": "tester"}, provider_event_reference=reference,
+        )
+        session.flush()
+        with pytest.raises(PaymentAttemptConflict, match="provider_event_payload_mismatch"):
+            _apply_transition(
+                session, attempt, FAILED, event_type="test.transition", source="test",
+                ctx={"sub": "tester"}, provider_event_reference=reference,
+            )
+        session.rollback()
+
+
 class _FakeSession:
     def __init__(self):
         self.added = []
@@ -481,6 +499,12 @@ def test_list_and_detail_are_tenant_scoped(monkeypatch):
 
     cross_tenant_list = client.get("/v1/billing/payment-attempts", headers=login("b@example.com"))
     assert all(row["id"] != created["id"] for row in cross_tenant_list.json())
+
+
+def test_list_rejects_unbounded_page_sizes(monkeypatch):
+    enable_billing(monkeypatch)
+    response = client.get("/v1/billing/payment-attempts?limit=101", headers=login("a@example.com"))
+    assert response.status_code == 422
 
 
 def test_list_is_bounded_and_paginated(monkeypatch):
