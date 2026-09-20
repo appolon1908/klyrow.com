@@ -19,6 +19,7 @@ from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Intege
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .main import Base, audit, db
+from .tenancy import ROLE_PERMISSIONS
 
 router = APIRouter(tags=["Tenant media"])
 
@@ -43,6 +44,7 @@ def utcnow() -> datetime:
 
 class MediaObjectStore(Protocol):
     def prepare_upload(self, command: dict[str, Any]) -> dict[str, Any]: ...
+    def put_object(self, command: dict[str, Any]) -> dict[str, Any]: ...
     def inspect_object(self, reference: str) -> dict[str, Any]: ...
     def finalize_object(self, command: dict[str, Any]) -> dict[str, Any]: ...
     def create_download_reference(self, command: dict[str, Any]) -> str: ...
@@ -79,6 +81,17 @@ class FakeMediaObjectStore:
             raise ValueError("expired_upload_reference")
         tenant_id, expires_at, asset_id = item
         self.objects[upload_reference] = _FakeObject(tenant_id, asset_id, content, expires_at, f"tenants/{tenant_id}/media/{asset_id}")
+
+    def put_object(self, command: dict[str, Any]) -> dict[str, Any]:
+        reference = str(command["upload_reference"])
+        item = self.references.get(reference)
+        if not item or item[1] <= utcnow():
+            raise HTTPException(409, "upload_reference_expired")
+        if item[0] != command["tenant_id"] or item[2] != command["asset_id"]:
+            raise HTTPException(403, "object_reference_forbidden")
+        content = bytes(command["content"])
+        self.objects[reference] = _FakeObject(item[0], item[2], content, item[1], f"tenants/{item[0]}/media/{item[2]}")
+        return {"size_bytes": len(content)}
 
     def _get(self, reference: str) -> _FakeObject:
         item = self.objects.get(reference)
@@ -214,7 +227,8 @@ def csrf_dependency(request: Request, x_klyrow_csrf: str = Header(default="", al
 
 
 def require_mutation(ctx: dict[str, Any]) -> None:
-    if str(ctx.get("role", "")).upper() in {"READ_ONLY", "VIEWER"}:
+    permissions = ROLE_PERMISSIONS.get(str(ctx.get("role", "")).upper(), set())
+    if "*" not in permissions and "campaign.manage" not in permissions:
         raise HTTPException(403, "media_management_denied")
 
 
@@ -259,8 +273,27 @@ def dimensions_and_type(content: bytes) -> tuple[str, int, int]:
             width = 1 + int.from_bytes(content[24:27], "little")
             height = 1 + int.from_bytes(content[27:30], "little")
             return "image/webp", width, height
-        if content[12:16] in {b"VP8 ", b"VP8L"}:
-            return "image/webp", 1, 1
+        chunk_size = int.from_bytes(content[16:20], "little")
+        chunk_end = 20 + chunk_size
+        if chunk_end > len(content):
+            raise ValueError("malformed_image")
+        payload = content[20:chunk_end]
+        if content[12:16] == b"VP8 ":
+            if len(payload) < 10 or payload[3:6] != b"\x9d\x01\x2a":
+                raise ValueError("malformed_image")
+            width = int.from_bytes(payload[6:8], "little") & 0x3FFF
+            height = int.from_bytes(payload[8:10], "little") & 0x3FFF
+        elif content[12:16] == b"VP8L":
+            if len(payload) < 5 or payload[0] != 0x2F:
+                raise ValueError("malformed_image")
+            bits = int.from_bytes(payload[1:5], "little")
+            width = 1 + (bits & 0x3FFF)
+            height = 1 + ((bits >> 14) & 0x3FFF)
+        else:
+            raise ValueError("unsupported_or_malformed_image")
+        if width == 0 or height == 0:
+            raise ValueError("invalid_dimensions")
+        return "image/webp", width, height
     raise ValueError("unsupported_or_malformed_image")
 
 
@@ -344,6 +377,19 @@ def media_upload_prepare(x: UploadIn, ctx=Depends(browser_context_dependency), _
     return {**payload(item), "upload_reference": prepared["upload_reference"], "upload_expires_at": prepared["expires_at"], "duplicate": False}
 
 
+@router.put("/app/api/media/uploads/{upload_reference}")
+async def media_upload_bytes(upload_reference: str, request: Request, ctx=Depends(browser_context_dependency), _session=Depends(csrf_dependency), s: Session = Depends(db)):
+    require_mutation(ctx)
+    item = s.scalar(select(MediaAsset).where(MediaAsset.upload_reference == upload_reference, MediaAsset.tenant_id == ctx["tenant"], MediaAsset.status == "PENDING_UPLOAD"))
+    if not item:
+        raise HTTPException(404, "media_upload_not_found")
+    content = await request.body()
+    if not content or len(content) > MAX_SIZE_BYTES or len(content) != item.size_bytes:
+        raise HTTPException(422, "size_mismatch_or_oversized")
+    result = object_store().put_object({"tenant_id": item.tenant_id, "asset_id": item.id, "upload_reference": upload_reference, "content": content})
+    return {"upload_reference": upload_reference, "size_bytes": result["size_bytes"]}
+
+
 @router.post("/app/api/media/{asset_id}/complete")
 def media_complete(asset_id: str, x: CompleteIn, ctx=Depends(browser_context_dependency), _session=Depends(csrf_dependency), s: Session = Depends(db)):
     require_mutation(ctx)
@@ -363,7 +409,7 @@ def media_complete(asset_id: str, x: CompleteIn, ctx=Depends(browser_context_dep
     item.status = "UPLOADED"; item.version += 1; item.updated_at = utcnow(); event(s, item, "upload_completed", "UPLOADED", ctx, from_status="PENDING_UPLOAD")
     item.status = "VALIDATING"; item.version += 1; item.validated_at = utcnow(); item.updated_at = utcnow(); event(s, item, "validation_started", "VALIDATING", ctx, from_status="UPLOADED")
     finalized = object_store().finalize_object({"tenant_id": item.tenant_id, "asset_id": item.id, "upload_reference": x.upload_reference})
-    item.detected_content_type = details["detected_content_type"]; item.sha256_digest = details["sha256_digest"]; item.width = details["width"]; item.height = details["height"]; item.size_bytes = details["size_bytes"]; item.storage_object_key = finalized["object_key"]; item.upload_reference = None
+    item.detected_content_type = details["detected_content_type"]; item.sha256_digest = details["sha256_digest"]; item.width = details["width"]; item.height = details["height"]; item.size_bytes = details["size_bytes"]; item.storage_object_key = finalized["object_key"]
     item.status = "READY"; item.ready_at = utcnow(); item.version += 1; item.updated_at = utcnow(); event(s, item, "validation_succeeded", "READY", ctx, metadata={"detected_content_type": item.detected_content_type}, from_status="VALIDATING"); audit(s, ctx, "media.upload.ready"); s.commit()
     return {**payload(item), "duplicate": False}
 
@@ -390,4 +436,5 @@ def media_archive(asset_id: str, x: MutationIn, ctx=Depends(browser_context_depe
 def media_delete(asset_id: str, x: MutationIn = Body(default=MutationIn()), ctx=Depends(browser_context_dependency), _session=Depends(csrf_dependency), s: Session = Depends(db)):
     require_mutation(ctx); item = find_asset(s, asset_id, ctx["tenant"], lock=True)
     if x.expected_version != item.version: raise HTTPException(409, "media_version_conflict")
-    transition(s, item, "DELETED", ctx, x.reason); object_store().delete_object({"tenant_id": item.tenant_id, "asset_id": item.id}); audit(s, ctx, "media.asset.deleted"); s.commit(); return payload(item)
+    upload_reference = item.upload_reference
+    transition(s, item, "DELETED", ctx, x.reason); object_store().delete_object({"tenant_id": item.tenant_id, "asset_id": item.id, "upload_reference": upload_reference}); audit(s, ctx, "media.asset.deleted"); s.commit(); return payload(item)

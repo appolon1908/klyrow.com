@@ -31,7 +31,7 @@ const statusFilter = ref('')
 const typeFilter = ref('')
 const pageOffset = ref(0)
 const actionError = ref('')
-const uploadState = ref<'idle' | 'preparing' | 'ready' | 'unavailable'>('idle')
+const uploadState = ref<'idle' | 'preparing' | 'uploading' | 'completing' | 'ready' | 'unavailable'>('idle')
 const uploadProgress = ref(0)
 const uploadReference = ref('')
 const selectedFile = ref<File | null>(null)
@@ -68,8 +68,22 @@ async function prepareUpload() {
       body: JSON.stringify({ original_filename: file.name, media_kind: 'image', declared_content_type: file.type, size_bytes: file.size }),
     })
     uploadReference.value = result.upload_reference
+    uploadState.value = 'uploading'
+    uploadProgress.value = 35
+    await appApi(`/app/api/media/uploads/${encodeURIComponent(uploadReference.value)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    })
+    uploadState.value = 'completing'
+    uploadProgress.value = 75
+    const completed = await appApi<MediaAsset>(`/app/api/media/${result.id}/complete`, {
+      method: 'POST',
+      body: JSON.stringify({ upload_reference: uploadReference.value, expected_version: result.version }),
+    })
     uploadProgress.value = 100
     uploadState.value = 'ready'
+    selectedFile.value = null
     await page.reload()
   } catch (error) {
     actionError.value = error instanceof Error ? error.message : 'Upload preparation failed'
@@ -92,14 +106,14 @@ function nextPage() { if (canNext.value) { pageOffset.value += 24; page.reload()
   <div class="media-page">
     <PageHeader title="Media library" eyebrow="Content" description="Tenant-isolated images with validation, lifecycle history, and safe provider-neutral storage references.">
       <label class="kp-button media-upload-button">Choose image<input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp" class="media-file-input" @change="selectFile"></label>
-      <button type="button" class="kp-button kp-button-primary" :disabled="!selectedFile || uploadState === 'preparing'" @click="prepareUpload">Prepare upload</button>
+      <button type="button" class="kp-button kp-button-primary" :disabled="!selectedFile || ['preparing', 'uploading', 'completing'].includes(uploadState)" @click="prepareUpload">Upload image</button>
     </PageHeader>
     <section class="media-toolbar" aria-label="Media filters">
       <label>Status<select v-model="statusFilter" @change="applyFilters"><option value="">All states</option><option>PENDING_UPLOAD</option><option>UPLOADED</option><option>VALIDATING</option><option>READY</option><option>REJECTED</option><option>QUARANTINED</option><option>ARCHIVED</option></select></label>
       <label>Type<select v-model="typeFilter" @change="applyFilters"><option value="">All types</option><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select></label>
       <button type="button" class="kp-button" :disabled="page.status.value === 'loading'" @click="page.reload">Refresh</button>
     </section>
-    <p v-if="selectedFile" class="media-selection" role="status">{{ selectedFile.name }} · {{ formatBytes(selectedFile.size) }}<span v-if="uploadState === 'preparing'"> · preparing {{ uploadProgress }}%</span><span v-else-if="uploadState === 'ready'"> · upload reference ready</span></p>
+    <p v-if="selectedFile || uploadState === 'ready'" class="media-selection" role="status"><span v-if="selectedFile">{{ selectedFile.name }} · {{ formatBytes(selectedFile.size) }}</span><span v-if="uploadState === 'preparing'"> · preparing {{ uploadProgress }}%</span><span v-else-if="uploadState === 'uploading'"> · uploading {{ uploadProgress }}%</span><span v-else-if="uploadState === 'completing'"> · validating {{ uploadProgress }}%</span><span v-else-if="uploadState === 'ready'">Upload complete · server confirmed READY</span></p>
     <UnavailableState v-if="uploadState === 'unavailable'" title="Storage unavailable" dependency="The upload reference could not be prepared. No file content was sent to the browser API." />
     <p v-if="actionError" class="media-error" role="alert">{{ actionError }}</p>
     <LoadingState v-if="page.status.value === 'loading'" label="Loading media library..." />

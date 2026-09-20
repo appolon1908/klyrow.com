@@ -8,6 +8,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | --- | --- | --- | --- | --- | --- |
 | DELETE | `/app/api/mailboxes/{mailbox_id}/access/{user_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `revoke_access` |
 | DELETE | `/app/api/mailboxes/{mailbox_id}/messages/{message_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `delete_message` |
+| DELETE | `/app/api/media/{asset_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_delete` |
 | DELETE | `/auth/sessions/{session_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `revoke_user_session` |
 | DELETE | `/v1/api-keys/{kid}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `revoke` |
 | DELETE | `/v1/auth/sessions/{sid}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `session_revoke` |
@@ -37,6 +38,9 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/mailboxes/{mailbox_id}/messages` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `list_messages` |
 | GET | `/app/api/mailboxes/{mailbox_id}/messages/{message_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `get_message` |
 | GET | `/app/api/mailboxes/{mailbox_id}/messages/{message_id}/attachments/{attachment_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `get_attachment` |
+| GET | `/app/api/media` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `media_list` |
+| GET | `/app/api/media/{asset_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `media_get` |
+| GET | `/app/api/media/{asset_id}/events` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `media_events` |
 | GET | `/app/api/messages` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_messages` |
 | GET | `/app/api/onboarding` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `onboarding_get` |
 | GET | `/app/api/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `provisioning_status` |
@@ -221,6 +225,9 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/app/api/mailboxes/{mailbox_id}/access` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `grant_access` |
 | POST | `/app/api/mailboxes/{mailbox_id}/drafts` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `create_draft` |
 | POST | `/app/api/mailboxes/{mailbox_id}/send` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `send_message` |
+| POST | `/app/api/media/uploads` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_upload_prepare` |
+| POST | `/app/api/media/{asset_id}/archive` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_archive` |
+| POST | `/app/api/media/{asset_id}/complete` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_complete` |
 | POST | `/app/api/onboarding/complete` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `onboarding_complete` |
 | POST | `/app/api/organizations/{tenant_id}/switch` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_switch` |
 | POST | `/app/api/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `request_provisioning` |
@@ -411,6 +418,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/webhooks/{webhook_id}/rotate-secret` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `webhook_rotate_secret` |
 | POST | `/v1/webhooks/{wid}/rotate` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `webhook_rotate` |
 | PUT | `/app/api/mailboxes/{mailbox_id}/drafts/{message_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `update_draft` |
+| PUT | `/app/api/media/uploads/{upload_reference}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_upload_bytes` |
 | PUT | `/v1/campaigns/{campaign_id}/dispatch-configuration` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `campaign_dispatch_configuration` |
 | PUT | `/v1/customer-data/retention` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `customer_data_retention_update` |
 | PUT | `/v1/internal/email/policy` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `policy_update` |

@@ -3,6 +3,7 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from apps.gateway.app.auth_bff import BrowserSession, SESSION_COOKIE
 from apps.gateway.app.main import Base, DB, Tenant, User, app, engine, ph, sha
@@ -148,3 +149,76 @@ def test_media_invalid_declared_type_is_rejected_before_storage():
     )
     assert result.status_code == 422
     assert result.json()["detail"] == "unsupported_media_type"
+
+
+@pytest.mark.parametrize("role", ["DEVELOPER", "BILLING", "SUPPORT", "ANALYST"])
+def test_media_mutations_require_campaign_manage(role):
+    with DB() as session:
+        member = session.scalar(select(TenantMember).where(TenantMember.tenant_id == "media-a", TenantMember.user_id == "media-a"))
+        member.role = role
+        session.commit()
+    try:
+        response = client.post(
+            "/app/api/media/uploads",
+            headers={**login("media-a"), "Idempotency-Key": f"denied-{role.lower()}"},
+            json={"original_filename": "denied.png", "media_kind": "image", "declared_content_type": "image/png", "size_bytes": len(PNG_1X1)},
+        )
+        assert response.status_code == 403
+        assert response.json()["detail"] == "media_management_denied"
+    finally:
+        with DB() as session:
+            member = session.scalar(select(TenantMember).where(TenantMember.tenant_id == "media-a", TenantMember.user_id == "media-a"))
+            member.role = "OWNER"
+            session.commit()
+
+
+def test_media_mutation_requires_authentication():
+    client.cookies.clear()
+    response = client.post(
+        "/app/api/media/uploads",
+        headers={"Idempotency-Key": "unauthenticated-media"},
+        json={"original_filename": "denied.png", "media_kind": "image", "declared_content_type": "image/png", "size_bytes": len(PNG_1X1)},
+    )
+    assert response.status_code == 401
+
+
+def test_browser_upload_transmits_bytes_before_completion():
+    prepared = prepare()
+    uploaded = client.put(
+        f"/app/api/media/uploads/{prepared['upload_reference']}",
+        headers={**login("media-a"), "Content-Type": "image/png"},
+        content=PNG_1X1,
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    completed = client.post(
+        f"/app/api/media/{prepared['id']}/complete",
+        headers=login("media-a"),
+        json={"upload_reference": prepared["upload_reference"], "expected_version": prepared["version"]},
+    )
+    assert completed.status_code == 200
+    assert completed.json()["status"] == "READY"
+
+
+def test_fake_storage_delete_removes_uploaded_bytes():
+    prepared = prepare()
+    assert prepared["upload_reference"] in _fake_store.objects
+    complete = client.post(
+        f"/app/api/media/{prepared['id']}/complete",
+        headers=login("media-a"),
+        json={"upload_reference": prepared["upload_reference"], "expected_version": prepared["version"]},
+    )
+    assert complete.status_code == 200
+    deleted = client.request("DELETE", f"/app/api/media/{prepared['id']}", headers=login("media-a"), json={"expected_version": complete.json()["version"]})
+    assert deleted.status_code == 200
+    assert prepared["upload_reference"] not in _fake_store.objects
+
+
+def test_webp_vp8_and_vp8l_dimensions_are_parsed_and_limited():
+    from apps.gateway.app.media_assets import dimensions_and_type
+    vp8_payload = b"\x00\x00\x00\x9d\x01\x2a" + (320).to_bytes(2, "little") + (240).to_bytes(2, "little") + b"\x00" * 8
+    vp8 = b"RIFF" + (len(vp8_payload) + 12).to_bytes(4, "little") + b"WEBPVP8 " + len(vp8_payload).to_bytes(4, "little") + vp8_payload
+    vp8l_bits = (319) | (239 << 14)
+    vp8l_payload = b"\x2f" + vp8l_bits.to_bytes(4, "little") + b"\x00" * 14
+    vp8l = b"RIFF" + (len(vp8l_payload) + 12).to_bytes(4, "little") + b"WEBPVP8L" + len(vp8l_payload).to_bytes(4, "little") + vp8l_payload
+    assert dimensions_and_type(vp8) == ("image/webp", 320, 240)
+    assert dimensions_and_type(vp8l) == ("image/webp", 320, 240)

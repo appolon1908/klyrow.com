@@ -78,6 +78,7 @@ def test_browser_api_contract_has_expected_methods():
         ("/app/api/admin/provisioning/postal/{tenant_id}/retry", "POST"),
         ("/app/api/media", "GET"),
         ("/app/api/media/uploads", "POST"),
+        ("/app/api/media/uploads/{upload_reference}", "PUT"),
         ("/app/api/media/{asset_id}/complete", "POST"),
         ("/app/api/media/{asset_id}", "GET"),
         ("/app/api/media/{asset_id}/events", "GET"),
