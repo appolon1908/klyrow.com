@@ -347,6 +347,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/integrations/mautic/operations/{operation_id}/reconcile` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `mautic_reconcile` |
 | POST | `/v1/integrations/results` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `result` |
 | POST | `/v1/internal/billing/payment-attempts/{payment_attempt_id}/transition` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `transition_payment_attempt` |
+| POST | `/v1/internal/billing/providers/stripe/webhook` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `stripe_webhook` |
 | POST | `/v1/internal/email/beyvra/send` | INTERNAL | DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE | true | `beyvra_send` |
 | POST | `/v1/internal/email/communications/messages` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `canonical_email_send` |
 | POST | `/v1/internal/email/domains/register` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `domain_register` |
