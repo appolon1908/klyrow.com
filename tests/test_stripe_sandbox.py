@@ -41,3 +41,12 @@ def test_adapter_timeout_does_not_hide_ambiguous_provider_result():
     adapter = StripeSandboxAdapter("sk_test_fixture", transport=httpx.MockTransport(lambda _request: (_ for _ in ()).throw(httpx.ReadTimeout("timeout"))))
     with pytest.raises(StripeWebhookError, match="stripe_checkout_ambiguous"):
         adapter.create_checkout(payment_attempt_id="attempt", invoice_id="inv", tenant_id="tenant", amount_minor=100, currency="USD", idempotency_key="attempt", success_url="https://app.example/success", cancel_url="https://app.example/cancel")
+
+
+def test_checkout_rejects_malicious_host():
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"id": "cs_test_123", "url": "https://evil.example/checkout"})
+
+    adapter = StripeSandboxAdapter("sk_test_fixture", transport=httpx.MockTransport(handler))
+    with pytest.raises(StripeWebhookError, match="stripe_checkout_invalid_response"):
+        adapter.create_checkout(payment_attempt_id="attempt", invoice_id="inv", tenant_id="tenant", amount_minor=100, currency="USD", idempotency_key="attempt", success_url="https://app.example/success", cancel_url="https://app.example/cancel")

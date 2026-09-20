@@ -350,34 +350,39 @@ def test_two_sibling_attempts_may_both_be_created_below_invoice_total(monkeypatc
 
 
 def test_capture_is_revalidated_against_invoice_balance_at_transition_time(monkeypatch, tmp_path):
-    """Capture-time integrity: two attempts that were each individually eligible
-    at creation must not both be allowed to reach CAPTURED if doing so would
-    collectively overpay the invoice."""
+    """A direct capture cannot bypass the canonical Payment ledger."""
     enable_live_stripe(monkeypatch, tmp_path)
     invoice_id = make_invoice("a", total="10.00")
-    first = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=600, provider="stripe").json()
-    second = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=500, provider="stripe").json()
+    attempt = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=600, provider="stripe").json()
+    pending = client.post(
+        f"/v1/internal/billing/payment-attempts/{attempt['id']}/transition",
+        json={"target_status": "PENDING"},
+        headers=login("root@example.com"),
+    )
+    assert pending.status_code == 200
+    captured = client.post(
+        f"/v1/internal/billing/payment-attempts/{attempt['id']}/transition",
+        json={"target_status": "CAPTURED"},
+        headers=login("root@example.com"),
+    )
+    assert captured.status_code == 409
+    assert captured.json()["detail"] == "capture_requires_confirmed_payment"
 
-    def advance_to_captured(attempt_id):
-        pending = client.post(
-            f"/v1/internal/billing/payment-attempts/{attempt_id}/transition",
-            json={"target_status": "PENDING"},
-            headers=login("root@example.com"),
+
+def test_captured_attempt_without_payment_does_not_reduce_ledger_balance(monkeypatch):
+    enable_billing(monkeypatch)
+    invoice_id = make_invoice("a", total="100.00")
+    with DB() as session:
+        invoice = session.get(Invoice, invoice_id)
+        attempt = PaymentAttempt(
+            id=str(uuid.uuid4()), tenant_id="a", invoice_id=invoice_id,
+            provider="stripe", idempotency_key="captured-without-payment",
+            request_fingerprint="captured-without-payment", amount_minor=10000,
+            currency="USD", status=CAPTURED, created_by="test",
         )
-        assert pending.status_code == 200
-        return client.post(
-            f"/v1/internal/billing/payment-attempts/{attempt_id}/transition",
-            json={"target_status": "CAPTURED"},
-            headers=login("root@example.com"),
-        )
-
-    first_captured = advance_to_captured(first["id"])
-    assert first_captured.status_code == 200
-    assert first_captured.json()["status"] == CAPTURED
-
-    second_captured = advance_to_captured(second["id"])
-    assert second_captured.status_code == 409
-    assert second_captured.json()["detail"] == "amount_exceeds_remaining_balance"
+        session.add(attempt); session.commit()
+        from apps.gateway.app.billing_ledger import invoice_balance
+        assert invoice_balance(session, invoice).remaining_due == Decimal("100.00")
 
 
 def test_paid_invoice_rejects_new_attempts(monkeypatch):

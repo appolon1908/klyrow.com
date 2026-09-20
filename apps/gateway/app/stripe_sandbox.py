@@ -11,11 +11,13 @@ import hmac
 import time
 from dataclasses import dataclass
 from typing import Optional
+from urllib.parse import urlsplit
 
 import httpx
 
 
 STRIPE_SANDBOX_API = "https://api.stripe.com/v1"
+STRIPE_CHECKOUT_HOSTS = frozenset({"checkout.stripe.com", "checkout.stripe.test"})
 
 
 class StripeWebhookError(RuntimeError):
@@ -84,6 +86,7 @@ class StripeSandboxAdapter:
             raise StripeWebhookError("stripe_checkout_unavailable") from None
         session_id = data.get("id") if isinstance(data, dict) else None
         checkout_url = data.get("url") if isinstance(data, dict) else None
-        if not isinstance(session_id, str) or not isinstance(checkout_url, str) or not checkout_url.startswith("https://"):
+        parsed_url = urlsplit(checkout_url) if isinstance(checkout_url, str) else None
+        if not isinstance(session_id, str) or parsed_url is None or parsed_url.scheme != "https" or parsed_url.hostname not in STRIPE_CHECKOUT_HOSTS or parsed_url.username or parsed_url.password or parsed_url.query or parsed_url.fragment:
             raise StripeWebhookError("stripe_checkout_invalid_response")
         return StripeCheckoutResult(session_id=session_id, checkout_url=checkout_url)

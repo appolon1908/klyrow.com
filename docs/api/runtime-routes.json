@@ -145,6 +145,12 @@
   },
   {
     "documented": true,
+    "handler": "capabilities",
+    "method": "GET",
+    "path": "/app/api/billing/capabilities"
+  },
+  {
+    "documented": true,
     "handler": "invoices",
     "method": "GET",
     "path": "/app/api/billing/invoices"
@@ -160,6 +166,12 @@
     "handler": "overview",
     "method": "GET",
     "path": "/app/api/billing/overview"
+  },
+  {
+    "documented": true,
+    "handler": "payment_attempt_status",
+    "method": "GET",
+    "path": "/app/api/billing/payment-attempts/{payment_attempt_id}"
   },
   {
     "documented": true,
@@ -1312,6 +1324,12 @@
     "handler": "admin_retry_provisioning",
     "method": "POST",
     "path": "/app/api/admin/provisioning/postal/{tenant_id}/retry"
+  },
+  {
+    "documented": true,
+    "handler": "checkout_invoice",
+    "method": "POST",
+    "path": "/app/api/billing/invoices/{invoice_id}/checkout"
   },
   {
     "documented": true,

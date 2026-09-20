@@ -84,6 +84,9 @@ def test_browser_api_contract_has_expected_methods():
         ("/app/api/media/{asset_id}/events", "GET"),
         ("/app/api/media/{asset_id}/archive", "POST"),
         ("/app/api/media/{asset_id}", "DELETE"),
+        ("/app/api/billing/capabilities", "GET"),
+        ("/app/api/billing/invoices/{invoice_id}/checkout", "POST"),
+        ("/app/api/billing/payment-attempts/{payment_attempt_id}", "GET"),
     }
     actual = _openapi_methods()
     assert expected <= actual

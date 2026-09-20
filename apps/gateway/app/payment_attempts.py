@@ -340,23 +340,9 @@ def _tenant_invoice(session: Session, invoice_id: str, tenant_id: str, *, for_up
 
 
 def _remaining_eligible_minor(session: Session, invoice: Invoice) -> int:
-    """Remaining balance in minor units after confirmed legacy payments, credits,
-    and already-captured PaymentAttempts. Refunds and wallet transactions are not
-    payment attempts and do not participate in this calculation."""
-
-    from sqlalchemy import func
-    confirmed_payments = money(
-        session.scalar(select(func.coalesce(func.sum(Payment.amount), 0)).where(
-            Payment.invoice_id == invoice.id, Payment.status == "CONFIRMED"
-        ))
-    )
-    captured_minor = session.scalar(
-        select(func.coalesce(func.sum(PaymentAttempt.amount_minor), 0)).where(
-            PaymentAttempt.invoice_id == invoice.id, PaymentAttempt.status == CAPTURED
-        )
-    ) or 0
-    remaining = money(invoice.total) - money(invoice.credits) - confirmed_payments - _decimal_from_minor(captured_minor)
-    return max(0, _minor_from_decimal(remaining))
+    """Return the canonical ledger balance; attempts never settle money."""
+    from .billing_ledger import invoice_balance
+    return max(0, _minor_from_decimal(invoice_balance(session, invoice).remaining_due))
 
 
 def _validate_invoice_eligibility(session: Session, invoice: Invoice, tenant_id: str, amount_minor: int, currency: str) -> None:
@@ -574,6 +560,21 @@ def _apply_transition(
     if attempt.status in TERMINAL_STATES or target not in TRANSITIONS.get(attempt.status, frozenset()):
         CONFLICT_TOTAL.labels(attempt.provider).inc()
         raise PaymentAttemptConflict("invalid_payment_attempt_transition")
+
+    if target == CAPTURED:
+        confirmed = s.scalar(
+            select(Payment).where(
+                Payment.payment_attempt_id == attempt.id,
+                Payment.status == "CONFIRMED",
+                Payment.tenant_id == attempt.tenant_id,
+                Payment.invoice_id == attempt.invoice_id,
+                Payment.currency == attempt.currency,
+                Payment.amount == _decimal_from_minor(attempt.amount_minor),
+            ).with_for_update()
+        )
+        if not confirmed:
+            CONFLICT_TOTAL.labels(attempt.provider).inc()
+            raise PaymentAttemptConflict("capture_requires_confirmed_payment")
 
     from_status = attempt.status
     attempt.status = target

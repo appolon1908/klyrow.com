@@ -3,7 +3,8 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -27,6 +28,10 @@ from .tenancy import ROLE_PERMISSIONS
 router = APIRouter(prefix="/app/api/billing", tags=["Browser billing"])
 
 
+class CheckoutCommand(BaseModel):
+    pass
+
+
 def browser_context_dependency(request: Request, s: Session = Depends(db)) -> dict[str, Any]:
     from .auth_bff import browser_context
     return browser_context(request=request, s=s)
@@ -38,6 +43,19 @@ def billing_context(ctx: dict[str, Any] = Depends(browser_context_dependency)) -
     if "*" not in permissions and "billing.read" not in permissions:
         raise HTTPException(403, "billing_read_required")
     return ctx
+
+
+def billing_manage_context(ctx: dict[str, Any] = Depends(browser_context_dependency)) -> dict[str, Any]:
+    role = str(ctx.get("role", "")).upper()
+    permissions = ROLE_PERMISSIONS.get(role, set())
+    if "*" not in permissions and "billing.manage" not in permissions:
+        raise HTTPException(403, "billing_manage_required")
+    return ctx
+
+
+def csrf_dependency(request: Request, x_klyrow_csrf: str = Header(default="", alias="X-Klyrow-CSRF"), s: Session = Depends(db)) -> Any:
+    from .auth_bff import csrf_guard
+    return csrf_guard(request=request, x_klyrow_csrf=x_klyrow_csrf, s=s)
 
 
 def decimal(value: Any) -> str:
@@ -118,12 +136,40 @@ def overview(ctx: dict[str, Any] = Depends(billing_context), s: Session = Depend
         "wallet_balance": decimal(wallet.balance if wallet else 0),
         "most_recent_invoice": invoice_summary(s, invoices[0]) if invoices else None,
         "recent_payments": [payment_summary(item, invoice_refs.get(item.invoice_id)) for item in payments],
-        "capabilities": [{"key": "historical_billing", "available": True, "reason": "available"}],
+        "capabilities": [{"key": "historical_billing", "available": True, "reason": "available"}, {"key": "stripe_checkout", "available": False, "reason": "use_capabilities_endpoint"}],
         "outstanding_by_currency": [
             {"currency": currency, "amount_due": decimal(amount)}
             for currency, amount in sorted(outstanding_by_currency.items())
         ],
     }
+
+
+@router.get("/capabilities")
+def capabilities(ctx: dict[str, Any] = Depends(billing_context)) -> dict[str, Any]:
+    from .billing_config import BillingConfigError, load_billing_settings
+    try:
+        settings = load_billing_settings()
+        stripe_available = bool(settings.enabled and settings.webhook_processing_enabled and settings.stripe.enabled and settings.stripe.environment == "sandbox")
+        enabled = settings.enabled
+        environment = settings.stripe.environment if settings.stripe.enabled else "sandbox"
+    except BillingConfigError:
+        stripe_available = False; enabled = False; environment = "sandbox"
+    return {"billing_enabled": enabled, "checkout_available": stripe_available, "stripe_available": stripe_available, "environment": environment, "live_charging": False}
+
+
+@router.post("/invoices/{invoice_id}/checkout", status_code=201)
+def checkout_invoice(invoice_id: str, ctx: dict[str, Any] = Depends(billing_manage_context), _session=Depends(csrf_dependency), s: Session = Depends(db), idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200)) -> dict[str, Any]:
+    from .billing_checkout import create_or_resume_stripe_checkout
+    return create_or_resume_stripe_checkout(s, tenant_id=ctx["tenant"], invoice_id=invoice_id, actor=ctx["sub"], idempotency_key=idempotency_key)
+
+
+@router.get("/payment-attempts/{payment_attempt_id}")
+def payment_attempt_status(payment_attempt_id: str, ctx: dict[str, Any] = Depends(billing_context), s: Session = Depends(db)) -> dict[str, Any]:
+    from .payment_attempts import PaymentAttempt
+    item = s.scalar(select(PaymentAttempt).where(PaymentAttempt.id == payment_attempt_id, PaymentAttempt.tenant_id == ctx["tenant"]))
+    if not item:
+        raise HTTPException(404, "payment_attempt_not_found")
+    return {"id": item.id, "invoice_id": item.invoice_id, "provider": item.provider, "status": item.status, "next_action_type": item.next_action_type, "expires_at": iso(item.expires_at), "failure_code": item.failure_code, "created_at": iso(item.created_at), "updated_at": iso(item.updated_at)}
 
 
 @router.get("/subscription")

@@ -30,9 +30,11 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/admin/dashboard` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `platform_dashboard` |
 | GET | `/app/api/admin/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `admin_provisioning` |
 | GET | `/app/api/admin/security/platform-owner` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_platform_owner_status` |
+| GET | `/app/api/billing/capabilities` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `capabilities` |
 | GET | `/app/api/billing/invoices` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoices` |
 | GET | `/app/api/billing/invoices/{invoice_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoice_detail` |
 | GET | `/app/api/billing/overview` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `overview` |
+| GET | `/app/api/billing/payment-attempts/{payment_attempt_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payment_attempt_status` |
 | GET | `/app/api/billing/payment-methods` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payment_methods` |
 | GET | `/app/api/billing/payments` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payments` |
 | GET | `/app/api/billing/refunds` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `refunds` |
@@ -225,6 +227,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | PATCH | `/v1/team/members/{user_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `role_change` |
 | PATCH | `/v1/templates/{template_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `template_patch` |
 | POST | `/app/api/admin/provisioning/postal/{tenant_id}/retry` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `admin_retry_provisioning` |
+| POST | `/app/api/billing/invoices/{invoice_id}/checkout` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `checkout_invoice` |
 | POST | `/app/api/domains` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_domain_create` |
 | POST | `/app/api/domains/{item_id}/verify` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_domain_verify` |
 | POST | `/app/api/email/send` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_send` |

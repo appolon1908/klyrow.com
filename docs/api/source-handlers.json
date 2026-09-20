@@ -311,56 +311,77 @@
     "declared_path": "/overview",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "overview",
-    "line": 102,
+    "line": 120,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/capabilities",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "capabilities",
+    "line": 148,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/invoices/{invoice_id}/checkout",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "checkout_invoice",
+    "line": 161,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/payment-attempts/{payment_attempt_id}",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "payment_attempt_status",
+    "line": 167,
     "method": "GET"
   },
   {
     "declared_path": "/subscription",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "subscription",
-    "line": 130,
+    "line": 176,
     "method": "GET"
   },
   {
     "declared_path": "/invoices",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "invoices",
-    "line": 138,
+    "line": 184,
     "method": "GET"
   },
   {
     "declared_path": "/invoices/{invoice_id}",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "invoice_detail",
-    "line": 154,
+    "line": 200,
     "method": "GET"
   },
   {
     "declared_path": "/payments",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "payments",
-    "line": 165,
+    "line": 211,
     "method": "GET"
   },
   {
     "declared_path": "/refunds",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "refunds",
-    "line": 173,
+    "line": 219,
     "method": "GET"
   },
   {
     "declared_path": "/payment-methods",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "payment_methods",
-    "line": 180,
+    "line": 226,
     "method": "GET"
   },
   {
     "declared_path": "/wallet",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "wallet",
-    "line": 186,
+    "line": 232,
     "method": "GET"
   },
   {
@@ -1571,42 +1592,42 @@
     "declared_path": "/billing/payment-attempts",
     "file": "apps/gateway/app/payment_attempts.py",
     "handler": "create_payment_attempt",
-    "line": 392,
+    "line": 378,
     "method": "POST"
   },
   {
     "declared_path": "/billing/payment-attempts",
     "file": "apps/gateway/app/payment_attempts.py",
     "handler": "list_payment_attempts",
-    "line": 483,
+    "line": 469,
     "method": "GET"
   },
   {
     "declared_path": "/billing/payment-attempts/{payment_attempt_id}",
     "file": "apps/gateway/app/payment_attempts.py",
     "handler": "get_payment_attempt",
-    "line": 509,
+    "line": 495,
     "method": "GET"
   },
   {
     "declared_path": "/billing/payment-attempts/{payment_attempt_id}/events",
     "file": "apps/gateway/app/payment_attempts.py",
     "handler": "get_payment_attempt_events",
-    "line": 514,
+    "line": 500,
     "method": "GET"
   },
   {
     "declared_path": "/billing/payment-attempts/{payment_attempt_id}/cancel",
     "file": "apps/gateway/app/payment_attempts.py",
     "handler": "cancel_payment_attempt",
-    "line": 618,
+    "line": 619,
     "method": "POST"
   },
   {
     "declared_path": "/internal/billing/payment-attempts/{payment_attempt_id}/transition",
     "file": "apps/gateway/app/payment_attempts.py",
     "handler": "transition_payment_attempt",
-    "line": 633,
+    "line": 634,
     "method": "POST"
   },
   {
