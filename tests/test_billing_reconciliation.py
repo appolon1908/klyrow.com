@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from apps.gateway.app.main import Base, Tenant
+from apps.gateway.app.main import Base, Tenant, app
 from apps.gateway.app.billing import Invoice, Payment
 from apps.gateway.app.billing_reconciliation import reconcile_billing
 from apps.gateway.app.billing_reconciliation import router as reconciliation_router
@@ -155,3 +155,4 @@ def test_reconciliation_api_is_operator_only_and_tenant_filterable():
     dependency_names = {dependency.call.__name__ for dependency in route.dependant.dependencies}
     assert "inner" in dependency_names
     assert route.methods == {"GET"}
+    assert "/v1/internal/billing/reconciliation" in app.openapi()["paths"]

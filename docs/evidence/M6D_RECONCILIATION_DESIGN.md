@@ -13,7 +13,7 @@ The planned endpoint is `GET /v1/internal/billing/reconciliation` with:
 - Deterministic `PASS` or `DRIFT` output.
 - Stable issue codes and resource identifiers.
 
-The router exists in `apps/gateway/app/billing_reconciliation.py` but registration is deferred until the final shared API-contract regeneration checkpoint. This avoids changing global generated inventories while sibling M6 lanes are still active.
+The router is registered by the gateway application and exported in the internal API contract.
 
 ## Correlation rules
 
