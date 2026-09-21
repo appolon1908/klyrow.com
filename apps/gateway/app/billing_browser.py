@@ -1,4 +1,5 @@
 """Authenticated, read-only browser billing BFF for the customer portal."""
+import json
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Optional
@@ -21,6 +22,7 @@ from .billing import (
     WalletTransaction,
 )
 from .billing_ledger import invoice_balance
+from .billing_entitlements import SubscriptionState, calculate_entitlements
 from .auth_bff import csrf_guard
 from .billing_checkout import create_or_resume_stripe_checkout
 from .billing_config import BillingConfigError, load_billing_settings
@@ -76,6 +78,10 @@ def subscription_payload(s: Session, item: Optional[BillingSubscription]) -> Opt
     usage_rows = s.scalars(
         select(UsageEvent).where(UsageEvent.tenant_id == item.tenant_id).order_by(UsageEvent.occurred_at.desc()).limit(500)
     ).all()
+    usage = {}
+    for row in usage_rows:
+        usage[row.unit] = usage.get(row.unit, 0) + row.quantity
+    features = json.loads(plan.features_json or "{}") if plan else {}
     return {
         "product": "Klyrow Email",
         "plan": plan.name if plan else item.plan_id,
@@ -86,6 +92,11 @@ def subscription_payload(s: Session, item: Optional[BillingSubscription]) -> Opt
         "currency": price.currency if price else None,
         "renews_at": iso(item.period_end),
         "cancels_at": iso(item.period_end) if item.cancel_at_period_end else None,
+        "entitlements": calculate_entitlements(
+            state=SubscriptionState(item.status),
+            features=features,
+            usage=usage,
+        ),
         "usage": [{"label": row.unit, "used": row.quantity, "unit": row.unit} for row in usage_rows[:20]],
     }
 
