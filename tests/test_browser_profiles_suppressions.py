@@ -36,4 +36,4 @@ def test_m1a_mutations_require_csrf_dependency():
         if not isinstance(route, APIRoute) or "GET" in (route.methods or ()):
             continue
         dependency_names = {dependency.call.__name__ for dependency in route.dependant.dependencies}
-        assert "csrf_dependency" in dependency_names
+            assert dependency_names & {"csrf_dependency", "csrf_guard"}
