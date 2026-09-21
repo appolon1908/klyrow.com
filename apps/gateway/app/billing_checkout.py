@@ -45,7 +45,8 @@ def _settings():
     if (
         not settings.enabled
         or not settings.stripe.enabled
-        or settings.stripe.environment != "sandbox"
+        or settings.stripe.environment not in {"sandbox", "production"}
+        or settings.stripe.environment == "production" and (not settings.live_charging_enabled or not settings.stripe.production_approved)
         or not settings.webhook_processing_enabled
     ):
         raise HTTPException(503, "billing_checkout_disabled")
