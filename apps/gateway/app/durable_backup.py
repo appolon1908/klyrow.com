@@ -22,12 +22,19 @@ class DurableBackupError(ValueError):
 def _read_file(path: Path, limit: int, *, private: bool = True) -> bytes:
     if not path.is_absolute():
         raise DurableBackupError("invalid_backup_authority")
-    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    flags = os.O_RDONLY
+    if os.name != "nt":
+        flags |= os.O_NOFOLLOW | os.O_NONBLOCK
+    elif os.path.islink(path):
+        raise DurableBackupError("invalid_backup_authority")
+    descriptor = os.open(path, flags)
     with os.fdopen(descriptor, "rb") as stream:
         before = os.fstat(stream.fileno())
         forbidden = 0o077 if private else 0o022
-        if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
-                or before.st_mode & forbidden or not 0 < before.st_size <= limit):
+        owner_ok = os.name == "nt" or not hasattr(os, "geteuid") or before.st_uid == os.geteuid()
+        if (not stat.S_ISREG(before.st_mode) or not owner_ok
+                or (os.name != "nt" and before.st_mode & forbidden)
+                or not 0 < before.st_size <= limit):
             raise DurableBackupError("invalid_backup_authority")
         raw = stream.read(limit + 1)
         after = os.fstat(stream.fileno())
@@ -61,7 +68,8 @@ def _stage(stage: Path) -> Path:
     if not stage.is_absolute():
         raise DurableBackupError("invalid_private_stage")
     info = stage.lstat()
-    if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o077:
+    owner_ok = os.name == "nt" or not hasattr(os, "geteuid") or info.st_uid == os.geteuid()
+    if not stat.S_ISDIR(info.st_mode) or not owner_ok or (os.name != "nt" and info.st_mode & 0o077):
         raise DurableBackupError("invalid_private_stage")
     return stage
 
@@ -86,7 +94,10 @@ def capture_keyring(env_file: Path, stage: Path) -> None:
             os.fsync(stream.fileno())
         # Refuse replacement even if another process created the destination.
         os.link(temporary, stage / ARCHIVE_KEYRING)
-        directory = os.open(stage, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+        if os.name != "nt":
+            directory_flags |= getattr(os, "O_NOFOLLOW", 0)
+        directory = os.open(stage, directory_flags)
         try:
             os.fsync(directory)
         finally:
