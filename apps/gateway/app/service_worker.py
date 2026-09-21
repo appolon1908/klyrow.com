@@ -21,6 +21,7 @@ from .main import DB, email_outbox_loop, postal_retry_loop, recover_middleware_c
 from .billing import BillingEvent, BillingWorkItem, now
 from .billing_provider_events import claim_provider_events, mark_provider_event_failure
 from .billing_settlement_worker import process_provider_event
+from .stablecoin_provider import process_stablecoin_chain_events
 from .mautic_adapter import dispatch_mautic_outbox
 from .postal_provisioning import provisioning_tick
 from .provider import (
@@ -119,6 +120,7 @@ def billing_tick(max_attempts=8):
                 if provider_event:
                     mark_provider_event_failure(provider_event, "processing_transient_failure", retryable=True)
                     session.commit()
+        process_stablecoin_chain_events(session, worker_id="billing-worker", limit=20)
         for event in session.scalars(
             select(BillingEvent)
             .where(~select(BillingWorkItem.id).where(

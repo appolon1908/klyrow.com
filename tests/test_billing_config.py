@@ -255,6 +255,10 @@ def stablecoin_env(tmp_path, **overrides):
         KLYROW_STABLECOIN_DECIMALS="6",
         KLYROW_STABLECOIN_CONFIRMATION_THRESHOLD="12",
         KLYROW_STABLECOIN_NETWORK_ALLOWLIST="1,137",
+        KLYROW_STABLECOIN_CURRENCY_ALLOWLIST="USD",
+        KLYROW_STABLECOIN_API_BASE_URL="https://rpc.example.test",
+        KLYROW_STABLECOIN_RECEIVE_ADDRESS="0x1111111111111111111111111111111111111111",
+        KLYROW_STABLECOIN_WALLET_REFERENCE="openbao://billing/usdc-receiver",
     )
     values.update(overrides)
     return values
@@ -485,3 +489,40 @@ def test_paypal_production_requires_approval_currency_and_live_gate_inputs(tmp_p
     assert settings.paypal.environment == "production"
     assert settings.paypal.production_approved is True
     assert settings.paypal.currency_allowlist == ("USD", "EUR")
+
+
+def test_stablecoin_rejects_private_key_secret(tmp_path):
+    values = stablecoin_env(
+        tmp_path,
+        KLYROW_STABLECOIN_SECRET_FILE=write_secret(
+            tmp_path,
+            "stablecoin-private-key",
+            "0x" + "1" * 64,
+        ),
+    )
+    with pytest.raises(BillingConfigError) as excinfo:
+        load_billing_settings(values)
+    assert excinfo.value.code == "stablecoin_private_key_rejected"
+
+
+def test_stablecoin_requires_usd_allowlist(tmp_path):
+    values = stablecoin_env(tmp_path, KLYROW_STABLECOIN_CURRENCY_ALLOWLIST="EUR")
+    with pytest.raises(BillingConfigError) as excinfo:
+        load_billing_settings(values)
+    assert excinfo.value.code == "stablecoin_usd_currency_required"
+
+
+def test_stablecoin_requires_https_rpc_and_governed_wallet(tmp_path):
+    with pytest.raises(BillingConfigError) as excinfo:
+        load_billing_settings(stablecoin_env(tmp_path, KLYROW_STABLECOIN_API_BASE_URL="http://rpc.example.test"))
+    assert excinfo.value.code == "stablecoin_rpc_url_invalid"
+
+    with pytest.raises(BillingConfigError) as excinfo:
+        load_billing_settings(stablecoin_env(tmp_path, KLYROW_STABLECOIN_WALLET_REFERENCE=""))
+    assert excinfo.value.code == "stablecoin_wallet_reference_missing"
+
+
+def test_stablecoin_requires_usdc_six_decimals(tmp_path):
+    with pytest.raises(BillingConfigError) as excinfo:
+        load_billing_settings(stablecoin_env(tmp_path, KLYROW_STABLECOIN_DECIMALS="18"))
+    assert excinfo.value.code == "stablecoin_invalid_decimals"

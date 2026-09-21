@@ -24,6 +24,8 @@ _MAX_SECRET_BYTES = 65536
 _ENVIRONMENTS = frozenset({"sandbox", "production"})
 _PROVIDERS = ("stripe", "paypal", "stablecoin")
 _CURRENCY = __import__("re").compile(r"^[A-Z]{3}$")
+_EVM_ADDRESS = __import__("re").compile(r"^0x[0-9a-fA-F]{40}$")
+_PRIVATE_KEY_SHAPE = __import__("re").compile(r"^(?:0x)?[0-9a-fA-F]{64}$")
 
 FLAG_NAMES = {
     "billing_enabled": "KLYROW_BILLING_ENABLED",
@@ -147,6 +149,9 @@ class StablecoinSettings(ProviderSettings):
     decimals: int | None = None
     confirmation_threshold: int | None = None
     network_allowlist: tuple[str, ...] = ()
+    api_base_url: str = ""
+    receive_address: str | None = None
+    wallet_reference: str | None = None
 
 
 @dataclass(frozen=True)
@@ -283,6 +288,8 @@ def _validate_provider_common(
     environment: Mapping[str, str] | None,
     webhook_processing_enabled: bool,
     settings_cls: type[ProviderSettings],
+    *,
+    require_webhook_for_production: bool = True,
 ) -> ProviderSettings:
     mode = _environment_mode(provider, environment)
     _reject_inline_secret(provider, mode, environment)
@@ -292,7 +299,7 @@ def _validate_provider_common(
     currency_allowlist = _validate_currency_allowlist(provider, mode, environment)
 
     webhook_secret_configured = False
-    webhook_required = webhook_processing_enabled or mode == "production"
+    webhook_required = webhook_processing_enabled or (mode == "production" and require_webhook_for_production)
     if webhook_required:
         _read_secret_file(f"KLYROW_{provider.upper()}_WEBHOOK_SECRET_FILE", environment)
         webhook_secret_configured = True
@@ -346,7 +353,17 @@ def _validate_paypal(environment: Mapping[str, str] | None, webhook_processing_e
 
 
 def _validate_stablecoin(environment: Mapping[str, str] | None, webhook_processing_enabled: bool) -> StablecoinSettings:
-    common = _validate_provider_common("stablecoin", environment, webhook_processing_enabled, StablecoinSettings)
+    # Chain evidence is verified by read-only JSON-RPC, not a provider webhook.
+    common = _validate_provider_common(
+        "stablecoin",
+        environment,
+        False,
+        StablecoinSettings,
+        require_webhook_for_production=False,
+    )
+    rpc_credential = _read_secret_file("KLYROW_STABLECOIN_SECRET_FILE", environment)
+    if _PRIVATE_KEY_SHAPE.fullmatch(rpc_credential):
+        raise BillingConfigError("stablecoin_private_key_rejected", "stablecoin secret reference must not contain a blockchain private key")
 
     chain_id_raw = _text("KLYROW_STABLECOIN_CHAIN_ID", environment)
     if not chain_id_raw:
@@ -355,20 +372,20 @@ def _validate_stablecoin(environment: Mapping[str, str] | None, webhook_processi
         chain_id = int(chain_id_raw)
     except ValueError:
         raise BillingConfigError("stablecoin_missing_chain_id", "stablecoin chain ID must be an integer") from None
+    if chain_id <= 0:
+        raise BillingConfigError("stablecoin_missing_chain_id", "stablecoin chain ID must be positive")
 
     contract = _text("KLYROW_STABLECOIN_USDC_CONTRACT", environment)
-    if not contract:
-        raise BillingConfigError("stablecoin_missing_contract", "stablecoin requires a USDC contract/mint reference")
+    if not _EVM_ADDRESS.fullmatch(contract):
+        raise BillingConfigError("stablecoin_missing_contract", "stablecoin requires an explicit EVM USDC contract address")
 
     decimals_raw = _text("KLYROW_STABLECOIN_DECIMALS", environment)
-    if not decimals_raw:
-        raise BillingConfigError("stablecoin_invalid_decimals", "stablecoin requires explicit decimals")
     try:
         decimals = int(decimals_raw)
     except ValueError:
         decimals = -1
-    if not 0 <= decimals <= 18:
-        raise BillingConfigError("stablecoin_invalid_decimals", "stablecoin decimals must be between 0 and 18")
+    if decimals != 6:
+        raise BillingConfigError("stablecoin_invalid_decimals", "USDC token decimals must be explicitly configured as 6")
 
     threshold_raw = _text("KLYROW_STABLECOIN_CONFIRMATION_THRESHOLD", environment)
     if not threshold_raw:
@@ -386,18 +403,45 @@ def _validate_stablecoin(environment: Mapping[str, str] | None, webhook_processi
     if str(chain_id) not in network_allowlist:
         raise BillingConfigError("stablecoin_chain_not_allowlisted", "stablecoin chain ID is not in the approved network allowlist")
 
+    currency_allowlist = common.currency_allowlist
+    if "USD" not in currency_allowlist:
+        raise BillingConfigError("stablecoin_usd_currency_required", "USDC settlement requires USD in the currency allowlist")
+
+    api_base_url = _text("KLYROW_STABLECOIN_API_BASE_URL", environment)
+    parsed = urlsplit(api_base_url)
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.port not in (None, 443)
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise BillingConfigError("stablecoin_rpc_url_invalid", "stablecoin requires an HTTPS JSON-RPC endpoint without inline credentials")
+
+    receive_address = _text("KLYROW_STABLECOIN_RECEIVE_ADDRESS", environment)
+    if not _EVM_ADDRESS.fullmatch(receive_address):
+        raise BillingConfigError("stablecoin_receive_address_invalid", "stablecoin requires an approved EVM receive address")
+    wallet_reference = _text("KLYROW_STABLECOIN_WALLET_REFERENCE", environment)
+    if not wallet_reference or len(wallet_reference) > 200:
+        raise BillingConfigError("stablecoin_wallet_reference_missing", "stablecoin requires a governed wallet reference")
+
     return StablecoinSettings(
         enabled=True,
         environment=common.environment,
         production_approved=common.production_approved,
         secret_configured=common.secret_configured,
-        webhook_secret_configured=common.webhook_secret_configured,
-        currency_allowlist=common.currency_allowlist,
+        webhook_secret_configured=False,
+        currency_allowlist=currency_allowlist,
         chain_id=chain_id,
         usdc_contract=contract,
         decimals=decimals,
         confirmation_threshold=threshold,
         network_allowlist=network_allowlist,
+        api_base_url=api_base_url.rstrip("/"),
+        receive_address=receive_address,
+        wallet_reference=wallet_reference,
     )
 
 

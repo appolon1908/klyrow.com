@@ -21,6 +21,7 @@ from .billing_ledger import invoice_balance
 from .billing_provider_events import BillingProviderEvent
 from .main import db, require
 from .payment_attempts import CAPTURED, PaymentAttempt
+from .stablecoin_provider import StablecoinChainEvent
 
 router = APIRouter(prefix="/v1/internal/billing", tags=["Billing reconciliation"])
 
@@ -148,6 +149,21 @@ def reconcile_billing(session: Session, *, tenant_id: str | None = None) -> list
             and claimed_at < datetime.now(timezone.utc) - timedelta(minutes=5)
         ):
             issues.append(_issue("provider_event_stale_processing_lease", event.tenant_id or "", event.id))
+
+    stable_query = select(StablecoinChainEvent)
+    if tenant_id is not None:
+        stable_query = stable_query.where(StablecoinChainEvent.tenant_id == tenant_id)
+    for chain_event in session.scalars(stable_query).all():
+        attempt = attempts_by_id.get(chain_event.payment_attempt_id)
+        payment = payments_by_attempt.get(chain_event.payment_attempt_id)
+        if chain_event.state == "FINALIZED" and payment is None:
+            issues.append(_issue("stablecoin_finalized_without_payment", chain_event.tenant_id, chain_event.id, attempt_id=chain_event.payment_attempt_id))
+        if chain_event.state == "REORGED":
+            issues.append(_issue("stablecoin_reorg_detected", chain_event.tenant_id, chain_event.id, attempt_id=chain_event.payment_attempt_id))
+        if payment is not None and payment.provider == "stablecoin" and chain_event.state != "FINALIZED":
+            issues.append(_issue("stablecoin_payment_without_finalized_evidence", chain_event.tenant_id, chain_event.id, attempt_id=chain_event.payment_attempt_id))
+        if attempt is not None and (attempt.tenant_id != chain_event.tenant_id or attempt.invoice_id != chain_event.invoice_id):
+            issues.append(_issue("stablecoin_chain_event_correlation_mismatch", chain_event.tenant_id, chain_event.id, attempt_id=chain_event.payment_attempt_id))
 
     for invoice in session.scalars(invoice_query).all():
         balance = invoice_balance(session, invoice)
