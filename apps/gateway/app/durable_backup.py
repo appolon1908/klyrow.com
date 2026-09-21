@@ -19,10 +19,22 @@ class DurableBackupError(ValueError):
     """Callers must not expose paths, record contents or underlying exceptions."""
 
 
+def _secure_open(path: str | Path, *extra: int) -> int:
+    flags = os.O_RDONLY
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    nonblock = getattr(os, "O_NONBLOCK", 0)
+    if not nofollow or not nonblock:
+        raise DurableBackupError("invalid_backup_authority")
+    flags |= nofollow | nonblock
+    for flag in extra:
+        flags |= flag
+    return os.open(path, flags)
+
+
 def _read_file(path: Path, limit: int, *, private: bool = True) -> bytes:
     if not path.is_absolute():
         raise DurableBackupError("invalid_backup_authority")
-    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    descriptor = _secure_open(path)
     with os.fdopen(descriptor, "rb") as stream:
         before = os.fstat(stream.fileno())
         forbidden = 0o077 if private else 0o022
@@ -86,7 +98,11 @@ def capture_keyring(env_file: Path, stage: Path) -> None:
             os.fsync(stream.fileno())
         # Refuse replacement even if another process created the destination.
         os.link(temporary, stage / ARCHIVE_KEYRING)
-        directory = os.open(stage, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+        nofollow = getattr(os, "O_NOFOLLOW", 0)
+        if not nofollow:
+            raise DurableBackupError("invalid_private_stage")
+        directory = os.open(stage, directory_flags | nofollow)
         try:
             os.fsync(directory)
         finally:

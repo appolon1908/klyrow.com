@@ -15,6 +15,18 @@ MAX_KEYRING_BYTES = 8192
 KEY_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\Z")
 
 
+def _secure_open_flags(*extra: int) -> int:
+    flags = os.O_RDONLY
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    nonblock = getattr(os, "O_NONBLOCK", 0)
+    if not nofollow or not nonblock:
+        raise KeyringError("durable_result_keyring_unavailable")
+    flags |= nofollow | nonblock
+    for flag in extra:
+        flags |= flag
+    return flags
+
+
 class KeyringError(ValueError):
     """Deliberately carries no path, key material, or parser details."""
 
@@ -67,7 +79,7 @@ def load_keyring(path: str | Path | None = None) -> Keyring:
         raise KeyringError("durable_result_keyring_required")
     descriptor = None
     try:
-        descriptor = os.open(selected, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        descriptor = os.open(selected, _secure_open_flags())
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > MAX_KEYRING_BYTES:
             raise ValueError
@@ -76,7 +88,7 @@ def load_keyring(path: str | Path | None = None) -> Keyring:
         with os.fdopen(descriptor, "rb") as stream:
             descriptor = None
             return parse_keyring(stream.read(MAX_KEYRING_BYTES + 1))
-    except (OSError, ValueError):
+    except (OSError, ValueError, KeyringError):
         raise KeyringError("durable_result_keyring_unavailable") from None
     finally:
         if descriptor is not None:
