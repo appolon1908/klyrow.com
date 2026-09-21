@@ -86,6 +86,8 @@ def test_missing_key_has_no_session_key_or_plaintext_fallback(monkeypatch):
 
 @pytest.mark.parametrize("kind", ["symlink", "directory", "writable", "oversized", "relative"])
 def test_invalid_key_files_fail_closed(tmp_path, kind):
+    if kind == "symlink" and os.name == "nt":
+        pytest.skip("Windows requires elevated privileges for symlink creation")
     path = tmp_path / "bad"
     if kind == "symlink":
         path.symlink_to(tmp_path / "missing")
@@ -108,6 +110,8 @@ def test_duplicate_key_identifiers_fail_closed():
 def test_keyring_rejects_unavailable_protection_before_opening(
     isolated_durable_result_keyring, monkeypatch, flag, availability,
 ):
+    if os.name == "nt":
+        pytest.skip("POSIX file-flag protections are unavailable on Windows")
     if availability == "missing":
         monkeypatch.delattr(os, flag, raising=False)
     else:

@@ -294,11 +294,20 @@ def auth(request:Request,authorization:str=Header(default=""),x_klyrow_tenant_id
                 tenant=s.get(Tenant,ctx["tenant"])
                 if not tenant or not tenant.enabled:raise HTTPException(403,"account_suspended")
         if str(ctx.get("role") or "").lower()=="platform_admin":
-            from .platform_owner_api import resolve_api_owner_proof, validate_api_owner
-            if resolver and owner_claims is None:
-                owner_claims,owner_identity_id=resolve_api_owner_proof(s,ctx,raw)
-            validate_api_owner(s,ctx,claims=owner_claims,identity_id=owner_identity_id)
-            request.state.klyrow_platform_owner_api_validated=True
+            path=request.url.path
+            method=request.method.upper()
+            is_admin_write = path.startswith("/v1/admin/") and method not in {"GET","HEAD","OPTIONS"}
+            requires_platform_owner_proof = (
+                path == "/v1/admin/security/platform-owner"
+                or path.startswith("/app/api/admin/")
+                or is_admin_write
+            )
+            if requires_platform_owner_proof:
+                from .platform_owner_api import resolve_api_owner_proof, validate_api_owner
+                if resolver and owner_claims is None:
+                    owner_claims,owner_identity_id=resolve_api_owner_proof(s,ctx,raw)
+                validate_api_owner(s,ctx,claims=owner_claims,identity_id=owner_identity_id)
+                request.state.klyrow_platform_owner_api_validated=True
     except HTTPException: raise
     except Exception: raise HTTPException(401,"invalid_credentials")
     now=time.time(); q=rate_buckets[ctx["tenant"]]

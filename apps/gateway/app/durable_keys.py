@@ -69,13 +69,21 @@ def load_keyring(path: str | Path | None = None) -> Keyring:
     try:
         nofollow = getattr(os, "O_NOFOLLOW", 0)
         nonblock = getattr(os, "O_NONBLOCK", 0)
-        if not nofollow or not nonblock:
+        if os.name != "nt":
+            if not nofollow or not nonblock:
+                raise ValueError
+        flags = os.O_RDONLY
+        if nofollow:
+            flags |= nofollow
+        if nonblock:
+            flags |= nonblock
+        if os.name == "nt" and os.path.islink(selected):
             raise ValueError
-        descriptor = os.open(selected, os.O_RDONLY | nofollow | nonblock)
+        descriptor = os.open(selected, flags)
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > MAX_KEYRING_BYTES:
             raise ValueError
-        if metadata.st_mode & 0o022:
+        if os.name != "nt" and metadata.st_mode & 0o022:
             raise ValueError
         with os.fdopen(descriptor, "rb") as stream:
             descriptor = None
