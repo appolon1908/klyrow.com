@@ -206,105 +206,105 @@
     "declared_path": "/billing/checkout",
     "file": "apps/gateway/app/billing.py",
     "handler": "checkout",
-    "line": 242,
+    "line": 248,
     "method": "POST"
   },
   {
     "declared_path": "/billing/subscription-plan-change",
     "file": "apps/gateway/app/billing.py",
     "handler": "change_plan",
-    "line": 261,
+    "line": 267,
     "method": "POST"
   },
   {
     "declared_path": "/billing/invoices/{invoice_id}/credit-notes",
     "file": "apps/gateway/app/billing.py",
     "handler": "credit_note",
-    "line": 275,
+    "line": 281,
     "method": "POST"
   },
   {
     "declared_path": "/admin/billing/dunning",
     "file": "apps/gateway/app/billing.py",
     "handler": "dunning",
-    "line": 285,
+    "line": 291,
     "method": "POST"
   },
   {
     "declared_path": "/billing/reconciliation",
     "file": "apps/gateway/app/billing.py",
     "handler": "reconcile",
-    "line": 296,
+    "line": 302,
     "method": "GET"
   },
   {
     "declared_path": "/billing/portal",
     "file": "apps/gateway/app/billing.py",
     "handler": "billing_portal",
-    "line": 306,
+    "line": 312,
     "method": "GET"
   },
   {
     "declared_path": "/billing/plan",
     "file": "apps/gateway/app/billing.py",
     "handler": "billing_plan",
-    "line": 312,
+    "line": 318,
     "method": "GET"
   },
   {
     "declared_path": "/billing/subscription",
     "file": "apps/gateway/app/billing.py",
     "handler": "billing_subscription",
-    "line": 318,
+    "line": 324,
     "method": "GET"
   },
   {
     "declared_path": "/billing/usage",
     "file": "apps/gateway/app/billing.py",
     "handler": "billing_usage",
-    "line": 323,
+    "line": 329,
     "method": "GET"
   },
   {
     "declared_path": "/billing/quota",
     "file": "apps/gateway/app/billing.py",
     "handler": "billing_quota",
-    "line": 326,
+    "line": 332,
     "method": "GET"
   },
   {
     "declared_path": "/billing/invoices",
     "file": "apps/gateway/app/billing.py",
     "handler": "billing_invoices",
-    "line": 332,
+    "line": 338,
     "method": "GET"
   },
   {
     "declared_path": "/billing/invoices/{invoice_id}",
     "file": "apps/gateway/app/billing.py",
     "handler": "billing_invoice",
-    "line": 334,
+    "line": 340,
     "method": "GET"
   },
   {
     "declared_path": "/billing/credits",
     "file": "apps/gateway/app/billing.py",
     "handler": "billing_credits",
-    "line": 337,
+    "line": 343,
     "method": "GET"
   },
   {
     "declared_path": "/billing/payments/manual",
     "file": "apps/gateway/app/billing.py",
     "handler": "billing_manual_payment",
-    "line": 339,
+    "line": 345,
     "method": "POST"
   },
   {
     "declared_path": "/billing/refunds",
     "file": "apps/gateway/app/billing.py",
     "handler": "billing_refund",
-    "line": 343,
+    "line": 349,
     "method": "POST"
   },
   {

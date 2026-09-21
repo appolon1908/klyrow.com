@@ -1357,10 +1357,6 @@ from .agent_mailboxes import router as agent_mailbox_router
 app.include_router(agent_mailbox_router)
 from .billing import router as billing_router
 app.include_router(billing_router)
-from .billing_browser import router as billing_browser_router
-app.include_router(billing_browser_router)
-from .billing_provider_events import router as billing_provider_events_router
-app.include_router(billing_provider_events_router)
 from .media_assets import router as media_assets_router
 app.include_router(media_assets_router)
 from .payment_attempts import router as payment_attempts_router
