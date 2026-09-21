@@ -49,6 +49,6 @@ def test_documents_are_reproducible_from_canonical_facts():
 
 def test_receipts_require_confirmed_payment():
     require_confirmed_payment("CONFIRMED")
-    with pytest.raises(ValueError, match="receipt_requires_confirmed_payment"):
+    with pytest.raises(HTTPException, match="receipt_requires_confirmed_payment"):
         require_confirmed_payment("PENDING_RECONCILIATION")
     assert receipt_document(tenant_id="tenant-a", payment_reference="pay-1", currency="GBP", amount=Decimal("10.00"), invoice_number="INV-1").document_type == "RECEIPT"

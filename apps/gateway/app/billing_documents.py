@@ -6,6 +6,8 @@ from decimal import Decimal
 from hashlib import sha256
 import json
 
+from fastapi import HTTPException
+
 from .billing_tax import money
 
 
@@ -62,4 +64,4 @@ def receipt_document(*, tenant_id: str, payment_reference: str, currency: str, a
 
 def require_confirmed_payment(status: str) -> None:
     if status != "CONFIRMED":
-        raise ValueError("receipt_requires_confirmed_payment")
+        raise HTTPException(409, "receipt_requires_confirmed_payment")

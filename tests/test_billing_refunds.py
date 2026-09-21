@@ -13,14 +13,15 @@ from apps.gateway.app.billing_refunds import (
 
 
 class Refund:
-    def __init__(self, amount: str):
+    def __init__(self, amount: str, status: str = "CONFIRMED"):
         self.amount = Decimal(amount)
+        self.status = status
 
 
 def test_refundable_amount_uses_confirmed_refunds_only_from_supplied_records():
-    refunds = [Refund("25.00"), Refund("10.00")]
-    assert confirmed_refund_total(refunds) == Decimal("35.00")
-    assert refundable_amount("100.00", refunds) == Decimal("65.00")
+    refunds = [Refund("25.00"), Refund("10.00", "PROVIDER_PENDING")]
+    assert confirmed_refund_total(refunds) == Decimal("25.00")
+    assert refundable_amount("100.00", refunds) == Decimal("75.00")
 
 
 def test_refund_amount_rejects_over_refund_and_non_positive_amounts():

@@ -23,7 +23,16 @@ def money(value: Decimal | int | str | None) -> Decimal:
 
 
 def confirmed_refund_total(refunds: Iterable[object]) -> Decimal:
-    return money(sum((money(getattr(item, "amount", 0)) for item in refunds), Decimal("0")))
+    return money(
+        sum(
+            (
+                money(getattr(item, "amount", 0))
+                for item in refunds
+                if getattr(item, "status", "CONFIRMED") == "CONFIRMED"
+            ),
+            Decimal("0"),
+        )
+    )
 
 
 def refundable_amount(payment_amount: Decimal | int | str, refunds: Iterable[object]) -> Decimal:
