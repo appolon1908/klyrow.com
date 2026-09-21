@@ -33,6 +33,16 @@ async function mountAt(path: string, session = readOnly, admin: 'proven' | 'deni
     if (url === '/app/api/senders') return []
     if (url === '/app/api/context') return { tenant: 'tenant-one', role: session.role, organizations: [{ tenant_id: 'tenant-one', organization_id: 'o1', name: 'Acme', slug: 'acme', role: session.role, enabled: true }, { tenant_id: 'tenant-two', organization_id: 'o2', name: 'Beta', slug: 'beta', role: 'OWNER', enabled: true }] }
     if (url === '/app/api/admin/provisioning/postal') return []
+    if (url === '/app/api/admin/abuse') return { summary: { open_alerts: 2, critical_open: 1, active_suspensions: 1 }, alerts: [], suspensions: [] }
+    if (url === '/app/api/admin/reconciliation') return { runs: [{ id: 'r1', kind: 'PLATFORM', state: 'PASS', drift_count: 0, detail_count: 0, started_at: '2026-09-21T00:00:00Z' }] }
+    if (url === '/app/api/admin/reconciliation/billing') return { status: 'PASS', issue_count: 0, issues: [], auto_corrected: false }
+    if (url === '/app/api/admin/billing/overview') return {
+      configuration: { valid: true, enabled: true, live_charging_enabled: false, dunning_enabled: false, refunds_enabled: true, reconciliation_enabled: true, providers: { stripe: 'sandbox' } },
+      counts: { subscriptions: { ACTIVE: 2 }, invoices: { OPEN: 1 }, payments: { CONFIRMED: 3 }, refunds: {}, work_items: {} },
+      billing_drift: { status: 'PASS', issue_count: 0 }, active_prices: [], recent_invoices: [],
+    }
+    if (url === '/app/api/admin/billing/subscriptions') return []
+    if (url.startsWith('/app/api/admin/audit?')) return { items: [{ id: 'a1', tenant_id: 'tenant-one', tenant_name: 'Acme', actor: 'operator', action: 'billing.test', created_at: '2026-09-21T00:00:00Z' }], next_cursor: null }
     if (url.startsWith('/app/api/organizations/')) return { ...session, tenant_id: 'tenant-two' }
     throw new Error(`unexpected ${url}`)
   })
@@ -84,6 +94,19 @@ describe('portal shell', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'System' })).toBeTruthy()
     expect(screen.getByRole('navigation', { name: 'Platform administration' }).textContent).toContain('Queues')
     expect(await screen.findByText('4', { exact: true })).toBeTruthy()
+  })
+
+  it('renders the completed admin operations pages from their browser APIs', async () => {
+    for (const [path, heading] of [
+      ['/admin/abuse', 'Abuse'],
+      ['/admin/reconciliation', 'Reconciliation'],
+      ['/admin/billing', 'Platform billing'],
+      ['/admin/audit', 'Platform audit'],
+    ] as const) {
+      const view = await mountAt(path, owner, 'proven')
+      expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeTruthy()
+      view.unmount()
+    }
   })
 
   it('redirects a navigation group prefix to its first page', async () => {

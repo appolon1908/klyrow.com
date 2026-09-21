@@ -19,6 +19,10 @@ import SettingsOrganizationPage from './SettingsOrganizationPage.vue'
 import SettingsTeamPage from './SettingsTeamPage.vue'
 import SettingsSecurityPage from './SettingsSecurityPage.vue'
 import AdminCountsPage from './AdminCountsPage.vue'
+import AdminAbusePage from './AdminAbusePage.vue'
+import AdminReconciliationPage from './AdminReconciliationPage.vue'
+import AdminBillingPage from './AdminBillingPage.vue'
+import AdminAuditPage from './AdminAuditPage.vue'
 import MediaLibraryPage from './MediaLibraryPage.vue'
 import AudienceProfilesPage from './AudienceProfilesPage.vue'
 import AudienceProfilePage from './AudienceProfilePage.vue'
@@ -58,6 +62,10 @@ const pages: Record<string, Component> = {
   'admin-tenants': AdminCountsPage,
   'admin-queues': AdminCountsPage,
   'admin-deliverability': AdminCountsPage,
+  'admin-abuse': AdminAbusePage,
+  'admin-reconciliation': AdminReconciliationPage,
+  'admin-billing': AdminBillingPage,
+  'admin-audit': AdminAuditPage,
 }
 
 export function pageFor(route: PortalRoute): Component {

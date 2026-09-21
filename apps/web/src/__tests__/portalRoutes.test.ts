@@ -46,6 +46,16 @@ describe('portal route table', () => {
     }
   })
 
+  it('marks the completed admin operations surfaces as real browser-backed pages', () => {
+    for (const name of ['admin-abuse', 'admin-reconciliation', 'admin-billing', 'admin-audit']) {
+      const route = portalRoutes.find(item => item.name === name)
+      expect(route, name).toBeTruthy()
+      expect(route?.availability, name).toBe('implemented')
+      expect(route?.apis.length, name).toBeGreaterThan(0)
+      expect(route?.apis.every(api => api.startsWith('GET /app/api/admin/') || api.startsWith('POST /app/api/admin/'))).toBe(true)
+    }
+  })
+
   it('matches concrete paths, extracts parameters and rejects API or foreign paths', () => {
     expect(matchPortalRoute('/app/overview')?.route.name).toBe('overview')
     const domain = matchPortalRoute('/app/email/domains/claim-1')
