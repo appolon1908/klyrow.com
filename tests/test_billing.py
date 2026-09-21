@@ -134,3 +134,21 @@ def test_reconciliation_detects_paid_invoice_without_confirmed_payment():
     reconciliation=client.get("/v1/billing/reconciliation",headers=tenant)
     assert reconciliation.status_code==200 and reconciliation.json()["status"]=="DRIFT"
     assert any(item["invoice_id"]==created.json()["id"] and item["expected"]=="OPEN" for item in reconciliation.json()["issues"])
+
+
+def test_tax_rule_dispute_and_receipt_are_exposed_for_invoice_workflows():
+    root=login(); tenant=login("a@example.com")
+    tax=client.post("/v1/admin/billing/tax-rules",headers=root,json={"jurisdiction":"DE","mode":"STANDARD","rate":"0.19","evidence_label":"VAT standard rate"})
+    assert tax.status_code==201 and tax.json()["duplicate"] is False
+    created=client.post("/v1/billing/invoices",headers=tenant,json={"due_at":(datetime.now(timezone.utc)+timedelta(days=14)).isoformat(),"jurisdiction":"DE"})
+    assert created.status_code==201,created.text
+    with DB() as session:
+        invoice=session.get(Invoice,created.json()["id"])
+        assert invoice.jurisdiction == "DE"
+        assert float(invoice.tax_rate) == 0.19
+    dispute=client.post(f"/v1/billing/invoices/{created.json()['id']}/disputes",headers=tenant,json={"amount":"1.00","category":"TAX","reason":"VAT mismatch on invoice"})
+    assert dispute.status_code==201 and dispute.json()["amount"]=="1.00"
+    receipt=client.get(f"/v1/billing/invoices/{created.json()['id']}/receipt",headers=tenant)
+    assert receipt.status_code==200 and receipt.json()["download_url"].endswith("/pdf")
+    pdf=client.get(f"/v1/billing/invoices/{created.json()['id']}/pdf",headers=tenant)
+    assert pdf.status_code==200 and pdf.headers["content-type"].startswith("application/pdf")

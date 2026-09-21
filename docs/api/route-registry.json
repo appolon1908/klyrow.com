@@ -3084,6 +3084,117 @@
       "required": false
     },
     "documented": true,
+    "handler": "profiles",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "GET",
+    "namespace": "/app/api/*",
+    "operation_id": "profiles_app_api_profiles_get",
+    "pagination": {
+      "parameters": [
+        "cursor",
+        "limit"
+      ],
+      "present": true
+    },
+    "path": "/app/api/profiles",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Profiles App Api Profiles Get",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE",
+      "security": [
+        {
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
+    "handler": "profile",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "GET",
+    "namespace": "/app/api/*",
+    "operation_id": "profile_app_api_profiles__profile_id__get",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/profiles/{profile_id}",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Profile App Api Profiles  Profile Id  Get",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE",
+      "security": [
+        {
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
     "handler": "provisioning_status",
     "idempotency": {
       "durable": false,
@@ -3288,6 +3399,164 @@
             "schema": {}
           }
         },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE",
+      "security": [
+        {
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
+    "handler": "suppressions",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "GET",
+    "namespace": "/app/api/*",
+    "operation_id": "suppressions_app_api_suppressions_get",
+    "pagination": {
+      "parameters": [
+        "limit",
+        "offset"
+      ],
+      "present": true
+    },
+    "path": "/app/api/suppressions",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Suppressions App Api Suppressions Get",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+      "security": [
+        {
+          "browserCsrf": [],
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": true
+    },
+    "documented": true,
+    "handler": "add_suppression",
+    "idempotency": {
+      "durable": true,
+      "model": "OPTIONAL_REQUEST_SCOPED",
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/app/api/*",
+    "operation_id": "add_suppression_app_api_suppressions_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/suppressions",
+    "response": {
+      "201": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Add Suppression App Api Suppressions Post",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+      "security": [
+        {
+          "browserCsrf": [],
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": true
+    },
+    "documented": true,
+    "handler": "remove_suppression",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "DELETE",
+    "namespace": "/app/api/*",
+    "operation_id": "remove_suppression_app_api_suppressions__suppression_id__delete",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/suppressions/{suppression_id}",
+    "response": {
+      "204": {
         "description": "Successful Response"
       },
       "422": {
@@ -5214,6 +5483,56 @@
     "path": "/v1/admin/billing/dunning",
     "response": {
       "200": {
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "ADMIN",
+    "authentication": {
+      "model": "EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA",
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
+    "handler": "tax_rule_create",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/v1/admin/*",
+    "operation_id": "tax_rule_create_v1_admin_billing_tax_rules_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/v1/admin/billing/tax-rules",
+    "response": {
+      "201": {
         "content": {
           "application/json": {
             "schema": {}
@@ -7538,6 +7857,206 @@
     "path": "/v1/billing/invoices/{invoice_id}/credit-notes",
     "response": {
       "201": {
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "PUBLIC",
+    "authentication": {
+      "model": "BEARER_JWT_OR_API_KEY",
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
+    "handler": "invoice_disputes",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "GET",
+    "namespace": "/v1/*",
+    "operation_id": "invoice_disputes_v1_billing_invoices__invoice_id__disputes_get",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/v1/billing/invoices/{invoice_id}/disputes",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "PUBLIC",
+    "authentication": {
+      "model": "BEARER_JWT_OR_API_KEY",
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
+    "handler": "invoice_dispute_create",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/v1/*",
+    "operation_id": "invoice_dispute_create_v1_billing_invoices__invoice_id__disputes_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/v1/billing/invoices/{invoice_id}/disputes",
+    "response": {
+      "201": {
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "PUBLIC",
+    "authentication": {
+      "model": "BEARER_JWT_OR_API_KEY",
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
+    "handler": "invoice_pdf",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "GET",
+    "namespace": "/v1/*",
+    "operation_id": "invoice_pdf_v1_billing_invoices__invoice_id__pdf_get",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/v1/billing/invoices/{invoice_id}/pdf",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {}
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "PUBLIC",
+    "authentication": {
+      "model": "BEARER_JWT_OR_API_KEY",
+      "security": [
+        {
+          "bearerAuth": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
+    "handler": "invoice_receipt",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "GET",
+    "namespace": "/v1/*",
+    "operation_id": "invoice_receipt_v1_billing_invoices__invoice_id__receipt_get",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/v1/billing/invoices/{invoice_id}/receipt",
+    "response": {
+      "200": {
         "content": {
           "application/json": {
             "schema": {}

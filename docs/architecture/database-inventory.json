@@ -903,16 +903,51 @@
   {
     "columns": [
       "id",
+      "tenant_id",
+      "invoice_id",
+      "payment_id",
+      "provider_reference",
+      "category",
+      "amount",
+      "currency",
+      "reason",
+      "status",
+      "evidence_json",
+      "created_at",
+      "resolved_at"
+    ],
+    "table": "klyrow_disputes",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
       "invoice_id",
       "kind",
       "description",
       "quantity",
       "unit_amount",
       "amount",
+      "tax_amount",
       "reference"
     ],
     "table": "klyrow_invoice_lines",
     "tenant_scoped": false
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "invoice_id",
+      "kind",
+      "status",
+      "content_type",
+      "checksum",
+      "payload_json",
+      "created_at"
+    ],
+    "table": "klyrow_invoice_receipts",
+    "tenant_scoped": true
   },
   {
     "columns": [
@@ -924,6 +959,8 @@
       "currency",
       "subtotal",
       "tax",
+      "tax_rate",
+      "jurisdiction",
       "discount",
       "credits",
       "total",

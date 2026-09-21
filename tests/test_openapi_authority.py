@@ -36,7 +36,7 @@ def test_every_documented_operation_has_one_canonical_audience_and_auth_model():
     schema = app.openapi()
     rows = list(operations(schema))
     assert len(rows) == schema["x-klyrow-operation-count"]
-    assert len(rows) == 414
+    assert len(rows) == 419
     assert all(row[2]["x-klyrow-audience"] in AUDIENCES for row in rows)
     assert all(row[2]["x-klyrow-auth-model"] for row in rows)
     assert all("security" in row[2] for row in rows)
@@ -187,11 +187,11 @@ def test_schema_generation_is_cached_and_deterministic():
     second = app.openapi()
     assert first is second
     assert first["x-klyrow-audience-counts"] == {
-        "ADMIN": 22,
+        "ADMIN": 23,
         "BROWSER_BFF": 80,
         "INTERNAL": 50,
         "LEGACY": 1,
-        "PUBLIC": 252,
+        "PUBLIC": 256,
         "TRACKING": 6,
         "WEBHOOK": 3,
     }

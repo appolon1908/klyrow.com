@@ -9,6 +9,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
@@ -59,9 +60,9 @@ class BillingSubscription(Base):
 class UsageEvent(Base):
     __tablename__="klyrow_usage_events"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); subscription_id:Mapped[str]=mapped_column(String,index=True); message_id:Mapped[Optional[str]]=mapped_column(String,nullable=True); event_key:Mapped[str]=mapped_column(String); unit:Mapped[str]=mapped_column(String); quantity:Mapped[int]=mapped_column(Integer); price_id:Mapped[str]=mapped_column(String); occurred_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); __table_args__=(UniqueConstraint("tenant_id","event_key",name="uq_klyrow_usage_event"),)
 class Invoice(Base):
-    __tablename__="klyrow_invoices"; id:Mapped[str]=mapped_column(String,primary_key=True); number:Mapped[str]=mapped_column(String,unique=True); tenant_id:Mapped[str]=mapped_column(String,index=True); subscription_id:Mapped[str]=mapped_column(String); request_key:Mapped[Optional[str]]=mapped_column(String,nullable=True); currency:Mapped[str]=mapped_column(String); subtotal:Mapped[Decimal]=mapped_column(Numeric(18,2)); tax:Mapped[Decimal]=mapped_column(Numeric(18,2),default=0); discount:Mapped[Decimal]=mapped_column(Numeric(18,2),default=0); credits:Mapped[Decimal]=mapped_column(Numeric(18,2),default=0); total:Mapped[Decimal]=mapped_column(Numeric(18,2)); status:Mapped[str]=mapped_column(String,default="DRAFT"); due_at:Mapped[datetime]=mapped_column(DateTime(timezone=True)); evidence_json:Mapped[str]=mapped_column(Text,default="{}"); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); __table_args__=(UniqueConstraint("tenant_id","request_key",name="uq_klyrow_invoice_request_key"),)
+    __tablename__="klyrow_invoices"; id:Mapped[str]=mapped_column(String,primary_key=True); number:Mapped[str]=mapped_column(String,unique=True); tenant_id:Mapped[str]=mapped_column(String,index=True); subscription_id:Mapped[str]=mapped_column(String); request_key:Mapped[Optional[str]]=mapped_column(String,nullable=True); currency:Mapped[str]=mapped_column(String); subtotal:Mapped[Decimal]=mapped_column(Numeric(18,2)); tax:Mapped[Decimal]=mapped_column(Numeric(18,2),default=0); tax_rate:Mapped[Optional[Decimal]]=mapped_column(Numeric(8,6),nullable=True); jurisdiction:Mapped[Optional[str]]=mapped_column(String,nullable=True); discount:Mapped[Decimal]=mapped_column(Numeric(18,2),default=0); credits:Mapped[Decimal]=mapped_column(Numeric(18,2),default=0); total:Mapped[Decimal]=mapped_column(Numeric(18,2)); status:Mapped[str]=mapped_column(String,default="DRAFT"); due_at:Mapped[datetime]=mapped_column(DateTime(timezone=True)); evidence_json:Mapped[str]=mapped_column(Text,default="{}"); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); __table_args__=(UniqueConstraint("tenant_id","request_key",name="uq_klyrow_invoice_request_key"),)
 class InvoiceLine(Base):
-    __tablename__="klyrow_invoice_lines"; id:Mapped[str]=mapped_column(String,primary_key=True); invoice_id:Mapped[str]=mapped_column(String,index=True); kind:Mapped[str]=mapped_column(String); description:Mapped[str]=mapped_column(String); quantity:Mapped[int]=mapped_column(Integer); unit_amount:Mapped[Decimal]=mapped_column(Numeric(18,8)); amount:Mapped[Decimal]=mapped_column(Numeric(18,2)); reference:Mapped[Optional[str]]=mapped_column(String,nullable=True); __table_args__=(UniqueConstraint("invoice_id","kind","reference",name="uq_klyrow_invoice_line_reference"),)
+    __tablename__="klyrow_invoice_lines"; id:Mapped[str]=mapped_column(String,primary_key=True); invoice_id:Mapped[str]=mapped_column(String,index=True); kind:Mapped[str]=mapped_column(String); description:Mapped[str]=mapped_column(String); quantity:Mapped[int]=mapped_column(Integer); unit_amount:Mapped[Decimal]=mapped_column(Numeric(18,8)); amount:Mapped[Decimal]=mapped_column(Numeric(18,2)); tax_amount:Mapped[Optional[Decimal]]=mapped_column(Numeric(18,2),nullable=True,default=0); reference:Mapped[Optional[str]]=mapped_column(String,nullable=True); __table_args__=(UniqueConstraint("invoice_id","kind","reference",name="uq_klyrow_invoice_line_reference"),)
 class PaymentMethodReference(Base):
     __tablename__="klyrow_payment_method_references"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); provider:Mapped[str]=mapped_column(String); provider_reference:Mapped[str]=mapped_column(String); label:Mapped[str]=mapped_column(String); is_default:Mapped[bool]=mapped_column(Boolean,default=False); revoked_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True)
 class Payment(Base):
@@ -84,6 +85,10 @@ class CheckoutSession(Base):
     __tablename__="klyrow_checkout_sessions"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); plan_id:Mapped[str]=mapped_column(String); price_id:Mapped[str]=mapped_column(String); provider:Mapped[str]=mapped_column(String); state:Mapped[str]=mapped_column(String); provider_reference:Mapped[str]=mapped_column(String,unique=True); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
 class CreditNote(Base):
     __tablename__="klyrow_credit_notes"; id:Mapped[str]=mapped_column(String,primary_key=True); number:Mapped[str]=mapped_column(String,unique=True); tenant_id:Mapped[str]=mapped_column(String,index=True); invoice_id:Mapped[str]=mapped_column(String,index=True); amount:Mapped[Decimal]=mapped_column(Numeric(18,2)); currency:Mapped[str]=mapped_column(String); reason:Mapped[str]=mapped_column(String); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
+class Dispute(Base):
+    __tablename__="klyrow_disputes"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); invoice_id:Mapped[str]=mapped_column(String,index=True); payment_id:Mapped[Optional[str]]=mapped_column(String,nullable=True,index=True); provider_reference:Mapped[Optional[str]]=mapped_column(String,nullable=True); category:Mapped[str]=mapped_column(String,default="GENERAL"); amount:Mapped[Decimal]=mapped_column(Numeric(18,2),default=0); currency:Mapped[str]=mapped_column(String); reason:Mapped[str]=mapped_column(String); status:Mapped[str]=mapped_column(String,default="OPEN"); evidence_json:Mapped[str]=mapped_column(Text,default="{}"); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now); resolved_at:Mapped[Optional[datetime]]=mapped_column(DateTime(timezone=True),nullable=True)
+class InvoiceReceipt(Base):
+    __tablename__="klyrow_invoice_receipts"; id:Mapped[str]=mapped_column(String,primary_key=True); tenant_id:Mapped[str]=mapped_column(String,index=True); invoice_id:Mapped[str]=mapped_column(String,index=True); kind:Mapped[str]=mapped_column(String,default="RECEIPT"); status:Mapped[str]=mapped_column(String,default="READY"); content_type:Mapped[str]=mapped_column(String,default="application/pdf"); checksum:Mapped[str]=mapped_column(String); payload_json:Mapped[str]=mapped_column(Text,default="{}"); created_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
 
 class CatalogIn(BaseModel):
     code:str=Field(pattern=r"^[A-Z][A-Z0-9_]{1,39}$"); name:str; currency:str=Field(pattern=r"^[A-Z]{3}$"); cycle:str=Field(pattern="^(FREE|TRIAL|MONTHLY|ANNUAL|USAGE_BASED|CUSTOM)$"); base_amount:Decimal=Field(ge=0); included_units:int=Field(ge=0); overage_amount:Decimal=Field(ge=0); features:dict=Field(default_factory=dict)
@@ -91,8 +96,10 @@ class SubscribeIn(BaseModel): plan_code:str; trial_days:int=Field(default=0,ge=0
 class UsageIn(BaseModel): event_key:str=Field(min_length=8,max_length=200); message_id:Optional[str]=None; unit:str="accepted_message"; quantity:int=Field(default=1,gt=0,le=1000000)
 class WalletIn(BaseModel): kind:str=Field(pattern="^(CREDIT|DEBIT|REFUND|ADJUSTMENT|PROMOTIONAL_CREDIT)$"); amount:Decimal=Field(gt=0); currency:str=Field(pattern=r"^[A-Z]{3}$"); reference:str=Field(min_length=8,max_length=200)
 class InvoiceIn(BaseModel): due_at:datetime; jurisdiction:Optional[str]=None
+class TaxRuleIn(BaseModel): jurisdiction:str=Field(min_length=2,max_length=20); mode:str=Field(pattern=r"^(STANDARD|REDUCED|ZERO|NO_TAX|VAT)$"); rate:Decimal=Field(ge=0,le=1); evidence_label:str=Field(min_length=1,max_length=200)
 class PaymentIn(BaseModel): invoice_id:str; provider:str=Field(pattern="^(MANUAL_OFFLINE|SANDBOX)$"); provider_reference:str=Field(min_length=8,max_length=200); amount:Decimal=Field(gt=0)
 class RefundIn(BaseModel): amount:Decimal=Field(gt=0); provider_reference:str=Field(min_length=8,max_length=200)
+class DisputeIn(BaseModel): amount:Optional[Decimal]=Field(default=None,gt=0); category:str=Field(default="GENERAL",pattern="^(GENERAL|REFUND|TAX|SERVICE|PAYMENT|OTHER)$"); reason:str=Field(min_length=3,max_length=500); provider_reference:Optional[str]=Field(default=None,min_length=6,max_length=200)
 class PaymentMethodIn(BaseModel): provider:str=Field(pattern="^(MANUAL_OFFLINE|SANDBOX|EXTERNAL_TOKENIZED)$"); provider_reference:str=Field(min_length=6,max_length=300); label:str=Field(min_length=1,max_length=100); is_default:bool=False
 class CheckoutIn(BaseModel): plan_code:str; provider:str=Field(pattern="^(MANUAL_OFFLINE|SANDBOX)$"); provider_reference:str=Field(min_length=8,max_length=200)
 class PlanChangeIn(BaseModel): plan_code:str
@@ -113,6 +120,24 @@ def tenant_item(s,model,item_id,tenant):
     item=s.scalar(select(model).where(model.id==item_id,model.tenant_id==tenant))
     if not item:raise HTTPException(404,"not_found")
     return item
+
+def _invoice_receipt_payload(s:Session, inv:Invoice):
+    lines=s.scalars(select(InvoiceLine).where(InvoiceLine.invoice_id==inv.id)).all()
+    return {
+        "invoice_id": inv.id,
+        "number": inv.number,
+        "customer_id": inv.tenant_id,
+        "status": inv.status,
+        "currency": inv.currency,
+        "subtotal": str(money(inv.subtotal)),
+        "tax": str(money(inv.tax)),
+        "credits": str(money(inv.credits)),
+        "total": str(money(inv.total)),
+        "due_at": inv.due_at.isoformat() if inv.due_at else None,
+        "jurisdiction": inv.jurisdiction,
+        "lines": [{"id": line.id,"kind": line.kind,"description": line.description,"quantity": line.quantity,"amount": str(money(line.amount))} for line in lines],
+        "generated_at": now().isoformat(),
+    }
 
 @router.post("/admin/billing/catalog",status_code=201)
 def catalog(x:CatalogIn,ctx=Depends(require("platform_admin")),s:Session=Depends(db)):
@@ -193,9 +218,9 @@ def invoice_create(x:InvoiceIn,ctx=Depends(auth),s:Session=Depends(db),idempoten
     price=s.get(BillingPrice,sub.price_id);quantity=s.scalar(select(func.sum(UsageEvent.quantity)).where(UsageEvent.subscription_id==sub.id,UsageEvent.occurred_at>=sub.period_start,UsageEvent.occurred_at<sub.period_end)) or 0
     over=max(0,quantity-price.included_units);base=money(price.base_amount);overage=money(Decimal(over)*Decimal(price.overage_amount));subtotal=base+overage
     rule=s.scalar(select(TaxRule).where(TaxRule.jurisdiction==x.jurisdiction,TaxRule.active==True)) if x.jurisdiction else None;tax=money(subtotal*Decimal(rule.rate)) if rule and rule.mode!="NO_TAX" else Decimal("0.00")
-    inv=Invoice(id=str(uuid.uuid4()),number="KLY-"+now().strftime("%Y%m%d")+"-"+secrets.token_hex(4).upper(),tenant_id=ctx["tenant"],subscription_id=sub.id,request_key=idempotency_key,currency=price.currency,subtotal=subtotal,tax=tax,total=subtotal+tax,status="OPEN",due_at=x.due_at,evidence_json=json.dumps({"price_id":price.id,"price_version":price.version,"usage_quantity":quantity,"tax_rule_id":rule.id if rule else None},sort_keys=True))
-    lines=[InvoiceLine(id=str(uuid.uuid4()),invoice_id=inv.id,kind="BASE",description="Subscription",quantity=1,unit_amount=price.base_amount,amount=base,reference=price.id)]
-    if over:lines.append(InvoiceLine(id=str(uuid.uuid4()),invoice_id=inv.id,kind="OVERAGE",description="Email overage",quantity=over,unit_amount=price.overage_amount,amount=overage,reference=sub.period_end.isoformat()))
+    inv=Invoice(id=str(uuid.uuid4()),number="KLY-"+now().strftime("%Y%m%d")+"-"+secrets.token_hex(4).upper(),tenant_id=ctx["tenant"],subscription_id=sub.id,request_key=idempotency_key,currency=price.currency,subtotal=subtotal,tax=tax,tax_rate=Decimal(str(rule.rate)) if rule else Decimal("0.00"),jurisdiction=x.jurisdiction.upper() if x.jurisdiction else None,total=subtotal+tax,status="OPEN",due_at=x.due_at,evidence_json=json.dumps({"price_id":price.id,"price_version":price.version,"usage_quantity":quantity,"tax_rule_id":rule.id if rule else None},sort_keys=True))
+    lines=[InvoiceLine(id=str(uuid.uuid4()),invoice_id=inv.id,kind="BASE",description="Subscription",quantity=1,unit_amount=price.base_amount,amount=base,tax_amount=money(tax) if rule and rule.mode!="NO_TAX" else Decimal("0.00"),reference=price.id)]
+    if over:lines.append(InvoiceLine(id=str(uuid.uuid4()),invoice_id=inv.id,kind="OVERAGE",description="Email overage",quantity=over,unit_amount=price.overage_amount,amount=overage,tax_amount=Decimal("0.00"),reference=sub.period_end.isoformat()))
     s.add(inv);s.add_all(lines);audit(s,ctx,"billing.invoice.created");s.commit();return {"id":inv.id,"number":inv.number,"status":inv.status,"total":str(inv.total),"currency":inv.currency,"duplicate":False}
 
 @router.post("/billing/payment-methods",status_code=201)
@@ -297,6 +322,67 @@ def dunning(x:DunningIn,ctx=Depends(require("platform_admin")),s:Session=Depends
         if sub and sub.status not in {"CANCELLED","CLOSED"}:sub.status=target;sub.version+=1
         s.add(BillingEvent(id=str(uuid.uuid4()),tenant_id=inv.tenant_id,kind="dunning."+target.lower(),reference=inv.id,payload_json=json.dumps({"days_overdue":overdue,"login_enabled":True,"sending_enabled":target!="SUSPENDED"},sort_keys=True)));changed.append({"invoice_id":inv.id,"subscription_status":target})
     audit(s,ctx,"billing.dunning.run");s.commit();return {"processed":len(changed),"items":changed,"login_disabled":False}
+
+@router.post("/admin/billing/tax-rules",status_code=201)
+def tax_rule_create(x:TaxRuleIn,ctx=Depends(require("platform_admin")),s:Session=Depends(db)):
+    if x.mode.upper() not in {"STANDARD","REDUCED","ZERO","NO_TAX","VAT"}:
+        raise HTTPException(422,"invalid_tax_mode")
+    item=s.scalar(select(TaxRule).where(TaxRule.jurisdiction==x.jurisdiction.upper(),TaxRule.active==True))
+    if item:
+        item.mode=x.mode.upper();item.rate=money(x.rate);item.evidence_label=x.evidence_label;audit(s,ctx,"billing.tax_rule.updated");s.commit();return {"id":item.id,"jurisdiction":item.jurisdiction,"mode":item.mode,"rate":str(item.rate),"duplicate":True}
+    item=TaxRule(id=str(uuid.uuid4()),jurisdiction=x.jurisdiction.upper(),mode=x.mode.upper(),rate=money(x.rate),evidence_label=x.evidence_label,active=True)
+    s.add(item);audit(s,ctx,"billing.tax_rule.created");s.commit();return {"id":item.id,"jurisdiction":item.jurisdiction,"mode":item.mode,"rate":str(item.rate),"duplicate":False}
+
+@router.get("/billing/invoices/{invoice_id}/disputes")
+def invoice_disputes(invoice_id:str,ctx=Depends(auth),s:Session=Depends(db)):
+    inv=tenant_item(s,Invoice,invoice_id,ctx["tenant"])
+    rows=s.scalars(select(Dispute).where(Dispute.tenant_id==ctx["tenant"],Dispute.invoice_id==inv.id).order_by(Dispute.created_at.desc())).all()
+    return {"invoice_id": inv.id, "items": rows}
+
+@router.post("/billing/invoices/{invoice_id}/disputes",status_code=201)
+def invoice_dispute_create(invoice_id:str,x:DisputeIn,ctx=Depends(auth),s:Session=Depends(db)):
+    _billing_authorized(ctx, "billing.manage")
+    inv=tenant_item(s,Invoice,invoice_id,ctx["tenant"])
+    amount=money(x.amount) if x.amount is not None else money(inv.total)
+    if amount>money(inv.total):raise HTTPException(409,"dispute_exceeds_invoice_total")
+    payment=s.scalar(select(Payment).where(Payment.invoice_id==inv.id,Payment.tenant_id==ctx["tenant"],Payment.status=="CONFIRMED").order_by(Payment.created_at.desc()))
+    item=Dispute(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],invoice_id=inv.id,payment_id=payment.id if payment else None,provider_reference=x.provider_reference or (payment.provider_reference if payment else None),category=x.category.upper(),amount=amount,currency=inv.currency,reason=x.reason,status="OPEN",evidence_json=json.dumps({"source":"tenant","category":x.category.upper()},sort_keys=True))
+    inv.status="DISPUTED" if inv.status not in {"VOID","CREDITED"} else inv.status
+    s.add(item);audit(s,ctx,"billing.dispute.created");s.commit();return {"id":item.id,"invoice_id":inv.id,"status":item.status,"amount":str(item.amount),"currency":item.currency}
+
+@router.get("/billing/invoices/{invoice_id}/receipt")
+def invoice_receipt(invoice_id:str,ctx=Depends(auth),s:Session=Depends(db)):
+    inv=tenant_item(s,Invoice,invoice_id,ctx["tenant"])
+    payload=_invoice_receipt_payload(s,inv)
+    receipt=s.scalar(select(InvoiceReceipt).where(InvoiceReceipt.tenant_id==ctx["tenant"],InvoiceReceipt.invoice_id==inv.id,InvoiceReceipt.kind=="RECEIPT").order_by(InvoiceReceipt.created_at.desc()))
+    if not receipt:
+        receipt=InvoiceReceipt(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],invoice_id=inv.id,kind="RECEIPT",status="READY",content_type="application/json",checksum=sha(json.dumps(payload,sort_keys=True)),payload_json=json.dumps(payload,sort_keys=True))
+        s.add(receipt);s.commit()
+    return {"id":receipt.id,"invoice_id":inv.id,"kind":"RECEIPT","status":receipt.status,"download_url":f"/v1/billing/invoices/{invoice_id}/pdf","currency":inv.currency,"total":str(inv.total),"generated_at":receipt.created_at.isoformat()}
+
+@router.get("/billing/invoices/{invoice_id}/pdf")
+def invoice_pdf(invoice_id:str,ctx=Depends(auth),s:Session=Depends(db)):
+    inv=tenant_item(s,Invoice,invoice_id,ctx["tenant"])
+    payload=_invoice_receipt_payload(s,inv)
+    pdf_lines=[
+        "Klyrow Invoice",
+        f"Number: {inv.number}",
+        f"Status: {inv.status}",
+        f"Currency: {inv.currency}",
+        f"Subtotal: {payload['subtotal']}",
+        f"Tax: {payload['tax']}",
+        f"Total: {payload['total']}",
+        "",
+        "Line Items:",
+    ]
+    for line in payload["lines"]:
+        pdf_lines.append(f"- {line['description']}: {line['amount']}")
+    pdf_body="\n".join(pdf_lines)+"\n"
+    receipt=s.scalar(select(InvoiceReceipt).where(InvoiceReceipt.tenant_id==ctx["tenant"],InvoiceReceipt.invoice_id==inv.id,InvoiceReceipt.kind=="PDF").order_by(InvoiceReceipt.created_at.desc()))
+    if not receipt:
+        receipt=InvoiceReceipt(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],invoice_id=inv.id,kind="PDF",status="READY",content_type="application/pdf",checksum=sha(pdf_body),payload_json=json.dumps(payload,sort_keys=True))
+        s.add(receipt);s.commit()
+    return Response(content=pdf_body.encode("utf-8"), media_type="application/pdf")
 
 @router.get("/billing/reconciliation")
 def reconcile(ctx=Depends(auth),s:Session=Depends(db)):

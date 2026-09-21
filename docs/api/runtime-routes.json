@@ -697,6 +697,24 @@
   },
   {
     "documented": true,
+    "handler": "invoice_disputes",
+    "method": "GET",
+    "path": "/v1/billing/invoices/{invoice_id}/disputes"
+  },
+  {
+    "documented": true,
+    "handler": "invoice_pdf",
+    "method": "GET",
+    "path": "/v1/billing/invoices/{invoice_id}/pdf"
+  },
+  {
+    "documented": true,
+    "handler": "invoice_receipt",
+    "method": "GET",
+    "path": "/v1/billing/invoices/{invoice_id}/receipt"
+  },
+  {
+    "documented": true,
     "handler": "list_payment_attempts",
     "method": "GET",
     "path": "/v1/billing/payment-attempts"
@@ -1675,6 +1693,12 @@
   },
   {
     "documented": true,
+    "handler": "tax_rule_create",
+    "method": "POST",
+    "path": "/v1/admin/billing/tax-rules"
+  },
+  {
+    "documented": true,
     "handler": "suspend_resource",
     "method": "POST",
     "path": "/v1/admin/delivery/suspend"
@@ -1858,6 +1882,12 @@
     "handler": "credit_note",
     "method": "POST",
     "path": "/v1/billing/invoices/{invoice_id}/credit-notes"
+  },
+  {
+    "documented": true,
+    "handler": "invoice_dispute_create",
+    "method": "POST",
+    "path": "/v1/billing/invoices/{invoice_id}/disputes"
   },
   {
     "documented": true,
