@@ -107,6 +107,34 @@ def test_cross_tenant_billing_access_is_denied():
     assert response.status_code==404
 
 
+def test_refund_rejects_payment_with_cross_tenant_invoice(monkeypatch):
+    from types import SimpleNamespace
+    from apps.gateway.app.billing import Refund
+    monkeypatch.setattr("apps.gateway.app.billing.load_billing_settings", lambda: SimpleNamespace(refunds_enabled=True))
+    with DB() as session:
+        foreign_invoice=Invoice(
+            id="foreign-refund-invoice", number="KLY-FOREIGN-REFUND", tenant_id="b",
+            subscription_id="missing", currency="USD", subtotal="10.00", tax="0.00",
+            discount="0.00", credits="0.00", total="10.00", status="OPEN",
+            due_at=datetime.now(timezone.utc), evidence_json="{}",
+        )
+        payment=Payment(
+            id="cross-tenant-refund-payment", tenant_id="a", invoice_id=foreign_invoice.id,
+            provider="MANUAL_OFFLINE", provider_reference="cross-tenant-refund-payment",
+            amount="10.00", currency="USD", status="CONFIRMED",
+        )
+        session.add_all([foreign_invoice, payment])
+        session.commit()
+    response=client.post(
+        "/v1/billing/payments/cross-tenant-refund-payment/refunds",
+        headers=login("a@example.com"),
+        json={"amount":"1.00", "provider_reference":"refund-cross-tenant-0001"},
+    )
+    assert response.status_code==404 and response.json()["detail"]=="invoice_not_found"
+    with DB() as session:
+        assert session.query(Refund).filter_by(payment_id="cross-tenant-refund-payment").count()==0
+
+
 def test_checkout_proration_credit_note_and_dunning_are_auditable():
     root=login();tenant_a=login("a@example.com");tenant_b=login("b@example.com")
     growth=client.post("/v1/admin/billing/catalog",headers=root,json={"code":"GROWTH","name":"Growth","currency":"USD","cycle":"MONTHLY","base_amount":"30.00","included_units":1000,"overage_amount":"0.01","features":{"domains":10}})
