@@ -22,6 +22,7 @@ from .browser_email_setup import router as browser_email_setup_router
 from .browser_profiles_suppressions import router as browser_profiles_suppressions_router
 from .billing_browser import router as billing_browser_router
 from .billing_provider_events import router as billing_provider_events_router
+from .billing_m6c import router as billing_m6c_router
 from .platform_owner import (
     install_platform_owner_guard,
     router as platform_owner_router,
@@ -102,6 +103,7 @@ if not getattr(app.state, "klyrow_browser_api_routes_registered", False):
         browser_email_setup_router,
         browser_profiles_suppressions_router,
         billing_browser_router,
+        billing_m6c_router,
         billing_provider_events_router,
         postal_provisioning_router,
         webmail_router,
