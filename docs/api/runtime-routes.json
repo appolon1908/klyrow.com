@@ -2179,6 +2179,12 @@
   },
   {
     "documented": true,
+    "handler": "paypal_webhook",
+    "method": "POST",
+    "path": "/v1/internal/billing/providers/paypal/webhook"
+  },
+  {
+    "documented": true,
     "handler": "stripe_webhook",
     "method": "POST",
     "path": "/v1/internal/billing/providers/stripe/webhook"
