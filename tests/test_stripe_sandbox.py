@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import httpx
 import pytest
 
-from apps.gateway.app.stripe_sandbox import StripeSandboxAdapter, StripeWebhookError, verify_stripe_signature
+from apps.gateway.app.stripe_sandbox import StripeProductionAdapter, StripeSandboxAdapter, StripeWebhookError, verify_stripe_signature
 
 
 def _signature(secret: str, body: bytes, timestamp: int = 1_700_000_000) -> str:
@@ -41,3 +41,19 @@ def test_adapter_timeout_does_not_hide_ambiguous_provider_result():
     adapter = StripeSandboxAdapter("sk_test_fixture", transport=httpx.MockTransport(lambda _request: (_ for _ in ()).throw(httpx.ReadTimeout("timeout"))))
     with pytest.raises(StripeWebhookError, match="stripe_checkout_ambiguous"):
         adapter.create_checkout(payment_attempt_id="attempt", invoice_id="inv", tenant_id="tenant", amount_minor=100, currency="USD", idempotency_key="attempt", success_url="https://app.example/success", cancel_url="https://app.example/cancel")
+
+
+def test_production_adapter_requires_live_key_and_never_uses_sandbox_key():
+    with pytest.raises(StripeWebhookError, match="stripe_production_key_required"):
+        StripeProductionAdapter("sk_test_fixture")
+
+
+def test_production_checkout_uses_injected_transport_without_network_call():
+    calls = []
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url)
+        return httpx.Response(200, json={"id": "cs_live_mock", "url": "https://checkout.stripe.com/cs_live_mock"})
+    adapter = StripeProductionAdapter("sk_live_fixture", transport=httpx.MockTransport(handler))
+    result = adapter.create_checkout(payment_attempt_id="attempt", invoice_id="inv", tenant_id="tenant", amount_minor=100, currency="USD", idempotency_key="attempt", success_url="https://app.example/success", cancel_url="https://app.example/cancel")
+    assert result.session_id == "cs_live_mock"
+    assert len(calls) == 1

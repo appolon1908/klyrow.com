@@ -22,19 +22,24 @@ STRIPE_SANDBOX_API = "https://api.stripe.com/v1"
 STRIPE_CHECKOUT_HOSTS = frozenset({"checkout.stripe.com"})
 
 
-def get_checkout_provider(provider: str, *, settings=None) -> "StripeSandboxAdapter":
+def get_checkout_provider(provider: str, *, settings=None) -> "StripeSandboxAdapter | StripeProductionAdapter":
     if provider != "stripe":
         raise StripeWebhookError("unsupported_checkout_provider")
     try:
         settings = settings or load_billing_settings()
         if not settings.enabled or not settings.webhook_processing_enabled:
             raise BillingConfigError("billing_checkout_disabled")
-        if not settings.stripe.enabled or settings.stripe.environment != "sandbox":
-            raise BillingConfigError("stripe_sandbox_required")
+        if not settings.stripe.enabled:
+            raise BillingConfigError("stripe_disabled")
+        if settings.stripe.environment == "production":
+            if not settings.live_charging_enabled or not settings.stripe.production_approved:
+                raise BillingConfigError("stripe_production_not_approved")
+        elif settings.stripe.environment != "sandbox":
+            raise BillingConfigError("stripe_environment_invalid")
         secret = _read_secret_file("KLYROW_STRIPE_SECRET_FILE", None)
     except BillingConfigError as exc:
         raise StripeWebhookError("billing_checkout_disabled") from exc
-    return StripeSandboxAdapter(secret)
+    return StripeSandboxAdapter(secret) if settings.stripe.environment == "sandbox" else StripeProductionAdapter(secret)
 
 
 class StripeWebhookError(RuntimeError):
@@ -117,3 +122,13 @@ class StripeSandboxAdapter:
         ):
             raise StripeWebhookError("stripe_checkout_invalid_response")
         return StripeCheckoutResult(session_id=session_id, checkout_url=checkout_url)
+
+
+class StripeProductionAdapter(StripeSandboxAdapter):
+    """Production adapter with explicit config approval; transport remains injectable for tests."""
+
+    def __init__(self, secret: str, *, transport: httpx.BaseTransport | None = None) -> None:
+        if not secret.startswith(("sk_live_", "rk_live_")):
+            raise StripeWebhookError("stripe_production_key_required")
+        self._secret = secret
+        self._transport = transport
