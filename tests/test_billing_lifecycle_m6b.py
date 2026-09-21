@@ -80,5 +80,3 @@ def test_downgrade_is_next_period_and_dunning_event_is_idempotency_keyed():
     )
     assert decision.state == "GRACE_PERIOD"
     assert decision.event_key == "dunning:invoice-1:GRACE_PERIOD:2"
-
-
