@@ -434,6 +434,13 @@
     "method": "POST"
   },
   {
+    "declared_path": "/reconciliation",
+    "file": "apps/gateway/app/billing_reconciliation.py",
+    "handler": "reconciliation_report",
+    "line": 144,
+    "method": "GET"
+  },
+  {
     "declared_path": "/auth/callback",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "oidc_callback",
