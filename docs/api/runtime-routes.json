@@ -163,6 +163,30 @@
   },
   {
     "documented": true,
+    "handler": "catalog",
+    "method": "GET",
+    "path": "/app/api/billing/catalog"
+  },
+  {
+    "documented": true,
+    "handler": "catalog",
+    "method": "GET",
+    "path": "/app/api/billing/catalog"
+  },
+  {
+    "documented": true,
+    "handler": "entitlements",
+    "method": "GET",
+    "path": "/app/api/billing/entitlements"
+  },
+  {
+    "documented": true,
+    "handler": "entitlements",
+    "method": "GET",
+    "path": "/app/api/billing/entitlements"
+  },
+  {
+    "documented": true,
     "handler": "invoices",
     "method": "GET",
     "path": "/app/api/billing/invoices"
@@ -1420,6 +1444,54 @@
     "handler": "checkout_invoice",
     "method": "POST",
     "path": "/app/api/billing/invoices/{invoice_id}/checkout"
+  },
+  {
+    "documented": true,
+    "handler": "cancel_subscription",
+    "method": "POST",
+    "path": "/app/api/billing/subscription/cancel"
+  },
+  {
+    "documented": true,
+    "handler": "cancel_subscription",
+    "method": "POST",
+    "path": "/app/api/billing/subscription/cancel"
+  },
+  {
+    "documented": true,
+    "handler": "change_subscription",
+    "method": "POST",
+    "path": "/app/api/billing/subscription/change"
+  },
+  {
+    "documented": true,
+    "handler": "change_subscription",
+    "method": "POST",
+    "path": "/app/api/billing/subscription/change"
+  },
+  {
+    "documented": true,
+    "handler": "subscription_quote",
+    "method": "POST",
+    "path": "/app/api/billing/subscription/quote"
+  },
+  {
+    "documented": true,
+    "handler": "subscription_quote",
+    "method": "POST",
+    "path": "/app/api/billing/subscription/quote"
+  },
+  {
+    "documented": true,
+    "handler": "reactivate_subscription",
+    "method": "POST",
+    "path": "/app/api/billing/subscription/reactivate"
+  },
+  {
+    "documented": true,
+    "handler": "reactivate_subscription",
+    "method": "POST",
+    "path": "/app/api/billing/subscription/reactivate"
   },
   {
     "documented": true,

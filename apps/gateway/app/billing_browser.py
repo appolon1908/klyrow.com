@@ -1,4 +1,4 @@
-"""Authenticated, read-only browser billing BFF for the customer portal."""
+"""Authenticated browser billing BFF for the customer portal."""
 import json
 import uuid
 from datetime import datetime, timezone
@@ -239,7 +239,7 @@ def entitlements(ctx: dict[str, Any] = Depends(billing_context), s: Session = De
 
 
 @router.post("/subscription/quote")
-def subscription_quote(payload: SubscriptionQuoteIn, ctx: dict[str, Any] = Depends(billing_context), s: Session = Depends(db)) -> dict[str, Any]:
+def subscription_quote(payload: SubscriptionQuoteIn, ctx: dict[str, Any] = Depends(billing_manage_context), s: Session = Depends(db)) -> dict[str, Any]:
     item = s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id == ctx["tenant"]))
     if item is None:
         raise HTTPException(404, "subscription_not_found")
