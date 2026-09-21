@@ -59,8 +59,10 @@ def _metadata(payload: dict) -> tuple[Optional[str], Optional[str], Optional[str
 async def stripe_webhook(request: Request, stripe_signature: str = Header(default="", alias="Stripe-Signature"), session: Session = Depends(db)):
     try:
         settings = load_billing_settings()
-        if not settings.enabled or not settings.webhook_processing_enabled or not settings.stripe.enabled or settings.stripe.environment != "sandbox":
+        if not settings.enabled or not settings.webhook_processing_enabled or not settings.stripe.enabled or settings.stripe.environment not in {"sandbox", "production"}:
             raise HTTPException(503, "billing_webhook_disabled")
+        if settings.stripe.environment == "production" and not settings.stripe.production_approved:
+            raise HTTPException(503, "billing_webhook_not_approved")
         secret = _read_secret_file("KLYROW_STRIPE_WEBHOOK_SECRET_FILE", None)
     except BillingConfigError:
         raise HTTPException(503, "billing_webhook_disabled") from None
