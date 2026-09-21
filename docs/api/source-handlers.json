@@ -1718,35 +1718,35 @@
     "declared_path": "/admin",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 160,
+    "line": 156,
     "method": "GET"
   },
   {
     "declared_path": "/admin/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 160,
+    "line": 156,
     "method": "GET"
   },
   {
     "declared_path": "/app",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 168,
+    "line": 164,
     "method": "GET"
   },
   {
     "declared_path": "/app/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 168,
+    "line": 164,
     "method": "GET"
   },
   {
     "declared_path": "/onboarding",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 168,
+    "line": 164,
     "method": "GET"
   },
   {
