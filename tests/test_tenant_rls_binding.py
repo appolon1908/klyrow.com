@@ -4,7 +4,6 @@ from apps.gateway.app import main
 
 
 def test_tenant_rls_binding_is_sqlite_safe():
-    main.Base.metadata.create_all(main.engine)
     with main.DB() as session:
         main.bind_tenant_rls(session, "tenant-a")
 
