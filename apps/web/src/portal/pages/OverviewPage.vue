@@ -121,7 +121,7 @@ const messageColumns = [{ key: 'recipient', label: 'Recipient' }, { key: 'subjec
         <PanelCard title="Plan and usage" eyebrow="Billing" :source="sourceOf(loaded.dashboard)">
           <p v-if="metrics">Daily quota <strong>{{ metrics.quota.toLocaleString() }}</strong> messages · {{ quotaUsed }}% used in the last 24 hours.</p>
           <div v-if="metrics" class="kp-progress" role="progressbar" aria-label="Daily quota used" :aria-valuenow="quotaUsed" aria-valuemin="0" aria-valuemax="100"><span :style="{ width: `${quotaUsed}%` }"></span></div>
-          <p class="kp-muted">Subscription, invoice and plan detail have no browser API yet. <a href="/app/billing/plan">Billing</a></p>
+          <p class="kp-muted">Review subscription, invoices, payments and wallet activity in <a href="/app/billing">Billing</a>.</p>
         </PanelCard>
         <PanelCard title="Deliverability and incidents" eyebrow="Health" source="unavailable">
           <UnavailableState title="Deliverability summary" dependency="No browser API exists yet. Required contract: GET /app/api/deliverability/summary (DNS, TLS, PTR, reputation, active incidents)." :alternatives="[{ label: 'Domain states', href: '/app/deliverability' }]" />

@@ -10,7 +10,6 @@ import PanelCard from '../components/PanelCard.vue'
 import LoadingState from '../components/LoadingState.vue'
 import ErrorState from '../components/ErrorState.vue'
 import ForbiddenState from '../components/ForbiddenState.vue'
-import UnavailableState from '../components/UnavailableState.vue'
 
 defineProps<{ route: PortalRoute; params: Record<string, string>; session: BrowserSession }>()
 const page = usePage(() => appApi<DashboardData>('/app/api/dashboard'), { cacheKey: 'dashboard' })
@@ -33,8 +32,8 @@ const source = computed(() => (page.stale.value ? 'stale' : 'live'))
         <MetricCard label="Subscription" :value="null" detail="Needs the subscription contract" source="unavailable" />
       </section>
       <div class="kp-notice kp-notice--warning" role="status"><strong>Payment behaviour:</strong> manual or sandbox only. Live payment actions are disabled and no payment provider is active.</div>
-      <PanelCard title="Subscription and plan detail" eyebrow="Not available" source="unavailable">
-        <UnavailableState title="Subscription and plan detail" dependency="No browser API exists yet. Required contract: GET /app/api/billing/subscription (plan, price version, currency, period, status) read-only." :alternatives="[{ label: 'Usage', href: '/app/billing/usage' }, { label: 'Invoices', href: '/app/billing/invoices' }]" />
+      <PanelCard title="Subscription and plan detail" eyebrow="Available" source="live">
+        <p>Open <a href="/app/billing/subscription">Subscription</a> for the current plan, interval, price and renewal status.</p>
       </PanelCard>
     </div>
   </div>
