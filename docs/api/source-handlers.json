@@ -385,6 +385,34 @@
     "method": "GET"
   },
   {
+    "declared_path": "/invoices/{invoice_id}/document",
+    "file": "apps/gateway/app/billing_m6c.py",
+    "handler": "invoice_document_get",
+    "line": 49,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/credit-notes",
+    "file": "apps/gateway/app/billing_m6c.py",
+    "handler": "credit_notes",
+    "line": 72,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/credit-notes/{credit_note_id}/document",
+    "file": "apps/gateway/app/billing_m6c.py",
+    "handler": "credit_note_document_get",
+    "line": 96,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/payments/{payment_id}/receipt",
+    "file": "apps/gateway/app/billing_m6c.py",
+    "handler": "payment_receipt",
+    "line": 118,
+    "method": "GET"
+  },
+  {
     "declared_path": "/v1/internal/billing/providers/stripe/webhook",
     "file": "apps/gateway/app/billing_provider_events.py",
     "handler": "stripe_webhook",
@@ -1669,35 +1697,35 @@
     "declared_path": "/admin",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 160,
+    "line": 162,
     "method": "GET"
   },
   {
     "declared_path": "/admin/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 160,
+    "line": 162,
     "method": "GET"
   },
   {
     "declared_path": "/app",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 168,
+    "line": 170,
     "method": "GET"
   },
   {
     "declared_path": "/app/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 168,
+    "line": 170,
     "method": "GET"
   },
   {
     "declared_path": "/onboarding",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 168,
+    "line": 170,
     "method": "GET"
   },
   {
