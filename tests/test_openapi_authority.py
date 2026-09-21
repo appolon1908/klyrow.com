@@ -1,3 +1,4 @@
+from collections import Counter
 from apps.gateway.app.openapi_authority import (
     AUDIENCES,
     BROWSER_ANONYMOUS,
@@ -59,6 +60,35 @@ def test_complete_runtime_route_table_includes_and_fingerprints_hidden_apis():
         for method, path, include, _name in rows
     )
     assert schema["x-klyrow-runtime-operation-count"] > schema["x-klyrow-operation-count"]
+
+
+def test_billing_runtime_routes_are_registered_exactly_once():
+    # main.py owns billing BFF/webhook registration; platform.py must not copy them.
+    rows = runtime_routes(app)
+    billing_counts = Counter(
+        (method, path)
+        for method, path, _include, _name in rows
+        if path.startswith("/app/api/billing")
+        or path == "/v1/internal/billing/providers/stripe/webhook"
+    )
+    assert billing_counts
+    assert all(count == 1 for count in billing_counts.values()), billing_counts
+
+
+def test_billing_browser_mutations_require_session_and_csrf():
+    schema = app.openapi()
+    for path, path_item in schema["paths"].items():
+        if not path.startswith("/app/api/billing"):
+            continue
+        for method in {"post", "put", "patch", "delete"}:
+            operation = path_item.get(method)
+            if operation is None:
+                continue
+            assert operation["security"] == [
+                {"browserSession": [], "browserCsrf": []}
+            ]
+            assert header_parameter(operation, "X-Klyrow-CSRF")["required"] is True
+            assert "csrf_guard" in operation["x-klyrow-enforced-auth-dependencies"]
 
 
 def test_security_schemes_and_origin_boundaries_are_explicit():
