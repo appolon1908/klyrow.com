@@ -114,6 +114,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/v1/billing/credits` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_credits` |
 | GET | `/v1/billing/invoices` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_invoices` |
 | GET | `/v1/billing/invoices/{invoice_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_invoice` |
+| GET | `/v1/billing/invoices/{invoice_id}/disputes` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `invoice_disputes` |
 | GET | `/v1/billing/payment-attempts` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `list_payment_attempts` |
 | GET | `/v1/billing/payment-attempts/{payment_attempt_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `get_payment_attempt` |
 | GET | `/v1/billing/payment-attempts/{payment_attempt_id}/events` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `get_payment_attempt_events` |
@@ -273,6 +274,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/admin/abuse/evaluate` | ADMIN | EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA | true | `evaluate_abuse` |
 | POST | `/v1/admin/billing/catalog` | ADMIN | EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA | true | `catalog` |
 | POST | `/v1/admin/billing/dunning` | ADMIN | EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA | true | `dunning` |
+| POST | `/v1/admin/billing/tax-rules` | ADMIN | EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA | true | `tax_rule_create` |
 | POST | `/v1/admin/delivery/suspend` | ADMIN | EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA | true | `suspend_resource` |
 | POST | `/v1/admin/delivery/suspensions/{item_id}/release` | ADMIN | EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA | true | `release_resource` |
 | POST | `/v1/admin/ip-pools` | ADMIN | EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA | true | `create_pool` |
@@ -304,6 +306,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/billing/checkout` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `checkout` |
 | POST | `/v1/billing/invoices` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `invoice_create` |
 | POST | `/v1/billing/invoices/{invoice_id}/credit-notes` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `credit_note` |
+| POST | `/v1/billing/invoices/{invoice_id}/disputes` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `invoice_dispute_create` |
 | POST | `/v1/billing/odoo-sync` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `billing_sync` |
 | POST | `/v1/billing/payment-attempts` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `create_payment_attempt` |
 | POST | `/v1/billing/payment-attempts/{payment_attempt_id}/cancel` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `cancel_payment_attempt` |
