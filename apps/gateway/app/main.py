@@ -187,6 +187,12 @@ class WebhookEndpoint(Base):
 
 def db():
     with DB() as s: yield s
+
+def bind_tenant_rls(s: Session, tenant_id: str) -> None:
+    """Bind PostgreSQL tenant RLS to the current request transaction only."""
+    if s.get_bind().dialect.name == "postgresql":
+        s.execute(select(func.set_config("app.tenant_id", tenant_id, True)))
+
 def sha(v): return hashlib.sha256(v.encode()).hexdigest()
 def scoped_idempotency_key(ctx:dict,raw_key:str,*,action:str,resource:str,api_version:str="v1")->str:
     """Bind a client key to the complete durable command identity."""
@@ -310,6 +316,7 @@ def auth(request:Request,authorization:str=Header(default=""),x_klyrow_tenant_id
                 request.state.klyrow_platform_owner_api_validated=True
     except HTTPException: raise
     except Exception: raise HTTPException(401,"invalid_credentials")
+    bind_tenant_rls(s, ctx["tenant"])
     now=time.time(); q=rate_buckets[ctx["tenant"]]
     while q and q[0]<now-60:q.popleft()
     if len(q)>=int(os.getenv("KLYROW_RATE_PER_MINUTE","60")): raise HTTPException(429,"rate_limit_exceeded")
