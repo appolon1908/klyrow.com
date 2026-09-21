@@ -439,6 +439,182 @@
       "required": false
     },
     "documented": true,
+    "handler": "catalog",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "GET",
+    "namespace": "/app/api/*",
+    "operation_id": "catalog_app_api_billing_catalog_get",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/catalog",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Catalog App Api Billing Catalog Get",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE",
+      "security": [
+        {
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
+    "handler": "catalog",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "GET",
+    "namespace": "/app/api/*",
+    "operation_id": "catalog_app_api_billing_catalog_get",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/catalog",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Catalog App Api Billing Catalog Get",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE",
+      "security": [
+        {
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
+    "handler": "entitlements",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "GET",
+    "namespace": "/app/api/*",
+    "operation_id": "entitlements_app_api_billing_entitlements_get",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/entitlements",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Entitlements App Api Billing Entitlements Get",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE",
+      "security": [
+        {
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
+    "handler": "entitlements",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "GET",
+    "namespace": "/app/api/*",
+    "operation_id": "entitlements_app_api_billing_entitlements_get",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/entitlements",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Entitlements App Api Billing Entitlements Get",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE",
+      "security": [
+        {
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": false
+    },
+    "documented": true,
     "handler": "invoices",
     "idempotency": {
       "durable": false,
@@ -1359,6 +1535,446 @@
           }
         },
         "description": "Successful Response"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+      "security": [
+        {
+          "browserCsrf": [],
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": true
+    },
+    "documented": true,
+    "handler": "cancel_subscription",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/app/api/*",
+    "operation_id": "cancel_subscription_app_api_billing_subscription_cancel_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/subscription/cancel",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Cancel Subscription App Api Billing Subscription Cancel Post",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+      "security": [
+        {
+          "browserCsrf": [],
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": true
+    },
+    "documented": true,
+    "handler": "cancel_subscription",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/app/api/*",
+    "operation_id": "cancel_subscription_app_api_billing_subscription_cancel_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/subscription/cancel",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Cancel Subscription App Api Billing Subscription Cancel Post",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+      "security": [
+        {
+          "browserCsrf": [],
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": true
+    },
+    "documented": true,
+    "handler": "change_subscription",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/app/api/*",
+    "operation_id": "change_subscription_app_api_billing_subscription_change_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/subscription/change",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Change Subscription App Api Billing Subscription Change Post",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+      "security": [
+        {
+          "browserCsrf": [],
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": true
+    },
+    "documented": true,
+    "handler": "change_subscription",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/app/api/*",
+    "operation_id": "change_subscription_app_api_billing_subscription_change_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/subscription/change",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Change Subscription App Api Billing Subscription Change Post",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+      "security": [
+        {
+          "browserCsrf": [],
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": true
+    },
+    "documented": true,
+    "handler": "subscription_quote",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/app/api/*",
+    "operation_id": "subscription_quote_app_api_billing_subscription_quote_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/subscription/quote",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Subscription Quote App Api Billing Subscription Quote Post",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+      "security": [
+        {
+          "browserCsrf": [],
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": true
+    },
+    "documented": true,
+    "handler": "subscription_quote",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/app/api/*",
+    "operation_id": "subscription_quote_app_api_billing_subscription_quote_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/subscription/quote",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Subscription Quote App Api Billing Subscription Quote Post",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+      "security": [
+        {
+          "browserCsrf": [],
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": true
+    },
+    "documented": true,
+    "handler": "reactivate_subscription",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/app/api/*",
+    "operation_id": "reactivate_subscription_app_api_billing_subscription_reactivate_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/subscription/reactivate",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Reactivate Subscription App Api Billing Subscription Reactivate Post",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
+      }
+    }
+  },
+  {
+    "audience": "BROWSER_BFF",
+    "authentication": {
+      "model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+      "security": [
+        {
+          "browserCsrf": [],
+          "browserSession": []
+        }
+      ]
+    },
+    "classification": "KEEP",
+    "csrf": {
+      "required": true
+    },
+    "documented": true,
+    "handler": "reactivate_subscription",
+    "idempotency": {
+      "durable": false,
+      "model": null,
+      "required": false
+    },
+    "method": "POST",
+    "namespace": "/app/api/*",
+    "operation_id": "reactivate_subscription_app_api_billing_subscription_reactivate_post",
+    "pagination": {
+      "parameters": [],
+      "present": false
+    },
+    "path": "/app/api/billing/subscription/reactivate",
+    "response": {
+      "200": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Response Reactivate Subscription App Api Billing Subscription Reactivate Post",
+              "type": "object"
+            }
+          }
+        },
+        "description": "Successful Response"
+      },
+      "422": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/HTTPValidationError"
+            }
+          }
+        },
+        "description": "Validation Error"
       }
     }
   },

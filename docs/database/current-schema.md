@@ -6,16 +6,16 @@ The source database inventory is generated at `docs/architecture/database-invent
 
 The migration filenames are lexicographically ordered, but four legacy numeric prefixes are duplicated: `004`, `005`, `006`, and `010`. The runner uses the complete filename as the migration version, so this is recorded as a compatibility fact rather than silently renumbered.
 
-API contract validation at this base reports 413 OpenAPI operations:
+API contract validation at this base reports 419 OpenAPI operations:
 
 - Admin: 23
-- Browser: 74
+- Browser: 80
 - Internal: 50
 - Legacy: 1
 - Public: 256
 - Tracking: 6
 - Webhook: 3
 
-Generated route inventories contain 454 runtime routes and 465 source handler records. These numbers are evidence counts, not claims that every route is canonical; Lane 2 classifies compatibility routes separately.
+Generated route inventories contain 466 runtime routes and 471 source handler records. These numbers are evidence counts, not claims that every route is canonical; Lane 2 classifies compatibility routes separately.
 
 Fresh-database, replay, checksum, and lock validation remain required runtime checks. This document does not mark those checks as passed without PostgreSQL evidence.

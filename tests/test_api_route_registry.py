@@ -8,7 +8,7 @@ REGISTRY = ROOT / "docs/api/route-registry.json"
 
 def test_route_registry_is_complete_and_classified():
     rows = json.loads(REGISTRY.read_text())
-    assert len(rows) == 454
+    assert len(rows) == 466
     assert {row["classification"] for row in rows} <= {"KEEP", "COMPATIBILITY"}
     assert all(row["operation_id"] and row["method"] and row["path"] and row["handler"] for row in rows)
     assert all(row["audience"] for row in rows)
