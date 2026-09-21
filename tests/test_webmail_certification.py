@@ -52,7 +52,7 @@ def seed_tenants():
         s.commit()
 
 
-def mailbox(mailbox_id="mailbox-a", tenant="tenant-a", address="support@example.test"):
+def mailbox(mailbox_id="mailbox-a", tenant="tenant-a", address="support@example.com"):
     return WebmailMailbox(
         id=mailbox_id,
         tenant_id=tenant,
