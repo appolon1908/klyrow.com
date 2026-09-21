@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from apps.gateway.app.main import Base, Tenant
 from apps.gateway.app.billing import Invoice, Payment
 from apps.gateway.app.billing_reconciliation import reconcile_billing
+from apps.gateway.app.billing_reconciliation import router as reconciliation_router
 from apps.gateway.app.billing_reconciliation_worker import run_billing_reconciliation
 from apps.gateway.app.billing_provider_events import BillingProviderEvent
 from apps.gateway.app.payment_attempts import CAPTURED, PaymentAttempt
@@ -130,3 +131,10 @@ def test_billing_rls_migration_covers_financial_tables_and_runtime_role():
     ):
         assert table in migration
     assert "current_setting(''app.tenant_id'', true)" in migration
+
+
+def test_reconciliation_api_is_operator_only_and_tenant_filterable():
+    route = next(item for item in reconciliation_router.routes if item.path.endswith("/reconciliation"))
+    dependency_names = {dependency.call.__name__ for dependency in route.dependant.dependencies}
+    assert "inner" in dependency_names
+    assert route.methods == {"GET"}
