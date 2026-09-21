@@ -63,6 +63,7 @@ def test_complete_runtime_route_table_includes_and_fingerprints_hidden_apis():
 
 
 def test_billing_runtime_routes_are_registered_exactly_once():
+    # main.py owns billing BFF/webhook registration; platform.py must not copy them.
     rows = runtime_routes(app)
     billing_counts = Counter(
         (method, path)
