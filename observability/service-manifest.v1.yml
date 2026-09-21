@@ -1,0 +1,50 @@
+version: 1
+service:
+  service_id: codestra.klyrow
+  name: klyrow-api
+  type: email_saas
+  owner: communications
+repository:
+  name: ingtrader21-spec/klyrow.com
+source_contracts:
+  observability: apps/gateway/app/observability.py
+  monitoring_onboarding: monitoring-integration.v1.json
+environment:
+  development: unverified
+  staging: unverified
+  production: unverified
+health:
+  liveness:
+    path: /health/live
+    runtime_verified: false
+  readiness:
+    path: /health/ready
+    runtime_verified: false
+metrics:
+  path: /metrics
+  runtime_verified: false
+logs:
+  structured: source_supported
+  runtime_verified: false
+tracing:
+  protocol: otlp
+  runtime_verified: false
+authentication:
+  provider: keycloak
+secrets:
+  provider: openbao
+control_plane:
+  repository: ingtrader21-spec/Middleware-
+  direct_monitoring_writes_to_odoo: false
+observability:
+  prometheus: ingtrader21-spec/Codestra-Prometheus
+  alloy: ingtrader21-spec/Codestra-Alloy
+  loki: ingtrader21-spec/Codestra-Loki
+  tempo: ingtrader21-spec/Codestra-Tempo
+  grafana: ingtrader21-spec/Codestra-Grafana-
+  alertmanager: ingtrader21-spec/Codestra-Alertmanager
+runtime:
+  coverage: unverified
+  activation_enabled: false
+  service_registration_verified: false
+status: SOURCE_ONBOARDED_RUNTIME_UNVERIFIED
