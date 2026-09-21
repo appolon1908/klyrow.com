@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from apps.gateway.app import main as _main  # initialize the composed gateway before browser router imports
 from apps.gateway.app.webmail import router as webmail_router
 
 
