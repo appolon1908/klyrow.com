@@ -230,11 +230,17 @@ def refund(payment_id:str,x:RefundIn,ctx=Depends(auth),s:Session=Depends(db)):
     invoice=s.scalar(select(Invoice).where(Invoice.id==payment.invoice_id,Invoice.tenant_id==ctx["tenant"]).with_for_update())
     if not invoice:raise HTTPException(404,"invoice_not_found")
     if payment.currency!=invoice.currency:raise HTTPException(409,"payment_currency_mismatch")
+    from .billing_refunds import canonical_refundable_amount
     already=s.scalar(select(func.sum(Refund.amount)).where(
         Refund.payment_id==payment.id,
         Refund.status.in_(("PENDING_RECONCILIATION", "CONFIRMED")),
     )) or 0
-    if money(already)+money(x.amount)>money(payment.amount):raise HTTPException(409,"refund_exceeds_payment")
+    payment_available=money(payment.amount)-money(already)
+    invoice_available=canonical_refundable_amount(
+        s, tenant_id=ctx["tenant"], invoice_id=invoice.id, currency=invoice.currency,
+    )
+    if money(x.amount)>min(payment_available, invoice_available):
+        raise HTTPException(409,"refund_exceeds_refundable_amount")
     item=Refund(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],payment_id=payment.id,amount=money(x.amount),status="PENDING_RECONCILIATION",provider_reference=x.provider_reference);s.add(item)
     audit(s,ctx,"billing.refund.created");s.commit();return {"id":item.id,"status":item.status}
 

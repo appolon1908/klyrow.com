@@ -135,6 +135,37 @@ def test_refund_rejects_payment_with_cross_tenant_invoice(monkeypatch):
         assert session.query(Refund).filter_by(payment_id="cross-tenant-refund-payment").count()==0
 
 
+def test_refund_respects_invoice_credit_balance(monkeypatch):
+    from types import SimpleNamespace
+    from apps.gateway.app.billing import Credit, Refund
+    monkeypatch.setattr("apps.gateway.app.billing.load_billing_settings", lambda: SimpleNamespace(refunds_enabled=True))
+    with DB() as session:
+        invoice=Invoice(
+            id="credited-refund-invoice", number="KLY-CREDITED-REFUND", tenant_id="a",
+            subscription_id="missing", currency="USD", subtotal="10.00", tax="0.00",
+            discount="0.00", credits="5.00", total="10.00", status="OPEN",
+            due_at=datetime.now(timezone.utc), evidence_json="{}",
+        )
+        payment=Payment(
+            id="credited-refund-payment", tenant_id="a", invoice_id=invoice.id,
+            provider="MANUAL_OFFLINE", provider_reference="credited-refund-payment",
+            amount="10.00", currency="USD", status="CONFIRMED",
+        )
+        session.add_all([invoice, payment, Credit(
+            id="credited-refund-credit", tenant_id="a", invoice_id=invoice.id,
+            amount="5.00", currency="USD", reason="prior credit",
+        )])
+        session.commit()
+    response=client.post(
+        "/v1/billing/payments/credited-refund-payment/refunds",
+        headers=login("a@example.com"),
+        json={"amount":"6.00", "provider_reference":"refund-credit-limit-0001"},
+    )
+    assert response.status_code==409 and response.json()["detail"]=="refund_exceeds_refundable_amount"
+    with DB() as session:
+        assert session.query(Refund).filter_by(payment_id="credited-refund-payment").count()==0
+
+
 def test_checkout_proration_credit_note_and_dunning_are_auditable():
     root=login();tenant_a=login("a@example.com");tenant_b=login("b@example.com")
     growth=client.post("/v1/admin/billing/catalog",headers=root,json={"code":"GROWTH","name":"Growth","currency":"USD","cycle":"MONTHLY","base_amount":"30.00","included_units":1000,"overage_amount":"0.01","features":{"domains":10}})
