@@ -15,6 +15,8 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .main import Base, Tenant, audit, auth, db, require, sha
 from .billing_config import BillingConfigError, load_billing_settings
+from .billing_entitlements import SubscriptionSnapshot, SubscriptionState, transition as apply_subscription_transition
+from .billing_proration import quote_plan_change
 
 router=APIRouter(prefix="/v1",tags=["Klyrow billing"])
 now=lambda:datetime.now(timezone.utc)
@@ -146,8 +148,18 @@ def transition(status:str,ctx=Depends(auth),s:Session=Depends(db)):
     _billing_authorized(ctx, "billing.manage")
     target=status.upper();sub=s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id==ctx["tenant"]).with_for_update())
     if not sub:raise HTTPException(404,"subscription_not_found")
-    if target not in STATES.get(sub.status,set()):raise HTTPException(409,"invalid_subscription_transition")
-    sub.status=target;sub.cancel_at_period_end=target=="CANCEL_AT_PERIOD_END";sub.version+=1;billing_event=BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription."+target.lower(),reference=sub.id);s.add(billing_event);enqueue_subscription_changed(s,sub,causation_id=billing_event.id);audit(s,ctx,"billing.subscription."+target.lower());s.commit();return {"id":sub.id,"status":sub.status,"version":sub.version}
+    try:
+        snapshot = SubscriptionSnapshot(
+            state=SubscriptionState(sub.status),
+            version=sub.version,
+            period_end=sub.period_end,
+            trial_end=sub.trial_end,
+            cancel_at_period_end=sub.cancel_at_period_end,
+        )
+        updated = apply_subscription_transition(snapshot, SubscriptionState(target))
+    except (ValueError, KeyError):
+        raise HTTPException(409,"invalid_subscription_transition") from None
+    sub.status=updated.state.value;sub.cancel_at_period_end=updated.cancel_at_period_end;sub.version=updated.version;billing_event=BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription."+target.lower(),reference=sub.id);s.add(billing_event);enqueue_subscription_changed(s,sub,causation_id=billing_event.id);audit(s,ctx,"billing.subscription."+target.lower());s.commit();return {"id":sub.id,"status":sub.status,"version":sub.version}
 
 @router.post("/billing/usage-events",status_code=202)
 def meter(x:UsageIn,ctx=Depends(auth),s:Session=Depends(db)):
@@ -258,12 +270,12 @@ def change_plan(x:PlanChangeIn,ctx=Depends(auth),s:Session=Depends(db)):
     if not sub or sub.status not in {"TRIALING","ACTIVE"}:raise HTTPException(409,"subscription_not_changeable")
     plan=s.scalar(select(BillingPlan).where(BillingPlan.code==x.plan_code,BillingPlan.active==True));new=s.scalar(select(BillingPrice).where(BillingPrice.plan_id==plan.id,BillingPrice.retired_at==None).order_by(BillingPrice.version.desc())) if plan else None
     if not new:raise HTTPException(404,"active_plan_price_not_found")
-    old=s.get(BillingPrice,sub.price_id);period_start=sub.period_start if sub.period_start.tzinfo else sub.period_start.replace(tzinfo=timezone.utc);period_end=sub.period_end if sub.period_end.tzinfo else sub.period_end.replace(tzinfo=timezone.utc);total=max(1,(period_end-period_start).total_seconds());remaining=max(0,(period_end-now()).total_seconds());ratio=Decimal(str(remaining/total))
-    delta=money((Decimal(new.base_amount)-Decimal(old.base_amount))*ratio)
-    if delta<0:
+    old=s.get(BillingPrice,sub.price_id);period_start=sub.period_start if sub.period_start.tzinfo else sub.period_start.replace(tzinfo=timezone.utc);period_end=sub.period_end if sub.period_end.tzinfo else sub.period_end.replace(tzinfo=timezone.utc)
+    quote=quote_plan_change(old_price=old.base_amount,new_price=new.base_amount,period_start=period_start,period_end=period_end,at=now())
+    if quote.effective == "NEXT_PERIOD":
         s.add(BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription.downgrade_scheduled",reference=sub.id,payload_json=json.dumps({"next_plan_id":plan.id,"next_price_id":new.id,"effective_at":sub.period_end.isoformat()},sort_keys=True)));audit(s,ctx,"billing.subscription.downgrade_scheduled");s.commit();return {"effective":"NEXT_PERIOD","credit":"0.00","charge":"0.00"}
     sub.plan_id=plan.id;sub.price_id=new.id;sub.version+=1
-    billing_event=BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription.upgraded",reference=sub.id,payload_json=json.dumps({"old_price_id":old.id,"new_price_id":new.id,"proration_charge":str(delta)},sort_keys=True));s.add(billing_event);enqueue_subscription_changed(s,sub,causation_id=billing_event.id);audit(s,ctx,"billing.subscription.upgraded");s.commit();return {"effective":"IMMEDIATE","charge":str(delta),"credit":"0.00","price_version":new.version}
+    billing_event=BillingEvent(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],kind="subscription.upgraded",reference=sub.id,payload_json=json.dumps({"old_price_id":old.id,"new_price_id":new.id,"proration_charge":str(quote.charge)},sort_keys=True));s.add(billing_event);enqueue_subscription_changed(s,sub,causation_id=billing_event.id);audit(s,ctx,"billing.subscription.upgraded");s.commit();return {"effective":"IMMEDIATE","charge":str(quote.charge),"credit":str(quote.credit),"price_version":new.version}
 
 @router.post("/billing/invoices/{invoice_id}/credit-notes",status_code=201)
 def credit_note(invoice_id:str,x:CreditNoteIn,ctx=Depends(auth),s:Session=Depends(db)):
