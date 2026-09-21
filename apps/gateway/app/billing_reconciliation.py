@@ -11,13 +11,17 @@ from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from .billing import Invoice, Payment, Refund
 from .billing_ledger import invoice_balance
 from .billing_provider_events import BillingProviderEvent
+from .main import db, require
 from .payment_attempts import CAPTURED, PaymentAttempt
+
+router = APIRouter(prefix="/v1/internal/billing", tags=["Billing reconciliation"])
 
 
 @dataclass(frozen=True)
@@ -114,3 +118,19 @@ def reconcile_billing(session: Session, *, tenant_id: str | None = None) -> list
         attempt = session.get(PaymentAttempt, attempt_id)
         issues.append(_issue("duplicate_payment_attempt_payment", attempt.tenant_id if attempt else "", attempt_id, count=count))
     return issues
+
+
+@router.get("/reconciliation")
+def reconciliation_report(
+    tenant_id: str | None = Query(default=None, min_length=1, max_length=200),
+    ctx=Depends(require("platform_admin")),
+    session: Session = Depends(db),
+) -> dict[str, Any]:
+    """Return an operator-only, read-only reconciliation report."""
+    report = reconcile_billing(session, tenant_id=tenant_id)
+    return {
+        "tenant_id": tenant_id,
+        "status": "PASS" if not report else "DRIFT",
+        "issue_count": len(report),
+        "issues": [issue.as_dict() for issue in report],
+    }
