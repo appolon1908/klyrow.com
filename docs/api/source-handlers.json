@@ -1445,35 +1445,35 @@
     "declared_path": "/alertmanager/events",
     "file": "apps/gateway/app/observability.py",
     "handler": "receive_alertmanager_events",
-    "line": 548,
+    "line": 560,
     "method": "POST"
   },
   {
     "declared_path": "/kpis/snapshots",
     "file": "apps/gateway/app/observability.py",
     "handler": "receive_kpi_snapshot",
-    "line": 664,
+    "line": 676,
     "method": "POST"
   },
   {
     "declared_path": "/odoo/health",
     "file": "apps/gateway/app/observability.py",
     "handler": "odoo_health",
-    "line": 1206,
+    "line": 1218,
     "method": "GET"
   },
   {
     "declared_path": "/odoo/checkpoints",
     "file": "apps/gateway/app/observability.py",
     "handler": "odoo_checkpoints",
-    "line": 1235,
+    "line": 1247,
     "method": "GET"
   },
   {
     "declared_path": "/observability/contract",
     "file": "apps/gateway/app/observability.py",
     "handler": "observability_contract",
-    "line": 1277,
+    "line": 1289,
     "method": "GET"
   },
   {
