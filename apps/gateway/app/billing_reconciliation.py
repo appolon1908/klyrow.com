@@ -129,7 +129,7 @@ def reconcile_billing(session: Session, *, tenant_id: str | None = None) -> list
             issues.append(_issue("refund_exceeds_payment", invoice.tenant_id, invoice.id))
 
     for payment in payments:
-        if payment.invoice_id is None or payment.invoice_id not in invoices_by_id:
+        if payment.status == "CONFIRMED" and (payment.invoice_id is None or payment.invoice_id not in invoices_by_id):
             issues.append(_issue("confirmed_payment_without_invoice", payment.tenant_id, payment.id))
     duplicate_attempts = session.execute(select(Payment.payment_attempt_id, func.count(Payment.id)).where(
         Payment.payment_attempt_id.is_not(None)

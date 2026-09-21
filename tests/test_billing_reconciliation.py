@@ -117,6 +117,23 @@ def test_provider_event_exact_correlation_is_reported():
     engine.dispose()
 
 
+def test_pending_payment_without_invoice_is_not_reported_as_confirmed_drift():
+    engine, session = _session()
+    session.add(Tenant(id="tenant-a", name="A", quota=100))
+    session.add(Payment(
+        id="payment-pending", tenant_id="tenant-a", invoice_id="missing-invoice",
+        provider="stripe", provider_reference="pi-pending", amount=Decimal("1.00"),
+        currency="USD", status="PENDING_RECONCILIATION",
+    ))
+    session.commit()
+
+    codes = {item.code for item in reconcile_billing(session, tenant_id="tenant-a")}
+
+    assert "confirmed_payment_without_invoice" not in codes
+    session.close()
+    engine.dispose()
+
+
 def test_billing_rls_migration_covers_financial_tables_and_runtime_role():
     migration = open(
         "migrations/2026092101_billing_rls_runtime_roles.sql",
