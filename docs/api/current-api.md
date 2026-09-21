@@ -32,8 +32,10 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/admin/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `admin_provisioning` |
 | GET | `/app/api/admin/security/platform-owner` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_platform_owner_status` |
 | GET | `/app/api/billing/capabilities` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `capabilities` |
+| GET | `/app/api/billing/catalog` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `catalog` |
 | GET | `/app/api/billing/credit-notes` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `credit_notes` |
 | GET | `/app/api/billing/credit-notes/{credit_note_id}/document` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `credit_note_document_get` |
+| GET | `/app/api/billing/entitlements` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `entitlements` |
 | GET | `/app/api/billing/invoices` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoices` |
 | GET | `/app/api/billing/invoices/{invoice_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoice_detail` |
 | GET | `/app/api/billing/invoices/{invoice_id}/document` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoice_document_get` |
@@ -236,6 +238,10 @@ This inventories the composed platform, including hidden compatibility and brows
 | PATCH | `/v1/templates/{template_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `template_patch` |
 | POST | `/app/api/admin/provisioning/postal/{tenant_id}/retry` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `admin_retry_provisioning` |
 | POST | `/app/api/billing/invoices/{invoice_id}/checkout` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `checkout_invoice` |
+| POST | `/app/api/billing/subscription/cancel` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `cancel_subscription` |
+| POST | `/app/api/billing/subscription/change` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `change_subscription` |
+| POST | `/app/api/billing/subscription/quote` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `subscription_quote` |
+| POST | `/app/api/billing/subscription/reactivate` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `reactivate_subscription` |
 | POST | `/app/api/domains` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_domain_create` |
 | POST | `/app/api/domains/{item_id}/verify` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_domain_verify` |
 | POST | `/app/api/email/send` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_send` |
