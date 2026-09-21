@@ -1,0 +1,39 @@
+from decimal import Decimal
+
+import pytest
+from fastapi import HTTPException
+
+from apps.gateway.app.billing_refunds import (
+    confirmed_refund_total,
+    refundable_amount,
+    validate_dispute_state,
+    validate_refund_amount,
+    validate_refund_transition,
+)
+
+
+class Refund:
+    def __init__(self, amount: str):
+        self.amount = Decimal(amount)
+
+
+def test_refundable_amount_uses_confirmed_refunds_only_from_supplied_records():
+    refunds = [Refund("25.00"), Refund("10.00")]
+    assert confirmed_refund_total(refunds) == Decimal("35.00")
+    assert refundable_amount("100.00", refunds) == Decimal("65.00")
+
+
+def test_refund_amount_rejects_over_refund_and_non_positive_amounts():
+    with pytest.raises(HTTPException, match="refund_exceeds_refundable_amount"):
+        validate_refund_amount("100.00", [Refund("75.00")], "25.01")
+    with pytest.raises(HTTPException, match="refund_amount_must_be_positive"):
+        validate_refund_amount("100.00", [], "0")
+
+
+def test_refund_and_dispute_state_transitions_are_fail_closed():
+    validate_refund_transition("REQUESTED", "PROVIDER_PENDING")
+    validate_dispute_state("EVIDENCE_REQUIRED")
+    with pytest.raises(HTTPException, match="invalid_refund_transition"):
+        validate_refund_transition("CONFIRMED", "REQUESTED")
+    with pytest.raises(HTTPException, match="invalid_dispute_state"):
+        validate_dispute_state("PROVIDER_CONFIRMED")
