@@ -5,6 +5,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Iterable
 
 from fastapi import HTTPException
+from sqlalchemy import func, select
 
 
 REFUND_STATES = {"REQUESTED", "PROVIDER_PENDING", "CONFIRMED", "FAILED", "REVERSED"}
@@ -37,6 +38,44 @@ def confirmed_refund_total(refunds: Iterable[object]) -> Decimal:
 
 def refundable_amount(payment_amount: Decimal | int | str, refunds: Iterable[object]) -> Decimal:
     return max(money(payment_amount) - confirmed_refund_total(refunds), Decimal("0.00"))
+
+
+def canonical_refundable_amount(session, *, tenant_id: str, invoice_id: str, currency: str) -> Decimal:
+    """Calculate refundable money from canonical confirmed financial rows only."""
+    from .billing import Credit, Payment, Refund
+
+    confirmed_payments = session.scalar(
+        select(func.coalesce(func.sum(Payment.amount), 0)).where(
+            Payment.tenant_id == tenant_id,
+            Payment.invoice_id == invoice_id,
+            Payment.currency == currency,
+            Payment.status == "CONFIRMED",
+        )
+    )
+    confirmed_refunds = session.scalar(
+        select(func.coalesce(func.sum(Refund.amount), 0)).where(
+            Refund.tenant_id == tenant_id,
+            Refund.payment_id.in_(
+                select(Payment.id).where(
+                    Payment.tenant_id == tenant_id,
+                    Payment.invoice_id == invoice_id,
+                    Payment.currency == currency,
+                )
+            ),
+            Refund.status == "CONFIRMED",
+        )
+    )
+    credits = session.scalar(
+        select(func.coalesce(func.sum(Credit.amount), 0)).where(
+            Credit.tenant_id == tenant_id,
+            Credit.invoice_id == invoice_id,
+            Credit.currency == currency,
+        )
+    )
+    return max(
+        money(confirmed_payments) - money(confirmed_refunds) - money(credits),
+        Decimal("0.00"),
+    )
 
 
 def validate_refund_amount(
