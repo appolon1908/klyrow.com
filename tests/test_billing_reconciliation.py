@@ -9,6 +9,7 @@ from apps.gateway.app.main import Base, Tenant
 from apps.gateway.app.billing import Invoice, Payment
 from apps.gateway.app.billing_reconciliation import reconcile_billing
 from apps.gateway.app.billing_reconciliation_worker import run_billing_reconciliation
+from apps.gateway.app.billing_provider_events import BillingProviderEvent
 from apps.gateway.app.payment_attempts import CAPTURED, PaymentAttempt
 
 
@@ -85,6 +86,32 @@ def test_worker_report_is_read_only_and_stable():
     assert report["issue_count"] == 1
     assert report["issues"][0]["code"] == "invoice_paid_with_remaining_due"
     assert session.get(Invoice, invoice.id).status == "PAID"
+    session.close()
+    engine.dispose()
+
+
+def test_provider_event_exact_correlation_is_reported():
+    engine, session = _session()
+    session.add(Tenant(id="tenant-a", name="A", quota=100))
+    invoice = _invoice("tenant-a")
+    attempt = PaymentAttempt(
+        id="attempt-a", tenant_id="tenant-a", invoice_id=invoice.id, provider="stripe",
+        idempotency_key="attempt-key", request_fingerprint="fingerprint", amount_minor=1000,
+        currency="USD", status="PENDING", created_by="user-a",
+    )
+    event = BillingProviderEvent(
+        id="event-a", provider="stripe", provider_event_id="evt-a",
+        event_type="payment_intent.succeeded", tenant_id="tenant-a",
+        payment_attempt_id=attempt.id, invoice_id="wrong-invoice", livemode=False,
+        payload_json='{"data":{"object":{"currency":"EUR","amount_received":900}}}',
+        payload_hash="hash", processing_state="RECEIVED",
+    )
+    session.add_all([invoice, attempt, event])
+    session.commit()
+
+    codes = {item.code for item in reconcile_billing(session, tenant_id="tenant-a")}
+
+    assert {"provider_event_invoice_mismatch", "provider_event_currency_mismatch", "provider_event_amount_mismatch"} <= codes
     session.close()
     engine.dispose()
 

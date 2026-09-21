@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
+import json
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
@@ -59,8 +60,9 @@ def reconcile_billing(session: Session, *, tenant_id: str | None = None) -> list
 
     attempts = session.scalars(attempt_query).all()
     payments = session.scalars(payment_query).all()
+    attempts_by_id = {item.id: item for item in attempts}
+    invoices_by_id = {item.id: item for item in session.scalars(invoice_query).all()}
     payments_by_attempt = {item.payment_attempt_id: item for item in payments if item.payment_attempt_id}
-    payments_by_id = {item.id: item for item in payments}
 
     for attempt in attempts:
         payment = payments_by_attempt.get(attempt.id)
@@ -80,8 +82,26 @@ def reconcile_billing(session: Session, *, tenant_id: str | None = None) -> list
                 issues.append(_issue("confirmed_payment_attempt_not_captured", attempt.tenant_id, attempt.id, payment_id=payment.id))
 
     for event in session.scalars(event_query).all():
-        if event.payment_attempt_id and not any(item.id == event.payment_attempt_id for item in attempts):
+        attempt = attempts_by_id.get(event.payment_attempt_id) if event.payment_attempt_id else None
+        if event.payment_attempt_id and attempt is None:
             issues.append(_issue("provider_event_attempt_missing", event.tenant_id or "", event.id))
+        if attempt is not None:
+            if event.tenant_id != attempt.tenant_id:
+                issues.append(_issue("provider_event_tenant_mismatch", event.tenant_id or "", event.id, attempt_id=attempt.id))
+            if event.invoice_id and event.invoice_id != attempt.invoice_id:
+                issues.append(_issue("provider_event_invoice_mismatch", event.tenant_id or "", event.id, attempt_id=attempt.id))
+            try:
+                payload = json.loads(event.payload_json or "{}")
+            except (TypeError, ValueError):
+                payload = {}
+            obj = payload.get("data", {}).get("object", {}) if isinstance(payload, dict) else {}
+            if isinstance(obj, dict):
+                provider_currency = str(obj.get("currency") or "").upper()
+                provider_amount = obj.get("amount_total", obj.get("amount_received"))
+                if provider_currency and provider_currency != attempt.currency:
+                    issues.append(_issue("provider_event_currency_mismatch", event.tenant_id or "", event.id, attempt_id=attempt.id))
+                if isinstance(provider_amount, int) and provider_amount != attempt.amount_minor:
+                    issues.append(_issue("provider_event_amount_mismatch", event.tenant_id or "", event.id, attempt_id=attempt.id))
         claimed_at = event.claimed_at
         if claimed_at is not None and claimed_at.tzinfo is None:
             claimed_at = claimed_at.replace(tzinfo=timezone.utc)
@@ -109,7 +129,7 @@ def reconcile_billing(session: Session, *, tenant_id: str | None = None) -> list
             issues.append(_issue("refund_exceeds_payment", invoice.tenant_id, invoice.id))
 
     for payment in payments:
-        if payment.invoice_id is None:
+        if payment.invoice_id is None or payment.invoice_id not in invoices_by_id:
             issues.append(_issue("confirmed_payment_without_invoice", payment.tenant_id, payment.id))
     duplicate_attempts = session.execute(select(Payment.payment_attempt_id, func.count(Payment.id)).where(
         Payment.payment_attempt_id.is_not(None)
