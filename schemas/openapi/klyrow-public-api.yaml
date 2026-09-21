@@ -2138,27 +2138,6 @@
         "title": "SupportIn",
         "type": "object"
       },
-      "SuppressionIn": {
-        "properties": {
-          "email": {
-            "format": "email",
-            "title": "Email",
-            "type": "string"
-          },
-          "reason": {
-            "default": "policy",
-            "maxLength": 120,
-            "minLength": 2,
-            "title": "Reason",
-            "type": "string"
-          }
-        },
-        "required": [
-          "email"
-        ],
-        "title": "SuppressionIn",
-        "type": "object"
-      },
       "TemplateIn": {
         "properties": {
           "html_body": {
@@ -2890,6 +2869,27 @@
           "events"
         ],
         "title": "WebhookIn",
+        "type": "object"
+      },
+      "apps__gateway__app__production_api__SuppressionIn": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "reason": {
+            "default": "policy",
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "SuppressionIn",
         "type": "object"
       },
       "apps__gateway__app__saas__EventIn": {
@@ -22521,7 +22521,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SuppressionIn"
+                "$ref": "#/components/schemas/apps__gateway__app__production_api__SuppressionIn"
               }
             }
           },

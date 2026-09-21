@@ -490,6 +490,41 @@
     "method": "POST"
   },
   {
+    "declared_path": "/profiles",
+    "file": "apps/gateway/app/browser_profiles_suppressions.py",
+    "handler": "profiles",
+    "line": 83,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/profiles/{profile_id}",
+    "file": "apps/gateway/app/browser_profiles_suppressions.py",
+    "handler": "profile",
+    "line": 108,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/suppressions",
+    "file": "apps/gateway/app/browser_profiles_suppressions.py",
+    "handler": "suppressions",
+    "line": 118,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/suppressions",
+    "file": "apps/gateway/app/browser_profiles_suppressions.py",
+    "handler": "add_suppression",
+    "line": 144,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/suppressions/{suppression_id}",
+    "file": "apps/gateway/app/browser_profiles_suppressions.py",
+    "handler": "remove_suppression",
+    "line": 169,
+    "method": "DELETE"
+  },
+  {
     "declared_path": "/auth/login",
     "file": "apps/gateway/app/browser_security_fixes.py",
     "handler": "login_start",
@@ -1634,35 +1669,35 @@
     "declared_path": "/admin",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 158,
+    "line": 160,
     "method": "GET"
   },
   {
     "declared_path": "/admin/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 158,
+    "line": 160,
     "method": "GET"
   },
   {
     "declared_path": "/app",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 166,
+    "line": 168,
     "method": "GET"
   },
   {
     "declared_path": "/app/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 166,
+    "line": 168,
     "method": "GET"
   },
   {
     "declared_path": "/onboarding",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 166,
+    "line": 168,
     "method": "GET"
   },
   {

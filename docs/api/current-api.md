@@ -9,6 +9,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | DELETE | `/app/api/mailboxes/{mailbox_id}/access/{user_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `revoke_access` |
 | DELETE | `/app/api/mailboxes/{mailbox_id}/messages/{message_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `delete_message` |
 | DELETE | `/app/api/media/{asset_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `media_delete` |
+| DELETE | `/app/api/suppressions/{suppression_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `remove_suppression` |
 | DELETE | `/auth/sessions/{session_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `revoke_user_session` |
 | DELETE | `/v1/api-keys/{kid}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `revoke` |
 | DELETE | `/v1/auth/sessions/{sid}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `session_revoke` |
@@ -63,8 +64,11 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/media/{asset_id}/events` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `media_events` |
 | GET | `/app/api/messages` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_messages` |
 | GET | `/app/api/onboarding` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `onboarding_get` |
+| GET | `/app/api/profiles` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `profiles` |
+| GET | `/app/api/profiles/{profile_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `profile` |
 | GET | `/app/api/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `provisioning_status` |
 | GET | `/app/api/senders` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_senders` |
+| GET | `/app/api/suppressions` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `suppressions` |
 | GET | `/app/api/team` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_team` |
 | GET | `/app/{path:path}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | false | `product_app_ui` |
 | GET | `/assets/admin.js` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `admin_js` |
@@ -255,6 +259,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/app/api/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `request_provisioning` |
 | POST | `/app/api/provisioning/postal/retry` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `retry_provisioning` |
 | POST | `/app/api/senders` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_sender_create` |
+| POST | `/app/api/suppressions` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `add_suppression` |
 | POST | `/app/api/team/invitations` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_invite` |
 | POST | `/auth/actions/invitation` | BROWSER_BFF | OIDC_PRE_SESSION_OR_SIGNED_BROWSER_ACTION | true | `validate_invitation` |
 | POST | `/auth/actions/recover` | BROWSER_BFF | OIDC_PRE_SESSION_OR_SIGNED_BROWSER_ACTION | true | `begin_recovery` |
