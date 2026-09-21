@@ -60,6 +60,28 @@ def test_invalid_signature_does_not_persist_event(monkeypatch, tmp_path):
         client.close()
 
 
+def test_production_webhook_requires_live_charging(monkeypatch, tmp_path):
+    Base.metadata.drop_all(engine); Base.metadata.create_all(engine)
+    secret = tmp_path / "stripe-webhook"; secret.write_text("whsec_test_fixture")
+    api_key = tmp_path / "stripe-api"; api_key.write_text("sk_live_fixture")
+    monkeypatch.setenv("KLYROW_BILLING_ENABLED", "true")
+    monkeypatch.setenv("KLYROW_LIVE_CHARGING_ENABLED", "false")
+    monkeypatch.setenv("KLYROW_STRIPE_ENABLED", "true")
+    monkeypatch.setenv("KLYROW_STRIPE_ENVIRONMENT", "production")
+    monkeypatch.setenv("KLYROW_STRIPE_PRODUCTION_APPROVED", "true")
+    monkeypatch.setenv("KLYROW_STRIPE_SECRET_FILE", str(api_key))
+    monkeypatch.setenv("KLYROW_STRIPE_WEBHOOK_SECRET_FILE", str(secret))
+    monkeypatch.setenv("KLYROW_STRIPE_CURRENCY_ALLOWLIST", "USD")
+    monkeypatch.setenv("KLYROW_BILLING_WEBHOOK_PROCESSING_ENABLED", "true")
+    client = TestClient(app)
+    try:
+        response = client.post("/v1/internal/billing/providers/stripe/webhook", content=b'{"id":"evt","type":"checkout.session.completed"}', headers={"Stripe-Signature": "t=1,v1=invalid"})
+        assert response.status_code == 503
+        assert response.json()["detail"] == "live_charging_disabled"
+    finally:
+        client.close()
+
+
 def test_expired_processing_provider_events_are_recovered():
     Base.metadata.drop_all(engine); Base.metadata.create_all(engine)
     with DB() as session:
