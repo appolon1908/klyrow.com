@@ -20,7 +20,7 @@ from .delivery_safety import email_activation_status
 from .main import DB, email_outbox_loop, postal_retry_loop, recover_middleware_commands
 from .billing import BillingEvent, BillingWorkItem, now
 from .billing_provider_events import claim_provider_events, mark_provider_event_failure
-from .billing_settlement_worker import process_stripe_provider_event
+from .billing_settlement_worker import process_provider_event
 from .mautic_adapter import dispatch_mautic_outbox
 from .postal_provisioning import provisioning_tick
 from .provider import (
@@ -111,10 +111,7 @@ def billing_tick(max_attempts=8):
         for provider_event in provider_events:
             provider_event = session.get(type(provider_event), provider_event.id)
             try:
-                if provider_event.provider == "stripe":
-                    process_stripe_provider_event(session, provider_event)
-                else:
-                    mark_provider_event_failure(provider_event, "provider_unsupported", retryable=False)
+                process_provider_event(session, provider_event)
                 session.commit()
             except Exception:
                 session.rollback()

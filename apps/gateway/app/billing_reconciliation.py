@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .billing import Invoice, Payment, Refund
+from .billing import Dispute, Invoice, Payment, Refund
 from .billing_ledger import invoice_balance
 from .billing_provider_events import BillingProviderEvent
 from .main import db, require
@@ -94,17 +94,54 @@ def reconcile_billing(session: Session, *, tenant_id: str | None = None) -> list
                 payload = json.loads(event.payload_json or "{}")
             except (TypeError, ValueError):
                 payload = {}
-            obj = payload.get("data", {}).get("object", {}) if isinstance(payload, dict) else {}
-            if isinstance(obj, dict):
-                provider_currency = str(obj.get("currency") or "").upper()
-                provider_amount = obj.get("amount_total", obj.get("amount_received"))
+            if event.provider == "stripe":
+                obj = payload.get("data", {}).get("object", {}) if isinstance(payload, dict) else {}
+                if isinstance(obj, dict):
+                    provider_currency = str(obj.get("currency") or "").upper()
+                    provider_amount = obj.get("amount_total", obj.get("amount_received"))
+                    if provider_currency and provider_currency != attempt.currency:
+                        issues.append(_issue("provider_event_currency_mismatch", event.tenant_id or "", event.id, attempt_id=attempt.id))
+                    if isinstance(provider_amount, int) and provider_amount != attempt.amount_minor:
+                        issues.append(_issue("provider_event_amount_mismatch", event.tenant_id or "", event.id, attempt_id=attempt.id))
+            elif event.provider == "paypal":
+                resource = payload.get("resource", {}) if isinstance(payload, dict) else {}
+                amount = resource.get("amount", {}) if isinstance(resource, dict) else {}
+                provider_currency = str(amount.get("currency_code") or "").upper() if isinstance(amount, dict) else ""
+                provider_value = amount.get("value") if isinstance(amount, dict) else None
                 if provider_currency and provider_currency != attempt.currency:
                     issues.append(_issue("provider_event_currency_mismatch", event.tenant_id or "", event.id, attempt_id=attempt.id))
-                if isinstance(provider_amount, int) and provider_amount != attempt.amount_minor:
-                    issues.append(_issue("provider_event_amount_mismatch", event.tenant_id or "", event.id, attempt_id=attempt.id))
+                if provider_value is not None:
+                    try:
+                        provider_amount = int((Decimal(str(provider_value)) * 100).to_integral_exact())
+                    except Exception:
+                        provider_amount = None
+                    if provider_amount is not None and provider_amount != attempt.amount_minor:
+                        issues.append(_issue("provider_event_amount_mismatch", event.tenant_id or "", event.id, attempt_id=attempt.id))
         claimed_at = event.claimed_at
         if claimed_at is not None and claimed_at.tzinfo is None:
             claimed_at = claimed_at.replace(tzinfo=timezone.utc)
+        if event.provider == "paypal" and event.event_type == "PAYMENT.CAPTURE.REFUNDED":
+            try:
+                payload = json.loads(event.payload_json or "{}")
+            except (TypeError, ValueError):
+                payload = {}
+            resource = payload.get("resource", {}) if isinstance(payload, dict) else {}
+            provider_ref = resource.get("id") if isinstance(resource, dict) else None
+            if isinstance(provider_ref, str) and provider_ref and session.scalar(
+                select(Refund).where(Refund.provider_reference == provider_ref)
+            ) is None:
+                issues.append(_issue("paypal_refund_evidence_unmatched", event.tenant_id or "", event.id, attempt_id=event.payment_attempt_id))
+        if event.provider == "paypal" and event.event_type in {"CUSTOMER.DISPUTE.CREATED", "CUSTOMER.DISPUTE.RESOLVED"}:
+            try:
+                payload = json.loads(event.payload_json or "{}")
+            except (TypeError, ValueError):
+                payload = {}
+            resource = payload.get("resource", {}) if isinstance(payload, dict) else {}
+            provider_ref = resource.get("id") if isinstance(resource, dict) else None
+            if isinstance(provider_ref, str) and provider_ref and session.scalar(
+                select(Dispute).where(Dispute.provider_reference == provider_ref)
+            ) is None:
+                issues.append(_issue("paypal_dispute_evidence_unmatched", event.tenant_id or "", event.id, attempt_id=event.payment_attempt_id))
         if (
             event.processing_state == "PROCESSING"
             and claimed_at is not None
