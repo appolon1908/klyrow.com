@@ -10,6 +10,7 @@ EXPECTED = {
     "/app/api/billing/catalog",
     "/app/api/billing/entitlements",
     "/app/api/billing/subscription/quote",
+    "/app/api/billing/subscription/change",
     "/app/api/billing/subscription/cancel",
     "/app/api/billing/subscription/reactivate",
     "/app/api/billing/invoices",
@@ -37,6 +38,7 @@ def test_billing_browser_surface_is_get_only_and_complete():
     allowed_mutations = {
         ("/app/api/billing/invoices/{invoice_id}/checkout", "POST"),
         ("/app/api/billing/subscription/quote", "POST"),
+        ("/app/api/billing/subscription/change", "POST"),
         ("/app/api/billing/subscription/cancel", "POST"),
         ("/app/api/billing/subscription/reactivate", "POST"),
     }

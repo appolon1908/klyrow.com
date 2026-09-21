@@ -47,6 +47,10 @@ class SubscriptionLifecycleIn(BaseModel):
     expected_version: int = Field(ge=1)
 
 
+class SubscriptionChangeIn(SubscriptionLifecycleIn):
+    plan_code: str = Field(min_length=2, max_length=40)
+
+
 def _tenant_subscription(s: Session, tenant_id: str) -> BillingSubscription:
     item = s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id == tenant_id).with_for_update())
     if item is None:
@@ -246,6 +250,31 @@ def subscription_quote(payload: SubscriptionQuoteIn, ctx: dict[str, Any] = Depen
         raise HTTPException(404, "active_plan_price_not_found")
     quote = quote_plan_change(old_price=old.base_amount, new_price=price.base_amount, period_start=_utc(item.period_start), period_end=_utc(item.period_end), at=now())
     return {"current_plan": item.plan_id, "target_plan": plan.code, "target_price_version": price.version, "effective": quote.effective, "charge": str(quote.charge), "credit": str(quote.credit), "fraction_remaining": str(quote.fraction_remaining)}
+
+
+@router.post("/subscription/change")
+def change_subscription(payload: SubscriptionChangeIn, ctx: dict[str, Any] = Depends(billing_manage_context), s: Session = Depends(db)) -> dict[str, Any]:
+    item = _tenant_subscription(s, ctx["tenant"])
+    try:
+        require_version(SubscriptionSnapshot(state=SubscriptionState(item.status), version=item.version, period_end=item.period_end), payload.expected_version)
+    except ValueError:
+        raise HTTPException(409, "subscription_version_conflict") from None
+    plan = s.scalar(select(BillingPlan).where(BillingPlan.code == payload.plan_code, BillingPlan.active.is_(True)))
+    price = s.scalar(select(BillingPrice).where(BillingPrice.plan_id == plan.id, BillingPrice.retired_at.is_(None)).order_by(BillingPrice.version.desc())) if plan else None
+    old = s.get(BillingPrice, item.price_id)
+    if plan is None or price is None or old is None:
+        raise HTTPException(404, "active_plan_price_not_found")
+    quote = quote_plan_change(old_price=old.base_amount, new_price=price.base_amount, period_start=_utc(item.period_start), period_end=_utc(item.period_end), at=now())
+    if quote.effective == "NEXT_PERIOD":
+        raise HTTPException(409, "downgrade_requires_period_end")
+    item.plan_id = plan.id
+    item.price_id = price.id
+    item.version += 1
+    event = BillingEvent(id=str(uuid.uuid4()), tenant_id=item.tenant_id, kind="subscription.plan_changed", reference=item.id, payload_json=json.dumps({"old_price_id": old.id, "new_price_id": price.id, "proration_charge": str(quote.charge)}, sort_keys=True))
+    s.add(event)
+    enqueue_subscription_changed(s, item, causation_id=event.id)
+    s.commit()
+    return {"id": item.id, "status": item.status, "version": item.version, "effective": quote.effective, "charge": str(quote.charge), "credit": str(quote.credit)}
 
 
 def _change_browser_subscription(target: SubscriptionState, expected_version: int, ctx: dict[str, Any], s: Session) -> dict[str, Any]:
