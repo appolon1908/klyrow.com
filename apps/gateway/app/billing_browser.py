@@ -1,7 +1,7 @@
 """Authenticated, read-only browser billing BFF for the customer portal."""
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
@@ -26,7 +26,7 @@ from .billing import (
     WalletTransaction,
 )
 from .billing_ledger import invoice_balance
-from .billing_entitlements import SubscriptionState, calculate_entitlements
+from .billing_entitlements import SubscriptionState, calculate_entitlements, require_version
 from .billing_entitlements import SubscriptionSnapshot, transition as apply_subscription_transition
 from .billing_proration import quote_plan_change
 from .billing import enqueue_subscription_changed
@@ -43,11 +43,19 @@ class SubscriptionQuoteIn(BaseModel):
     plan_code: str = Field(min_length=2, max_length=40)
 
 
+class SubscriptionLifecycleIn(BaseModel):
+    expected_version: int = Field(ge=1)
+
+
 def _tenant_subscription(s: Session, tenant_id: str) -> BillingSubscription:
     item = s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id == tenant_id).with_for_update())
     if item is None:
         raise HTTPException(404, "subscription_not_found")
     return item
+
+
+def _utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 
 
 def _subscription_entitlements(s: Session, item: BillingSubscription) -> dict[str, Any]:
@@ -236,13 +244,14 @@ def subscription_quote(payload: SubscriptionQuoteIn, ctx: dict[str, Any] = Depen
     old = s.get(BillingPrice, item.price_id)
     if plan is None or price is None or old is None:
         raise HTTPException(404, "active_plan_price_not_found")
-    quote = quote_plan_change(old_price=old.base_amount, new_price=price.base_amount, period_start=item.period_start, period_end=item.period_end, at=now())
+    quote = quote_plan_change(old_price=old.base_amount, new_price=price.base_amount, period_start=_utc(item.period_start), period_end=_utc(item.period_end), at=now())
     return {"current_plan": item.plan_id, "target_plan": plan.code, "target_price_version": price.version, "effective": quote.effective, "charge": str(quote.charge), "credit": str(quote.credit), "fraction_remaining": str(quote.fraction_remaining)}
 
 
-def _change_browser_subscription(target: SubscriptionState, ctx: dict[str, Any], s: Session) -> dict[str, Any]:
+def _change_browser_subscription(target: SubscriptionState, expected_version: int, ctx: dict[str, Any], s: Session) -> dict[str, Any]:
     item = _tenant_subscription(s, ctx["tenant"])
     try:
+        require_version(SubscriptionSnapshot(state=SubscriptionState(item.status), version=item.version, period_end=item.period_end), expected_version)
         updated = apply_subscription_transition(SubscriptionSnapshot(state=SubscriptionState(item.status), version=item.version, period_end=item.period_end, trial_end=item.trial_end, cancel_at_period_end=item.cancel_at_period_end), target)
     except (ValueError, KeyError):
         raise HTTPException(409, "invalid_subscription_transition") from None
@@ -257,13 +266,13 @@ def _change_browser_subscription(target: SubscriptionState, ctx: dict[str, Any],
 
 
 @router.post("/subscription/cancel")
-def cancel_subscription(ctx: dict[str, Any] = Depends(billing_manage_context), s: Session = Depends(db)) -> dict[str, Any]:
-    return _change_browser_subscription(SubscriptionState.CANCEL_AT_PERIOD_END, ctx, s)
+def cancel_subscription(payload: SubscriptionLifecycleIn, ctx: dict[str, Any] = Depends(billing_manage_context), s: Session = Depends(db)) -> dict[str, Any]:
+    return _change_browser_subscription(SubscriptionState.CANCEL_AT_PERIOD_END, payload.expected_version, ctx, s)
 
 
 @router.post("/subscription/reactivate")
-def reactivate_subscription(ctx: dict[str, Any] = Depends(billing_manage_context), s: Session = Depends(db)) -> dict[str, Any]:
-    return _change_browser_subscription(SubscriptionState.ACTIVE, ctx, s)
+def reactivate_subscription(payload: SubscriptionLifecycleIn, ctx: dict[str, Any] = Depends(billing_manage_context), s: Session = Depends(db)) -> dict[str, Any]:
+    return _change_browser_subscription(SubscriptionState.ACTIVE, payload.expected_version, ctx, s)
 
 
 @router.get("/invoices")
