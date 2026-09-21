@@ -34,7 +34,6 @@
             "type": "string"
           },
           "context": {
-            "additionalProperties": true,
             "title": "Context",
             "type": "object"
           },
@@ -98,7 +97,6 @@
             "type": "string"
           },
           "payload": {
-            "additionalProperties": true,
             "title": "Payload",
             "type": "object"
           }
@@ -273,7 +271,6 @@
             "type": "string"
           },
           "proof": {
-            "additionalProperties": true,
             "title": "Proof",
             "type": "object"
           },
@@ -313,7 +310,6 @@
             "type": "string"
           },
           "metadata": {
-            "additionalProperties": true,
             "default": {},
             "title": "Metadata",
             "type": "object"
@@ -347,7 +343,6 @@
           "metadata": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -392,7 +387,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -491,7 +485,6 @@
           },
           "variants": {
             "items": {
-              "additionalProperties": true,
               "type": "object"
             },
             "maxItems": 10,
@@ -556,7 +549,6 @@
         "properties": {
           "attachments": {
             "items": {
-              "additionalProperties": true,
               "type": "object"
             },
             "maxItems": 50,
@@ -564,7 +556,6 @@
             "type": "array"
           },
           "headers": {
-            "additionalProperties": true,
             "title": "Headers",
             "type": "object"
           },
@@ -676,7 +667,6 @@
       "IntegrationIn": {
         "properties": {
           "config": {
-            "additionalProperties": true,
             "title": "Config",
             "type": "object"
           },
@@ -762,7 +752,6 @@
             "title": "Goal Event"
           },
           "graph": {
-            "additionalProperties": true,
             "title": "Graph",
             "type": "object"
           },
@@ -920,7 +909,6 @@
       "MailIn": {
         "properties": {
           "callback_metadata": {
-            "additionalProperties": true,
             "title": "Callback Metadata",
             "type": "object"
           },
@@ -1027,7 +1015,6 @@
             "type": "string"
           },
           "tracking": {
-            "additionalProperties": true,
             "title": "Tracking",
             "type": "object"
           }
@@ -1067,7 +1054,6 @@
             "title": "Operation Id"
           },
           "payload": {
-            "additionalProperties": true,
             "title": "Payload",
             "type": "object"
           },
@@ -1207,7 +1193,6 @@
             "title": "Correlation Id"
           },
           "payload": {
-            "additionalProperties": true,
             "title": "Payload",
             "type": "object"
           },
@@ -1378,7 +1363,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -1557,7 +1541,6 @@
             "type": "array"
           },
           "filters": {
-            "additionalProperties": true,
             "title": "Filters",
             "type": "object"
           },
@@ -1602,7 +1585,6 @@
       "ProfileIn": {
         "properties": {
           "attributes": {
-            "additionalProperties": true,
             "title": "Attributes",
             "type": "object"
           },
@@ -1791,7 +1773,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -1851,7 +1832,6 @@
             "type": "string"
           },
           "payload": {
-            "additionalProperties": true,
             "title": "Payload",
             "type": "object"
           },
@@ -1928,7 +1908,6 @@
             "type": "string"
           },
           "rules": {
-            "additionalProperties": true,
             "title": "Rules",
             "type": "object"
           }
@@ -2069,7 +2048,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -2501,7 +2479,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -2779,7 +2756,6 @@
             "type": "string"
           },
           "tracking": {
-            "additionalProperties": true,
             "title": "Tracking",
             "type": "object"
           }
@@ -2803,7 +2779,6 @@
             "type": "string"
           },
           "payload": {
-            "additionalProperties": true,
             "title": "Payload",
             "type": "object"
           }
@@ -2818,7 +2793,6 @@
       "apps__gateway__app__messaging__RenderIn": {
         "properties": {
           "variables": {
-            "additionalProperties": true,
             "title": "Variables",
             "type": "object"
           }
@@ -2930,7 +2904,6 @@
             "type": "string"
           },
           "properties": {
-            "additionalProperties": true,
             "title": "Properties",
             "type": "object"
           },
@@ -2958,7 +2931,6 @@
             "type": "string"
           },
           "variables": {
-            "additionalProperties": true,
             "title": "Variables",
             "type": "object"
           }
@@ -5017,7 +4989,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Billing Account V1 Billing Account Get",
                   "type": "object"
                 }
@@ -6903,7 +6874,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Billing Plans V1 Billing Plans Get",
                   "type": "object"
                 }
@@ -8145,7 +8115,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Bounces V1 Bounces Get",
                   "type": "object"
                 }
@@ -9201,7 +9170,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Campaign Cancel V1 Campaigns  Campaign Id  Cancel Post",
                   "type": "object"
                 }
@@ -9310,7 +9278,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Campaign Dispatch Configuration V1 Campaigns  Campaign Id  Dispatch Configuration Put",
                   "type": "object"
                 }
@@ -9417,7 +9384,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Campaign Pause V1 Campaigns  Campaign Id  Pause Post",
                   "type": "object"
                 }
@@ -9527,7 +9493,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Campaign Resume V1 Campaigns  Campaign Id  Resume Post",
                   "type": "object"
                 }
@@ -9647,7 +9612,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Campaign Schedule V1 Campaigns  Campaign Id  Schedule Post",
                   "type": "object"
                 }
@@ -9760,7 +9724,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Campaign Test V1 Campaigns  Campaign Id  Test Post",
                   "type": "object"
                 }
@@ -10049,7 +10012,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Complaints V1 Complaints Get",
                   "type": "object"
                 }
@@ -12857,7 +12819,6 @@
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
                 "title": "X",
                 "type": "object"
               }
@@ -13332,7 +13293,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Domain Dns V1 Domains  Domain Id  Dns Get",
                   "type": "object"
                 }
@@ -13428,7 +13388,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Domain Verification V1 Domains  Domain Id  Verification Get",
                   "type": "object"
                 }
@@ -14904,7 +14863,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Mautic Command V1 Integrations Mautic Commands Post",
                   "type": "object"
                 }
@@ -14994,7 +14952,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Mautic Operations V1 Integrations Mautic Operations Get",
                   "type": "object"
                 }
@@ -15090,7 +15047,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Mautic Operation V1 Integrations Mautic Operations  Operation Id  Get",
                   "type": "object"
                 }
@@ -15197,7 +15153,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Mautic Reconcile V1 Integrations Mautic Operations  Operation Id  Reconcile Post",
                   "type": "object"
                 }
@@ -16033,7 +15988,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Lists V1 Lists Get",
                   "type": "object"
                 }
@@ -16574,7 +16528,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response My Capabilities V1 Me Capabilities Get",
                   "type": "object"
                 }
@@ -16661,7 +16614,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response My Permissions V1 Me Permissions Get",
                   "type": "object"
                 }
@@ -16748,7 +16700,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response My Sessions V1 Me Sessions Get",
                   "type": "object"
                 }
@@ -17297,7 +17248,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Message Cancel V1 Messages  Message Id  Cancel Post",
                   "type": "object"
                 }
@@ -17749,7 +17699,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Operations V1 Operations Get",
                   "type": "object"
                 }
@@ -17929,7 +17878,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Operation Attempts V1 Operations  Operation Id  Attempts Get",
                   "type": "object"
                 }
@@ -18036,7 +17984,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Operation Cancel V1 Operations  Operation Id  Cancel Post",
                   "type": "object"
                 }
@@ -18135,7 +18082,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Operation Events V1 Operations  Operation Id  Events Get",
                   "type": "object"
                 }
@@ -18242,7 +18188,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Operation Reconcile V1 Operations  Operation Id  Reconcile Post",
                   "type": "object"
                 }
@@ -18700,7 +18645,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Organization Members V1 Organizations  Organization Id  Members Get",
                   "type": "object"
                 }
@@ -18804,7 +18748,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Organization Member Add V1 Organizations  Organization Id  Members Post",
                   "type": "object"
                 }
@@ -18919,7 +18862,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Organization Member Patch V1 Organizations  Organization Id  Members  Member Id  Patch",
                   "type": "object"
                 }
@@ -20409,7 +20351,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Postal Health V1 Providers Postal Health Get",
                   "type": "object"
                 }
@@ -20496,7 +20437,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Postal Status V1 Providers Postal Status Get",
                   "type": "object"
                 }
@@ -22627,7 +22567,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Suppression Check V1 Suppressions Check Get",
                   "type": "object"
                 }
@@ -23953,7 +23892,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Template Detail V1 Templates  Template Id  Get",
                   "type": "object"
                 }
@@ -24057,7 +23995,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Template Patch V1 Templates  Template Id  Patch",
                   "type": "object"
                 }

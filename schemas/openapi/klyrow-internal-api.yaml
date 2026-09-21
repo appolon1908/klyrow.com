@@ -236,7 +236,6 @@
             "title": "Text"
           },
           "variables": {
-            "additionalProperties": true,
             "title": "Variables",
             "type": "object"
           }
@@ -278,7 +277,6 @@
             "title": "From"
           },
           "metadata": {
-            "additionalProperties": true,
             "title": "Metadata",
             "type": "object"
           },
@@ -343,7 +341,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -365,7 +362,6 @@
             "type": "string"
           },
           "features": {
-            "additionalProperties": true,
             "title": "Features",
             "type": "object"
           },
@@ -385,7 +381,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -636,7 +631,6 @@
       "MailIn": {
         "properties": {
           "callback_metadata": {
-            "additionalProperties": true,
             "title": "Callback Metadata",
             "type": "object"
           },
@@ -743,7 +737,6 @@
             "type": "string"
           },
           "tracking": {
-            "additionalProperties": true,
             "title": "Tracking",
             "type": "object"
           }
@@ -1242,7 +1235,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -1270,7 +1262,6 @@
                 "type": "number"
               },
               {
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -3774,7 +3765,6 @@
                     "type": "string"
                   },
                   "metadata": {
-                    "additionalProperties": true,
                     "title": "Metadata",
                     "type": "object"
                   },
@@ -3880,7 +3870,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Submit V1 Email Messages Post",
                   "type": "object"
                 }
@@ -3979,7 +3968,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Readback V1 Email Messages  Command Id  Get",
                   "type": "object"
                 }
@@ -4163,6 +4151,111 @@
         "x-klyrow-audience": "INTERNAL",
         "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE",
         "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/v1/internal/billing/reconciliation": {
+      "get": {
+        "description": "Return an operator-only, read-only reconciliation report.",
+        "operationId": "reconciliation_report_v1_internal_billing_reconciliation_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenant_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Reconciliation Report V1 Internal Billing Reconciliation Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Reconciliation Report",
+        "tags": [
+          "Billing reconciliation"
+        ],
+        "x-klyrow-audience": "INTERNAL",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
       }
     },
     "/v1/internal/email/beyvra/send": {
@@ -7497,7 +7590,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Receive Alertmanager Events V1 Internal Integrations Alertmanager Events Post",
                   "type": "object"
                 }
@@ -7606,7 +7698,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Receive Kpi Snapshot V1 Internal Integrations Kpis Snapshots Post",
                   "type": "object"
                 }
@@ -7694,7 +7785,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Observability Contract V1 Internal Integrations Observability Contract Get",
                   "type": "object"
                 }
@@ -7782,7 +7872,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Odoo Checkpoints V1 Internal Integrations Odoo Checkpoints Get",
                   "type": "object"
                 }
@@ -7870,7 +7959,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Odoo Health V1 Internal Integrations Odoo Health Get",
                   "type": "object"
                 }
@@ -7968,7 +8056,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Create Sender Identity V1 Internal Sender Identities Post",
                   "type": "object"
                 }
@@ -8064,7 +8151,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Get Sender Identity V1 Internal Sender Identities  Item Id  Get",
                   "type": "object"
                 }
@@ -8160,7 +8246,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Disable Sender Identity V1 Internal Sender Identities  Item Id  Disable Post",
                   "type": "object"
                 }
@@ -8247,7 +8332,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response System Capabilities V1 System Capabilities Get",
                   "type": "object"
                 }
@@ -8334,7 +8418,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response System Readiness V1 System Readiness Get",
                   "type": "object"
                 }

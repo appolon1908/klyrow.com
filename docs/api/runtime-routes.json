@@ -871,6 +871,12 @@
   },
   {
     "documented": true,
+    "handler": "reconciliation_report",
+    "method": "GET",
+    "path": "/v1/internal/billing/reconciliation"
+  },
+  {
+    "documented": true,
     "handler": "canonical_domains",
     "method": "GET",
     "path": "/v1/internal/email/communications/domains"

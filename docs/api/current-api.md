@@ -151,6 +151,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/v1/inbound/routes` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `inbound_routes` |
 | GET | `/v1/integrations/mautic/operations` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `mautic_operations` |
 | GET | `/v1/integrations/mautic/operations/{operation_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `mautic_operation` |
+| GET | `/v1/internal/billing/reconciliation` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `reconciliation_report` |
 | GET | `/v1/internal/email/communications/domains` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `canonical_domains` |
 | GET | `/v1/internal/email/communications/messages/{messageId}` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `canonical_message_get` |
 | GET | `/v1/internal/email/communications/messages/{messageId}/events` | INTERNAL | BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE | true | `canonical_message_events` |

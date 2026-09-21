@@ -315,7 +315,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Tracking Events V1 Tracking Events Get",
                   "type": "object"
                 }
@@ -505,7 +504,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Tracking Message V1 Tracking Messages  Message Id  Get",
                   "type": "object"
                 }
