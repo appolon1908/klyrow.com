@@ -54,6 +54,41 @@ def test_suspended_subscription_loses_entitlements_without_financial_mutation():
     ) == {"send": False, "messages": False}
 
 
+def test_rich_entitlements_report_consumable_quotas_and_policy_features():
+    assert calculate_entitlements(
+        state=SubscriptionState.ACTIVE,
+        features={
+            "seats": 8,
+            "domains": 3,
+            "profiles": 25,
+            "messages": 1000,
+            "api": {"enabled": True, "requests": 50_000},
+            "retention_days": 90,
+        },
+        usage={
+            "seats": 2,
+            "domains": 1,
+            "profiles": 30,
+            "messages": 125,
+            "api_requests": 1_500,
+        },
+    ) == {
+        "seats": {"limit": 8, "used": 2, "remaining": 6},
+        "domains": {"limit": 3, "used": 1, "remaining": 2},
+        "profiles": {"limit": 25, "used": 30, "remaining": 0},
+        "messages": {"limit": 1000, "used": 125, "remaining": 875},
+        "api": {"enabled": True, "requests": {"limit": 50_000, "used": 1_500, "remaining": 48_500}},
+        "retention_days": {"days": 90},
+    }
+
+
+def test_inactive_subscription_disables_every_rich_entitlement():
+    assert calculate_entitlements(
+        state=SubscriptionState.SUSPENDED,
+        features={"seats": 8, "api": {"enabled": True, "requests": 50_000}, "retention_days": 90},
+    ) == {"seats": False, "api": False, "retention_days": False}
+
+
 def test_proration_is_deterministic_and_rounds_half_up():
     quote = quote_plan_change(
         old_price=Decimal("10.00"),

@@ -56,18 +56,57 @@ def require_version(snapshot: SubscriptionSnapshot, expected_version: int) -> No
         raise ValueError("subscription_version_conflict")
 
 
+QUOTA_ENTITLEMENTS = frozenset({"seats", "domains", "profiles", "messages"})
+
+
+def _quota(limit: int, used: int) -> dict[str, int]:
+    return {
+        "limit": limit,
+        "used": used,
+        "remaining": max(0, limit - used),
+    }
+
+
+def _usage(usage: Mapping[str, int], key: str) -> int:
+    value = usage.get(key, 0)
+    return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+
+def _api_entitlement(value: object, usage: Mapping[str, int]) -> object:
+    if isinstance(value, Mapping):
+        enabled = value.get("enabled", True)
+        result: dict[str, object] = {"enabled": enabled is True}
+        requests = value.get("requests")
+        if isinstance(requests, int) and not isinstance(requests, bool):
+            result["requests"] = _quota(requests, _usage(usage, "api_requests"))
+        return result
+    return value
+
+
 def calculate_entitlements(
     *,
     state: SubscriptionState,
     features: Mapping[str, object],
     usage: Mapping[str, int] | None = None,
 ) -> dict[str, object]:
-    """Return effective features without mutating financial history."""
+    """Return effective features without mutating financial history.
+
+    Standard plan features use ``seats``, ``domains``, ``profiles``, and
+    ``messages`` as consumable quotas. ``api`` accepts either a boolean or an
+    object with ``enabled`` and a request quota. ``retention_days`` is a
+    non-consumable policy value.
+    """
     usage = usage or {}
     if state in {SubscriptionState.SUSPENDED, SubscriptionState.CANCELLED, SubscriptionState.CLOSED}:
         return {key: False for key in features}
     result: dict[str, object] = dict(features)
     for key, value in features.items():
-        if isinstance(value, int) and not isinstance(value, bool):
-            result[key] = {"limit": value, "used": usage.get(key, 0), "remaining": max(0, value - usage.get(key, 0))}
+        if key in QUOTA_ENTITLEMENTS and isinstance(value, int) and not isinstance(value, bool):
+            result[key] = _quota(value, _usage(usage, key))
+        elif key == "api":
+            result[key] = _api_entitlement(value, usage)
+        elif key == "retention_days" and isinstance(value, int) and not isinstance(value, bool):
+            result[key] = {"days": value}
+        elif isinstance(value, int) and not isinstance(value, bool):
+            result[key] = _quota(value, _usage(usage, key))
     return result

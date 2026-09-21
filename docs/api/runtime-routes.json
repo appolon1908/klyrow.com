@@ -163,6 +163,18 @@
   },
   {
     "documented": true,
+    "handler": "credit_notes",
+    "method": "GET",
+    "path": "/app/api/billing/credit-notes"
+  },
+  {
+    "documented": true,
+    "handler": "credit_note_document_get",
+    "method": "GET",
+    "path": "/app/api/billing/credit-notes/{credit_note_id}/document"
+  },
+  {
+    "documented": true,
     "handler": "entitlements",
     "method": "GET",
     "path": "/app/api/billing/entitlements"
@@ -178,6 +190,12 @@
     "handler": "invoice_detail",
     "method": "GET",
     "path": "/app/api/billing/invoices/{invoice_id}"
+  },
+  {
+    "documented": true,
+    "handler": "invoice_document_get",
+    "method": "GET",
+    "path": "/app/api/billing/invoices/{invoice_id}/document"
   },
   {
     "documented": true,
@@ -202,6 +220,12 @@
     "handler": "payments",
     "method": "GET",
     "path": "/app/api/billing/payments"
+  },
+  {
+    "documented": true,
+    "handler": "payment_receipt",
+    "method": "GET",
+    "path": "/app/api/billing/payments/{payment_id}/receipt"
   },
   {
     "documented": true,

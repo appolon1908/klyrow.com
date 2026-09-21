@@ -927,6 +927,89 @@
         "x-klyrow-enforced-auth-dependencies": []
       }
     },
+    "/app/api/billing/credit-notes": {
+      "get": {
+        "operationId": "credit_notes_app_api_billing_credit_notes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Credit Notes App Api Billing Credit Notes Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Credit Notes",
+        "tags": [
+          "Browser billing documents"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/billing/credit-notes/{credit_note_id}/document": {
+      "get": {
+        "operationId": "credit_note_document_get_app_api_billing_credit_notes__credit_note_id__document_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "credit_note_id",
+            "required": true,
+            "schema": {
+              "title": "Credit Note Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Credit Note Document Get App Api Billing Credit Notes  Credit Note Id  Document Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Credit Note Document Get",
+        "tags": [
+          "Browser billing documents"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
     "/app/api/billing/entitlements": {
       "get": {
         "operationId": "entitlements_app_api_billing_entitlements_get",
@@ -1171,6 +1254,58 @@
         ]
       }
     },
+    "/app/api/billing/invoices/{invoice_id}/document": {
+      "get": {
+        "operationId": "invoice_document_get_app_api_billing_invoices__invoice_id__document_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Invoice Document Get App Api Billing Invoices  Invoice Id  Document Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Invoice Document Get",
+        "tags": [
+          "Browser billing documents"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
     "/app/api/billing/overview": {
       "get": {
         "operationId": "overview_app_api_billing_overview_get",
@@ -1348,6 +1483,58 @@
         "summary": "Payments",
         "tags": [
           "Browser billing"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/billing/payments/{payment_id}/receipt": {
+      "get": {
+        "operationId": "payment_receipt_app_api_billing_payments__payment_id__receipt_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_id",
+            "required": true,
+            "schema": {
+              "title": "Payment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Payment Receipt App Api Billing Payments  Payment Id  Receipt Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Payment Receipt",
+        "tags": [
+          "Browser billing documents"
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",

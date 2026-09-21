@@ -33,13 +33,17 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/admin/security/platform-owner` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_platform_owner_status` |
 | GET | `/app/api/billing/capabilities` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `capabilities` |
 | GET | `/app/api/billing/catalog` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `catalog` |
+| GET | `/app/api/billing/credit-notes` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `credit_notes` |
+| GET | `/app/api/billing/credit-notes/{credit_note_id}/document` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `credit_note_document_get` |
 | GET | `/app/api/billing/entitlements` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `entitlements` |
 | GET | `/app/api/billing/invoices` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoices` |
 | GET | `/app/api/billing/invoices/{invoice_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoice_detail` |
+| GET | `/app/api/billing/invoices/{invoice_id}/document` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `invoice_document_get` |
 | GET | `/app/api/billing/overview` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `overview` |
 | GET | `/app/api/billing/payment-attempts/{payment_attempt_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_payment_attempt` |
 | GET | `/app/api/billing/payment-methods` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payment_methods` |
 | GET | `/app/api/billing/payments` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payments` |
+| GET | `/app/api/billing/payments/{payment_id}/receipt` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `payment_receipt` |
 | GET | `/app/api/billing/refunds` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `refunds` |
 | GET | `/app/api/billing/subscription` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `subscription` |
 | GET | `/app/api/billing/wallet` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `wallet` |
