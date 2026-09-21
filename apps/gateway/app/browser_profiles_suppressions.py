@@ -74,7 +74,7 @@ def profile_detail(s: Session, profile: Profile) -> dict[str, Any]:
     return payload
 
 
-class SuppressionIn(BaseModel):
+class BrowserSuppressionIn(BaseModel):
     email: str = Field(min_length=3, max_length=320)
     reason: str = Field(min_length=1, max_length=100)
 
@@ -142,7 +142,7 @@ def suppressions(
 
 @router.post("/suppressions", status_code=201)
 def add_suppression(
-    payload: SuppressionIn,
+    payload: BrowserSuppressionIn,
     ctx: dict[str, Any] = Depends(browser_read_context),
     _session: Any = Depends(csrf_guard),
     s: Session = Depends(db),

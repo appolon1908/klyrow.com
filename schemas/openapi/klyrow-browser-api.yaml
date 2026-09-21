@@ -48,6 +48,28 @@
         "title": "BrowserInviteIn",
         "type": "object"
       },
+      "BrowserSuppressionIn": {
+        "properties": {
+          "email": {
+            "maxLength": 320,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "reason"
+        ],
+        "title": "BrowserSuppressionIn",
+        "type": "object"
+      },
       "CompleteIn": {
         "properties": {
           "expected_version": {
@@ -566,28 +588,6 @@
           "type"
         ],
         "title": "ValidationError",
-        "type": "object"
-      },
-      "apps__gateway__app__browser_profiles_suppressions__SuppressionIn": {
-        "properties": {
-          "email": {
-            "maxLength": 320,
-            "minLength": 3,
-            "title": "Email",
-            "type": "string"
-          },
-          "reason": {
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Reason",
-            "type": "string"
-          }
-        },
-        "required": [
-          "email",
-          "reason"
-        ],
-        "title": "SuppressionIn",
         "type": "object"
       },
       "apps__gateway__app__messaging__SenderIn": {
@@ -3892,7 +3892,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/apps__gateway__app__browser_profiles_suppressions__SuppressionIn"
+                "$ref": "#/components/schemas/BrowserSuppressionIn"
               }
             }
           },
