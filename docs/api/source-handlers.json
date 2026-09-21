@@ -332,119 +332,133 @@
     "declared_path": "/overview",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "overview",
-    "line": 176,
+    "line": 186,
     "method": "GET"
   },
   {
     "declared_path": "/subscription",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "subscription",
-    "line": 204,
+    "line": 214,
     "method": "GET"
   },
   {
     "declared_path": "/catalog",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "catalog",
-    "line": 212,
+    "line": 222,
     "method": "GET"
   },
   {
     "declared_path": "/entitlements",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "entitlements",
-    "line": 234,
+    "line": 244,
     "method": "GET"
   },
   {
     "declared_path": "/subscription/quote",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "subscription_quote",
-    "line": 242,
+    "line": 252,
     "method": "POST"
   },
   {
     "declared_path": "/subscription/change",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "change_subscription",
-    "line": 256,
+    "line": 266,
     "method": "POST"
   },
   {
     "declared_path": "/subscription/cancel",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "cancel_subscription",
-    "line": 301,
+    "line": 311,
     "method": "POST"
   },
   {
     "declared_path": "/subscription/reactivate",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "reactivate_subscription",
-    "line": 306,
+    "line": 316,
     "method": "POST"
   },
   {
     "declared_path": "/invoices",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "invoices",
-    "line": 311,
+    "line": 321,
     "method": "GET"
   },
   {
     "declared_path": "/invoices/{invoice_id}",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "invoice_detail",
-    "line": 327,
+    "line": 337,
     "method": "GET"
   },
   {
     "declared_path": "/payments",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "payments",
-    "line": 346,
+    "line": 356,
     "method": "GET"
   },
   {
     "declared_path": "/refunds",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "refunds",
-    "line": 354,
+    "line": 364,
     "method": "GET"
   },
   {
     "declared_path": "/payment-methods",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "payment_methods",
-    "line": 361,
+    "line": 371,
     "method": "GET"
   },
   {
     "declared_path": "/capabilities",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "capabilities",
-    "line": 367,
+    "line": 377,
     "method": "GET"
   },
   {
     "declared_path": "/invoices/{invoice_id}/checkout",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "checkout_invoice",
-    "line": 400,
+    "line": 417,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/invoices/{invoice_id}/stablecoin-payment",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "stablecoin_payment_request",
+    "line": 446,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/payment-attempts/{payment_attempt_id}/stablecoin/transactions",
+    "file": "apps/gateway/app/billing_browser.py",
+    "handler": "stablecoin_transaction_submit",
+    "line": 478,
     "method": "POST"
   },
   {
     "declared_path": "/payment-attempts/{payment_attempt_id}",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "browser_payment_attempt",
-    "line": 429,
+    "line": 502,
     "method": "GET"
   },
   {
     "declared_path": "/wallet",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "wallet",
-    "line": 457,
+    "line": 530,
     "method": "GET"
   },
   {
@@ -493,7 +507,7 @@
     "declared_path": "/reconciliation",
     "file": "apps/gateway/app/billing_reconciliation.py",
     "handler": "reconciliation_report",
-    "line": 181,
+    "line": 197,
     "method": "GET"
   },
   {
