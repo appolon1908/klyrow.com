@@ -210,6 +210,25 @@ def test_labels_and_identifiers_fail_closed_before_enqueue() -> None:
         _kpi_snapshot(service="service/invalid")
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        "failed for customer@example.com",
+        "Authorization: Bearer test-token",
+        "api_key=top-secret-value",
+        "-----BEGIN PRIVATE KEY-----",
+    ],
+)
+def test_sensitive_observability_text_is_rejected_before_enqueue(value: str) -> None:
+    with pytest.raises(HTTPException) as annotation_error:
+        observability._safe_annotations({"summary": value})
+    assert annotation_error.value.detail == "sensitive_observability_payload_rejected"
+
+    with pytest.raises(HTTPException) as label_error:
+        observability._normalize_labels({"service": value})
+    assert label_error.value.detail == "sensitive_observability_payload_rejected"
+
+
 def test_alert_state_projects_exact_incident_contract(isolated_session) -> None:
     firing = observability.AlertmanagerEnvelope.model_validate(
         {
