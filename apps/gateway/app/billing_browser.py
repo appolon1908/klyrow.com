@@ -172,7 +172,7 @@ def payment_summary(item: Payment, invoice_reference: Optional[str] = None) -> d
     }
 
 
-@router.get("/overview", operation_id="billing_browser_overview_get")
+@router.get("/overview")
 def overview(ctx: dict[str, Any] = Depends(billing_context), s: Session = Depends(db)) -> dict[str, Any]:
     tenant = ctx["tenant"]
     subscription = s.scalar(select(BillingSubscription).where(BillingSubscription.tenant_id == tenant))

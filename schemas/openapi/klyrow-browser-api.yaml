@@ -1325,14 +1325,14 @@
     },
     "/app/api/billing/overview": {
       "get": {
-        "operationId": "billing_browser_overview_get",
+        "operationId": "overview_app_api_billing_overview_get",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "additionalProperties": true,
-                  "title": "Response Billing Browser Overview Get",
+                  "title": "Response Overview App Api Billing Overview Get",
                   "type": "object"
                 }
               }
