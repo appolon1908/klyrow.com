@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .auth_bff import csrf_guard
 from .capabilities import require_permission
 from .main import Suppression, db
 from .saas import Consent, CustomerEvent, Preference, Profile, attrs, profile_payload
@@ -21,12 +22,6 @@ def browser_read_context(request: Request, s: Session = Depends(db)) -> dict[str
     from .auth_bff import browser_context
 
     return browser_context(request=request, s=s)
-
-
-def csrf_dependency(request: Request, s: Session = Depends(db)) -> Any:
-    from .auth_bff import csrf_guard
-
-    return csrf_guard(request=request, s=s)
 
 
 def require_browser_permission(ctx: dict[str, Any], permission: str) -> dict[str, Any]:
@@ -149,7 +144,7 @@ def suppressions(
 def add_suppression(
     payload: SuppressionIn,
     ctx: dict[str, Any] = Depends(browser_read_context),
-    _session: Any = Depends(csrf_dependency),
+    _session: Any = Depends(csrf_guard),
     s: Session = Depends(db),
     idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key", min_length=8, max_length=200),
 ) -> dict[str, Any]:
@@ -174,7 +169,7 @@ def add_suppression(
 def remove_suppression(
     suppression_id: str,
     ctx: dict[str, Any] = Depends(browser_read_context),
-    _session: Any = Depends(csrf_dependency),
+    _session: Any = Depends(csrf_guard),
     s: Session = Depends(db),
 ) -> None:
     require_browser_permission(ctx, "contact.manage")
