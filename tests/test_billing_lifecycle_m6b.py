@@ -37,6 +37,11 @@ def test_illegal_transition_and_stale_version_fail_closed():
         require_version(snapshot(version=3), 2)
 
 
+def test_stale_version_has_distinct_retryable_conflict_code():
+    with pytest.raises(ValueError, match="subscription_version_conflict"):
+        require_version(snapshot(version=4), 3)
+
+
 def test_suspended_subscription_loses_entitlements_without_financial_mutation():
     assert calculate_entitlements(
         state=SubscriptionState.ACTIVE,

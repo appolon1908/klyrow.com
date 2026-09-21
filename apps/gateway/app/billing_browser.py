@@ -252,6 +252,9 @@ def _change_browser_subscription(target: SubscriptionState, expected_version: in
     item = _tenant_subscription(s, ctx["tenant"])
     try:
         require_version(SubscriptionSnapshot(state=SubscriptionState(item.status), version=item.version, period_end=item.period_end), expected_version)
+    except ValueError:
+        raise HTTPException(409, "subscription_version_conflict") from None
+    try:
         updated = apply_subscription_transition(SubscriptionSnapshot(state=SubscriptionState(item.status), version=item.version, period_end=item.period_end, trial_end=item.trial_end, cancel_at_period_end=item.cancel_at_period_end), target)
     except (ValueError, KeyError):
         raise HTTPException(409, "invalid_subscription_transition") from None
