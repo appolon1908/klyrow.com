@@ -1,7 +1,6 @@
-from pathlib import Path
-
 from fastapi.testclient import TestClient
 
+from apps.gateway.app.openapi_authority import runtime_routes
 from apps.gateway.app.platform import app
 
 
@@ -9,7 +8,7 @@ client = TestClient(app, base_url="https://app.klyrow.test")
 
 
 def test_m6c_document_routes_are_registered_before_spa_fallback():
-    paths = {getattr(route, "path", "") for route in app.routes}
+    paths = {path for _method, path, _include, _name in runtime_routes(app)}
     assert {
         "/app/api/billing/invoices/{invoice_id}/document",
         "/app/api/billing/credit-notes",

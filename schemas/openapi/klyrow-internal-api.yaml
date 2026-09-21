@@ -236,6 +236,7 @@
             "title": "Text"
           },
           "variables": {
+            "additionalProperties": true,
             "title": "Variables",
             "type": "object"
           }
@@ -277,6 +278,7 @@
             "title": "From"
           },
           "metadata": {
+            "additionalProperties": true,
             "title": "Metadata",
             "type": "object"
           },
@@ -341,6 +343,7 @@
                 "type": "number"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -362,6 +365,7 @@
             "type": "string"
           },
           "features": {
+            "additionalProperties": true,
             "title": "Features",
             "type": "object"
           },
@@ -381,6 +385,7 @@
                 "type": "number"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -631,6 +636,7 @@
       "MailIn": {
         "properties": {
           "callback_metadata": {
+            "additionalProperties": true,
             "title": "Callback Metadata",
             "type": "object"
           },
@@ -737,6 +743,7 @@
             "type": "string"
           },
           "tracking": {
+            "additionalProperties": true,
             "title": "Tracking",
             "type": "object"
           }
@@ -1235,6 +1242,7 @@
                 "type": "number"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -1262,6 +1270,7 @@
                 "type": "number"
               },
               {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
                 "type": "string"
               }
             ],
@@ -3765,6 +3774,7 @@
                     "type": "string"
                   },
                   "metadata": {
+                    "additionalProperties": true,
                     "title": "Metadata",
                     "type": "object"
                   },
@@ -3870,6 +3880,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Submit V1 Email Messages Post",
                   "type": "object"
                 }
@@ -3968,6 +3979,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Readback V1 Email Messages  Command Id  Get",
                   "type": "object"
                 }
@@ -4224,6 +4236,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Reconciliation Report V1 Internal Billing Reconciliation Get",
                   "type": "object"
                 }
@@ -7590,6 +7603,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Receive Alertmanager Events V1 Internal Integrations Alertmanager Events Post",
                   "type": "object"
                 }
@@ -7698,6 +7712,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Receive Kpi Snapshot V1 Internal Integrations Kpis Snapshots Post",
                   "type": "object"
                 }
@@ -7785,6 +7800,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Observability Contract V1 Internal Integrations Observability Contract Get",
                   "type": "object"
                 }
@@ -7872,6 +7888,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Odoo Checkpoints V1 Internal Integrations Odoo Checkpoints Get",
                   "type": "object"
                 }
@@ -7959,6 +7976,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Odoo Health V1 Internal Integrations Odoo Health Get",
                   "type": "object"
                 }
@@ -8056,6 +8074,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Create Sender Identity V1 Internal Sender Identities Post",
                   "type": "object"
                 }
@@ -8151,6 +8170,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Get Sender Identity V1 Internal Sender Identities  Item Id  Get",
                   "type": "object"
                 }
@@ -8246,6 +8266,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Disable Sender Identity V1 Internal Sender Identities  Item Id  Disable Post",
                   "type": "object"
                 }
@@ -8332,6 +8353,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response System Capabilities V1 System Capabilities Get",
                   "type": "object"
                 }
@@ -8418,6 +8440,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response System Readiness V1 System Readiness Get",
                   "type": "object"
                 }

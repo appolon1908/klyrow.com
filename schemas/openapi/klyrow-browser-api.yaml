@@ -226,6 +226,7 @@
       "MailIn": {
         "properties": {
           "callback_metadata": {
+            "additionalProperties": true,
             "title": "Callback Metadata",
             "type": "object"
           },
@@ -332,6 +333,7 @@
             "type": "string"
           },
           "tracking": {
+            "additionalProperties": true,
             "title": "Tracking",
             "type": "object"
           }
@@ -871,6 +873,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Capabilities App Api Billing Capabilities Get",
                   "type": "object"
                 }
@@ -901,6 +904,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Catalog App Api Billing Catalog Get",
                   "type": "object"
                 }
@@ -931,6 +935,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Credit Notes App Api Billing Credit Notes Get",
                   "type": "object"
                 }
@@ -972,6 +977,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Credit Note Document Get App Api Billing Credit Notes  Credit Note Id  Document Get",
                   "type": "object"
                 }
@@ -1012,6 +1018,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Entitlements App Api Billing Entitlements Get",
                   "type": "object"
                 }
@@ -1083,6 +1090,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Invoices App Api Billing Invoices Get",
                   "type": "object"
                 }
@@ -1134,6 +1142,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Invoice Detail App Api Billing Invoices  Invoice Id  Get",
                   "type": "object"
                 }
@@ -1206,6 +1215,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Checkout Invoice App Api Billing Invoices  Invoice Id  Checkout Post",
                   "type": "object"
                 }
@@ -1263,6 +1273,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Invoice Document Get App Api Billing Invoices  Invoice Id  Document Get",
                   "type": "object"
                 }
@@ -1303,6 +1314,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Overview App Api Billing Overview Get",
                   "type": "object"
                 }
@@ -1344,6 +1356,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Browser Payment Attempt App Api Billing Payment Attempts  Payment Attempt Id  Get",
                   "type": "object"
                 }
@@ -1385,6 +1398,7 @@
               "application/json": {
                 "schema": {
                   "items": {
+                    "additionalProperties": true,
                     "type": "object"
                   },
                   "title": "Response Payment Methods App Api Billing Payment Methods Get",
@@ -1442,6 +1456,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Payments App Api Billing Payments Get",
                   "type": "object"
                 }
@@ -1493,6 +1508,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Payment Receipt App Api Billing Payments  Payment Id  Receipt Get",
                   "type": "object"
                 }
@@ -1558,6 +1574,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Refunds App Api Billing Refunds Get",
                   "type": "object"
                 }
@@ -1598,6 +1615,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Subscription App Api Billing Subscription Get",
                   "type": "object"
                 }
@@ -1650,6 +1668,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Cancel Subscription App Api Billing Subscription Cancel Post",
                   "type": "object"
                 }
@@ -1715,6 +1734,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Change Subscription App Api Billing Subscription Change Post",
                   "type": "object"
                 }
@@ -1780,6 +1800,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Subscription Quote App Api Billing Subscription Quote Post",
                   "type": "object"
                 }
@@ -1845,6 +1866,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Reactivate Subscription App Api Billing Subscription Reactivate Post",
                   "type": "object"
                 }
@@ -1888,6 +1910,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Wallet App Api Billing Wallet Get",
                   "type": "object"
                 }
@@ -2086,6 +2109,7 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": true,
                 "title": "Payload",
                 "type": "object"
               }
@@ -3995,6 +4019,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Profiles App Api Profiles Get",
                   "type": "object"
                 }
@@ -4048,6 +4073,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Profile App Api Profiles  Profile Id  Get",
                   "type": "object"
                 }
@@ -4338,6 +4364,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Suppressions App Api Suppressions Get",
                   "type": "object"
                 }
@@ -4418,6 +4445,7 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "additionalProperties": true,
                   "title": "Response Add Suppression App Api Suppressions Post",
                   "type": "object"
                 }
