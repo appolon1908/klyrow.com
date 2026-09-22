@@ -1,0 +1,33 @@
+groups:
+  - name: klyrow-webmail-postal
+    rules:
+      - alert: KlyrowWebmailInboundFailureRateHigh
+        expr: klyrow:webmail_inbound_failure:ratio15m > 0.02
+        for: 10m
+        labels: {severity: warning, service: klyrow-webmail, environment: production}
+        annotations: {summary: "Webmail inbound failure ratio exceeds 2%", runbook_url: "docs/runbooks/WEBMAIL_POSTAL_OBSERVABILITY.md"}
+      - alert: KlyrowWebmailSendFailureRateHigh
+        expr: klyrow:webmail_send_failure:ratio15m > 0.02
+        for: 10m
+        labels: {severity: critical, service: klyrow-webmail, environment: production}
+        annotations: {summary: "Webmail send failure ratio exceeds 2%", runbook_url: "docs/runbooks/WEBMAIL_POSTAL_OBSERVABILITY.md"}
+      - alert: KlyrowWebmailQueueAgeHigh
+        expr: klyrow:webmail_queue_age_seconds:max > 300
+        for: 5m
+        labels: {severity: critical, service: klyrow-webmail, environment: production}
+        annotations: {summary: "Oldest Webmail outbound item exceeds five minutes", runbook_url: "docs/runbooks/WEBMAIL_POSTAL_OBSERVABILITY.md"}
+      - alert: KlyrowPostalProviderLatencyHigh
+        expr: klyrow:webmail_provider_latency:p95 > 2
+        for: 15m
+        labels: {severity: warning, service: postal, environment: production}
+        annotations: {summary: "Postal/provider p95 latency exceeds two seconds", runbook_url: "docs/runbooks/WEBMAIL_POSTAL_OBSERVABILITY.md"}
+      - alert: KlyrowWebmailBounceRateHigh
+        expr: klyrow:webmail_bounce:ratio30m > 0.05
+        for: 15m
+        labels: {severity: critical, service: klyrow-webmail, environment: production}
+        annotations: {summary: "Aggregate bounce ratio exceeds five percent", runbook_url: "docs/runbooks/WEBMAIL_POSTAL_OBSERVABILITY.md"}
+      - alert: KlyrowWebmailReconciliationFailure
+        expr: klyrow:webmail_reconciliation_failures:sum > 0
+        for: 10m
+        labels: {severity: critical, service: klyrow-webmail, environment: production}
+        annotations: {summary: "Postal/Webmail reconciliation has unresolved work", runbook_url: "docs/runbooks/WEBMAIL_POSTAL_OBSERVABILITY.md"}

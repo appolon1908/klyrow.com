@@ -22,7 +22,7 @@ from jwt import PyJWKClient
 from sqlalchemy import DateTime, String, Text, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from .main import Base, SECRET, Tenant, User, db, sha
+from .main import Base, SECRET, Tenant, User, bind_tenant_rls, db, sha
 from .tenancy import ROLE_PERMISSIONS, OidcIdentity, TenantMember
 
 SESSION_COOKIE = "__Host-klyrow_session"
@@ -383,6 +383,7 @@ def browser_context(request: Request, s: Session = Depends(db)) -> dict:
     tenant = s.get(Tenant, session.tenant_id)
     if not member or not tenant or not tenant.enabled:
         raise HTTPException(403, "workspace_access_denied")
+    bind_tenant_rls(s, session.tenant_id)
     return {
         "sub": session.user_id,
         "identity_id": session.identity_id,

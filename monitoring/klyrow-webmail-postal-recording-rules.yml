@@ -1,0 +1,18 @@
+groups:
+  - name: klyrow-webmail-postal-recording
+    interval: 30s
+    rules:
+      - record: klyrow:webmail_inbound_failure:ratio15m
+        expr: sum(rate(klyrow_mail_total{event=~"inbound_failed|inbound_rejected"}[15m])) / clamp_min(sum(rate(klyrow_mail_total{event=~"inbound_accepted|inbound_failed|inbound_rejected"}[15m])), 0.001)
+      - record: klyrow:webmail_send_failure:ratio15m
+        expr: sum(rate(klyrow_mail_total{event=~"send_failed|provider_failed"}[15m])) / clamp_min(sum(rate(klyrow_mail_total{event=~"send_accepted|sent|send_failed|provider_failed"}[15m])), 0.001)
+      - record: klyrow:webmail_bounce:ratio30m
+        expr: max(klyrow_delivery_ratio{outcome="bounced"})
+      - record: klyrow:webmail_complaint:ratio30m
+        expr: max(klyrow_delivery_ratio{outcome="complained"})
+      - record: klyrow:webmail_queue_age_seconds:max
+        expr: max(klyrow_email_outbox_oldest_seconds)
+      - record: klyrow:webmail_reconciliation_failures:sum
+        expr: sum(klyrow_provider_events{state=~"RETRY|DEAD_LETTER|INDETERMINATE"})
+      - record: klyrow:webmail_provider_latency:p95
+        expr: histogram_quantile(0.95, sum by (le) (rate(klyrow_http_request_duration_seconds_bucket{path=~".*postal.*|.*provider.*"}[10m])))
