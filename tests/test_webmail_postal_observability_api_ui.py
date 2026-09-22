@@ -43,3 +43,14 @@ def test_observability_endpoint_inventory_and_incident_logic():
         assert endpoint in routes
     assert '"direct_cross_system_writes": False' in api
     assert "reconcile indeterminate work before retry" in api
+
+
+def test_trace_drilldown_is_bounded_and_redacted():
+    api = (ROOT / "apps/gateway/app/browser_observability.py").read_text()
+    ui = (ROOT / "apps/web/src/portal/pages/AdminObservabilityPage.vue").read_text()
+    assert '/app/api/admin/observability/webmail-postal/traces/{correlation_id}' in api
+    assert "invalid_correlation_id" in api
+    assert '"direct_cross_system_writes": False' in api
+    assert "No addresses, subjects, bodies, tokens, provider IDs or payloads" in api
+    assert "Trace explorer" in ui
+    assert "Inspect trace" in ui
