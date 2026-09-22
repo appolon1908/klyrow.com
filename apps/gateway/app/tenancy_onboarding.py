@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import Boolean, DateTime, String, Text, func, select
@@ -27,6 +27,7 @@ from .main import (
     Event,
     MailIn,
     Message,
+    PostalEvent,
     Suppression,
     Tenant,
     User,
@@ -278,6 +279,217 @@ def browser_messages(ctx: dict = Depends(browser_context), s: Session = Depends(
     offset = max(0, offset)
     rows = s.scalars(select(Message).where(Message.tenant_id == ctx["tenant"]).order_by(Message.created_at.desc()).offset(offset).limit(limit)).all()
     return [{"id": row.id, "recipient": row.recipient, "sender": row.sender, "subject": row.subject, "status": row.status, "created_at": row.created_at} for row in rows]
+
+
+def _browser_message(s: Session, tenant_id: str, message_id: str) -> Message:
+    item = s.scalar(select(Message).where(
+        Message.id == message_id,
+        Message.tenant_id == tenant_id,
+    ))
+    if item is None:
+        raise HTTPException(404, "message_not_found")
+    return item
+
+
+def _canonical_delivery_status(value: Optional[str]) -> str:
+    raw = str(value or "").strip().upper().replace("-", "_")
+    mapping = {
+        "": "INDETERMINATE",
+        "ACCEPTED": "QUEUED",
+        "PROVIDER_ACCEPTED": "SUBMITTED",
+        "BOUNCED": "BOUNCED_HARD",
+        "REJECTED": "FAILED",
+        "CANCELLED": "FAILED",
+        "UNKNOWN_OUTCOME": "INDETERMINATE",
+    }
+    allowed = {
+        "CREATED", "QUEUED", "PROCESSING", "SUBMITTED", "SENT", "DELIVERED",
+        "DEFERRED", "INDETERMINATE", "BOUNCED_SOFT", "BOUNCED_HARD",
+        "COMPLAINED", "SUPPRESSED", "FAILED", "DEAD_LETTER",
+    }
+    normalized = mapping.get(raw, raw)
+    return normalized if normalized in allowed else "INDETERMINATE"
+
+
+def _kind_status(kind: str, fallback: Optional[str] = None) -> str:
+    value = kind.lower()
+    if "delivered" in value:
+        return "DELIVERED"
+    if "deferred" in value:
+        return "DEFERRED"
+    if "complain" in value:
+        return "COMPLAINED"
+    if "suppress" in value or "unsubscribe" in value:
+        return "SUPPRESSED"
+    if "bounce" in value:
+        return "BOUNCED_HARD"
+    if "submitted" in value or "provider_accepted" in value:
+        return "SUBMITTED"
+    if "sent" in value:
+        return "SENT"
+    if "failed" in value or "reject" in value or "cancel" in value:
+        return "FAILED"
+    if "unknown" in value or "indeterminate" in value:
+        return "INDETERMINATE"
+    if "queue" in value or "accepted" in value:
+        return "QUEUED"
+    return _canonical_delivery_status(fallback)
+
+
+def _message_evidence(s: Session, tenant_id: str, item: Message) -> tuple[list[dict], Optional[EmailOutbox], Optional[dict]]:
+    from .provider import ProviderEvent, ProviderMessage
+
+    outbox = s.scalar(select(EmailOutbox).where(
+        EmailOutbox.tenant_id == tenant_id,
+        EmailOutbox.message_id == item.id,
+    ))
+    provider = None
+    if outbox and outbox.provider_message_id:
+        provider = s.scalar(select(ProviderMessage).where(
+            ProviderMessage.tenant_id == tenant_id,
+            ProviderMessage.id == outbox.provider_message_id,
+        ))
+        if provider is None:
+            provider = s.scalar(select(ProviderMessage).where(
+                ProviderMessage.tenant_id == tenant_id,
+                ProviderMessage.provider_message_id == outbox.provider_message_id,
+            ))
+    if provider is None and outbox and outbox.correlation_id:
+        provider = s.scalar(select(ProviderMessage).where(
+            ProviderMessage.tenant_id == tenant_id,
+            ProviderMessage.correlation_id == outbox.correlation_id,
+        ))
+
+    entries: dict[str, dict] = {
+        "accepted:" + item.id: {
+            "id": "accepted:" + item.id,
+            "kind": "message.accepted",
+            "status": _canonical_delivery_status(item.status),
+            "source": "klyrow",
+            "occurred_at": item.created_at,
+        }
+    }
+    if outbox is not None:
+        entries["outbox:" + outbox.id] = {
+            "id": "outbox:" + outbox.id,
+            "kind": "outbox." + str(outbox.state),
+            "status": _kind_status(str(outbox.state), item.status),
+            "source": "outbox",
+            "occurred_at": outbox.updated_at,
+        }
+
+    for event in s.scalars(select(Event).where(
+        Event.tenant_id == tenant_id,
+        Event.message_id == item.id,
+    ).order_by(Event.created_at, Event.id)).all():
+        entries["event:" + event.id] = {
+            "id": "event:" + event.id,
+            "kind": event.kind,
+            "status": _kind_status(event.kind, item.status),
+            "source": "klyrow_event",
+            "occurred_at": event.created_at,
+        }
+
+    postal_rows = s.scalars(select(PostalEvent).where(
+        PostalEvent.tenant_id == tenant_id,
+        PostalEvent.message_id == item.id,
+    ).order_by(PostalEvent.created_at, PostalEvent.id)).all()
+    if outbox and outbox.correlation_id:
+        correlated = s.scalars(select(PostalEvent).where(
+            PostalEvent.tenant_id == tenant_id,
+            PostalEvent.correlation_id == outbox.correlation_id,
+        ).order_by(PostalEvent.created_at, PostalEvent.id)).all()
+        postal_rows = [*postal_rows, *correlated]
+    for event in postal_rows:
+        entries["postal:" + event.id] = {
+            "id": "postal:" + event.id,
+            "kind": event.event_type,
+            "status": _kind_status(event.event_type, event.state),
+            "source": "postal_evidence",
+            "occurred_at": event.created_at,
+        }
+
+    if provider is not None:
+        for event in s.scalars(select(ProviderEvent).where(
+            ProviderEvent.tenant_id == tenant_id,
+            ProviderEvent.message_id == provider.id,
+        ).order_by(ProviderEvent.created_at, ProviderEvent.id)).all():
+            entries["provider:" + event.id] = {
+                "id": "provider:" + event.id,
+                "kind": event.kind,
+                "status": _kind_status(event.kind, provider.status),
+                "source": "provider_evidence",
+                "occurred_at": event.created_at,
+            }
+
+    timeline = sorted(
+        entries.values(),
+        key=lambda entry: (entry["occurred_at"], entry["id"]),
+    )
+    provider_summary = None if provider is None else {
+        "status": _canonical_delivery_status(provider.status),
+        "attempts": provider.attempts,
+        "sandbox": provider.sandbox,
+        "provider_reference_present": bool(provider.provider_message_id),
+        "updated_at": provider.updated_at,
+    }
+    return timeline, outbox, provider_summary
+
+
+@router.get("/app/api/messages/{message_id}")
+def browser_message_detail(
+    message_id: str,
+    ctx: dict = Depends(browser_context),
+    s: Session = Depends(db),
+):
+    item = _browser_message(s, ctx["tenant"], message_id)
+    timeline, outbox, provider = _message_evidence(s, ctx["tenant"], item)
+    current = timeline[-1]["status"] if timeline else _canonical_delivery_status(item.status)
+    return {
+        "id": item.id,
+        "recipient": item.recipient,
+        "sender": item.sender,
+        "subject": item.subject,
+        "status": item.status,
+        "current_outcome": current,
+        "created_at": item.created_at,
+        "correlation_id": outbox.correlation_id if outbox else None,
+        "operation_id": outbox.operation_id if outbox else None,
+        "outbox": None if outbox is None else {
+            "state": outbox.state,
+            "attempts": outbox.attempts,
+            "created_at": outbox.created_at,
+            "updated_at": outbox.updated_at,
+            "next_attempt_at": outbox.next_attempt_at,
+            "provider_reference_present": bool(outbox.provider_message_id),
+        },
+        "provider": provider,
+        "timeline": timeline[-50:],
+    }
+
+
+@router.get("/app/api/messages/{message_id}/events")
+def browser_message_events(
+    message_id: str,
+    limit: int = Query(default=50, ge=1, le=200),
+    cursor: Optional[str] = Query(default=None, max_length=40),
+    ctx: dict = Depends(browser_context),
+    s: Session = Depends(db),
+):
+    item = _browser_message(s, ctx["tenant"], message_id)
+    timeline, _, _ = _message_evidence(s, ctx["tenant"], item)
+    try:
+        offset = int(cursor or "0")
+    except ValueError as exc:
+        raise HTTPException(422, "invalid_cursor") from exc
+    if offset < 0:
+        raise HTTPException(422, "invalid_cursor")
+    items = timeline[offset:offset + limit]
+    next_offset = offset + len(items)
+    return {
+        "items": items,
+        "next_cursor": str(next_offset) if next_offset < len(timeline) else None,
+    }
 
 
 @router.post("/app/api/email/send", status_code=202)
