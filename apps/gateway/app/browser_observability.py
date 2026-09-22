@@ -113,3 +113,35 @@ def webmail_postal_architecture(ctx: dict = Depends(browser_context), session: S
         "direct_cross_system_writes": False,
         "description": snapshot["architecture"],
     }
+
+
+@router.get("/app/api/admin/observability/webmail-postal/traces/{correlation_id}")
+def webmail_postal_trace(correlation_id: str, ctx: dict = Depends(browser_context), session: Session = Depends(db)):
+    user = session.get(User, ctx["sub"])
+    if not user or user.role != "platform_admin":
+        raise HTTPException(403, "platform_admin_required")
+    if not correlation_id or len(correlation_id) > 128 or any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.:-" for ch in correlation_id):
+        raise HTTPException(422, "invalid_correlation_id")
+
+    outbox = list(session.scalars(select(EmailOutbox).where(EmailOutbox.correlation_id == correlation_id).order_by(EmailOutbox.created_at)).all())
+    provider_messages = list(session.scalars(select(ProviderMessage).where(ProviderMessage.correlation_id == correlation_id).order_by(ProviderMessage.created_at)).all())
+    message_ids = {item.message_id for item in outbox} | {item.id for item in provider_messages}
+    events = list(session.scalars(select(ProviderEvent).where(ProviderEvent.message_id.in_(message_ids)).order_by(ProviderEvent.created_at)).all()) if message_ids else []
+
+    timeline = []
+    for item in outbox:
+        timeline.append({"at": item.created_at.isoformat(), "layer": "middleware-command", "state": item.state, "kind": "email-outbox", "attempts": item.attempts})
+    for item in provider_messages:
+        timeline.append({"at": item.created_at.isoformat(), "layer": "postal-adapter", "state": item.status, "kind": "provider-message", "attempts": item.attempts})
+    for item in events:
+        timeline.append({"at": item.created_at.isoformat(), "layer": "provider-evidence", "state": item.state, "kind": item.kind, "attempts": item.attempts})
+    timeline.sort(key=lambda item: item["at"])
+
+    return {
+        "correlation_id": correlation_id,
+        "path": ["Caddy", "Kong", "Middleware", "authorized-adapter", "Klyrow/Postal"],
+        "found": bool(timeline),
+        "timeline": timeline,
+        "privacy": "No addresses, subjects, bodies, tokens, provider IDs or payloads are returned.",
+        "direct_cross_system_writes": False,
+    }
