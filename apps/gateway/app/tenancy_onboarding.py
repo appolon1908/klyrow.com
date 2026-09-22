@@ -378,6 +378,83 @@ def browser_invite(payload: BrowserInviteIn, ctx: dict = Depends(browser_context
     return result
 
 
+
+@router.get("/app/api/team/invitations")
+def browser_invitations(ctx: dict = Depends(browser_context), s: Session = Depends(db)):
+    _require_management(ctx)
+    rows = s.scalars(select(TenantInvitation).where(
+        TenantInvitation.tenant_id == ctx["tenant"],
+        TenantInvitation.accepted_at.is_(None),
+        TenantInvitation.revoked_at.is_(None),
+        TenantInvitation.expires_at > now(),
+    ).order_by(TenantInvitation.created_at.desc())).all()
+    return [{"id": row.id, "email": row.email, "role": row.role, "expires_at": row.expires_at, "created_at": row.created_at} for row in rows]
+
+
+@router.delete("/app/api/team/invitations/{invitation_id}", status_code=204)
+def browser_revoke_invitation(invitation_id: str, ctx: dict = Depends(browser_context), _session: BrowserSession = Depends(csrf_guard), s: Session = Depends(db)):
+    _require_management(ctx)
+    item = s.scalar(select(TenantInvitation).where(TenantInvitation.id == invitation_id, TenantInvitation.tenant_id == ctx["tenant"]))
+    if not item or item.accepted_at is not None or item.revoked_at is not None:
+        raise HTTPException(404, "invitation_not_found")
+    item.revoked_at = now()
+    audit(s, ctx, "tenant.invitation.revoked")
+    s.commit()
+    return Response(status_code=204)
+
+
+class BrowserMemberRoleIn(BaseModel):
+    role: str
+
+
+def _active_owner_count(s: Session, tenant_id: str) -> int:
+    return int(s.scalar(select(func.count()).select_from(TenantMember).where(
+        TenantMember.tenant_id == tenant_id, TenantMember.active == True, TenantMember.role == "OWNER"
+    )) or 0)
+
+
+@router.patch("/app/api/team/{user_id}")
+def browser_update_member(user_id: str, payload: BrowserMemberRoleIn, ctx: dict = Depends(browser_context), _session: BrowserSession = Depends(csrf_guard), s: Session = Depends(db)):
+    _require_management(ctx)
+    member = s.scalar(select(TenantMember).where(TenantMember.tenant_id == ctx["tenant"], TenantMember.user_id == user_id, TenantMember.active == True))
+    if not member:
+        raise HTTPException(404, "member_not_found")
+    role = validate_role(payload.role)
+    if member.role == "OWNER" and role != "OWNER" and _active_owner_count(s, ctx["tenant"]) <= 1:
+        raise HTTPException(409, "last_owner_protected")
+    member.role = role
+    audit(s, ctx, "tenant.member.role_changed")
+    s.commit()
+    return {"user_id": member.user_id, "role": member.role, "active": member.active}
+
+
+@router.delete("/app/api/team/{user_id}", status_code=204)
+def browser_remove_member(user_id: str, ctx: dict = Depends(browser_context), _session: BrowserSession = Depends(csrf_guard), s: Session = Depends(db)):
+    _require_management(ctx)
+    member = s.scalar(select(TenantMember).where(TenantMember.tenant_id == ctx["tenant"], TenantMember.user_id == user_id, TenantMember.active == True))
+    if not member:
+        raise HTTPException(404, "member_not_found")
+    if member.role == "OWNER" and _active_owner_count(s, ctx["tenant"]) <= 1:
+        raise HTTPException(409, "last_owner_protected")
+    member.active = False
+    audit(s, ctx, "tenant.member.removed")
+    s.commit()
+    return Response(status_code=204)
+
+
+@router.get("/app/api/identity/capabilities")
+def browser_identity_capabilities(ctx: dict = Depends(browser_context), s: Session = Depends(db)):
+    _require_management(ctx)
+    return {
+        "identity_authority": "Keycloak",
+        "browser_session_authority": "Klyrow",
+        "sso": {"configured": False, "mutation_available": False, "dependency": "governed Keycloak/Middleware provisioning contract"},
+        "scim": {"configured": False, "mutation_available": False, "dependency": "governed Keycloak/Middleware provisioning contract"},
+        "runtime_certification": "blocked" if os.getenv("KLYROW_IDENTITY_RUNTIME_CERTIFIED", "false").lower() != "true" else "certified",
+        "direct_keycloak_writes": False,
+    }
+
+
 @router.get("/app/api/admin/dashboard")
 def platform_dashboard(ctx: dict = Depends(browser_context), s: Session = Depends(db)):
     user = s.get(User, ctx["sub"])

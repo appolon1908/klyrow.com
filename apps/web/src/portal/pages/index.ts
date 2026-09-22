@@ -20,6 +20,7 @@ import BillingPortalPage from './BillingPortalPage.vue'
 import SettingsOrganizationPage from './SettingsOrganizationPage.vue'
 import SettingsTeamPage from './SettingsTeamPage.vue'
 import SettingsSecurityPage from './SettingsSecurityPage.vue'
+import SettingsEnterpriseIdentityPage from './SettingsEnterpriseIdentityPage.vue'
 import AdminCountsPage from './AdminCountsPage.vue'
 import MediaLibraryPage from './MediaLibraryPage.vue'
 import AudienceProfilesPage from './AudienceProfilesPage.vue'
@@ -59,6 +60,8 @@ const pages: Record<string, Component> = {
   'settings-organization': SettingsOrganizationPage,
   'settings-team': SettingsTeamPage,
   'settings-security': SettingsSecurityPage,
+  'settings-sso': SettingsEnterpriseIdentityPage,
+  'settings-scim': SettingsEnterpriseIdentityPage,
   'admin-tenants': AdminCountsPage,
   'admin-queues': AdminCountsPage,
   'admin-deliverability': AdminCountsPage,

@@ -33,6 +33,12 @@ const errors = ref<Record<string, string>>({})
 const submitError = ref('')
 const submitting = ref(false)
 const invitation = ref<InvitationCreated | null>(null)
+const pending = ref<Array<{id:string;email:string;role:string;expires_at:string;created_at:string}>>([])
+async function loadPending() { if (canManage.value) pending.value = await appApi('/app/api/team/invitations') }
+async function revokeInvite(id:string) { await appApi('/app/api/team/invitations/' + encodeURIComponent(id), { method: 'DELETE' }); await loadPending(); notify('success', 'Invitation revoked.') }
+async function changeRole(userId:string, role:string) { await appApi('/app/api/team/' + encodeURIComponent(userId), { method:'PATCH', body: JSON.stringify({role}) }); await page.reload(); notify('success','Member role updated.') }
+async function removeMember(userId:string) { await appApi('/app/api/team/' + encodeURIComponent(userId), { method:'DELETE' }); await page.reload(); notify('success','Member removed.') }
+if (canManage.value) void loadPending()
 
 function openDialog() { form.value = { email: '', role: 'READ_ONLY' }; errors.value = {}; submitError.value = ''; invitation.value = null; dialogOpen.value = true }
 function closeDialog() { dialogOpen.value = false; invitation.value = null }
@@ -70,11 +76,25 @@ async function submit() {
       <EmptyState v-if="page.status.value === 'empty'" title="No members listed" description="Members appear once they accept an invitation." />
       <DataTable v-else caption="Team members" :columns="columns" :rows="page.data.value || []" row-key="user_id">
         <template #cell-email="{ row }"><SafeText :value="row.email" :fallback="String(row.user_id)" /></template>
-        <template #cell-role="{ value }"><StatusBadge :value="String(value)" /></template>
-        <template #cell-created_at="{ value }">{{ new Date(String(value)).toLocaleDateString() }}</template>
+        <template #cell-role="{ row, value }">
+          <select v-if="canManage" :value="String(value)" aria-label="Member role" @change="changeRole(String(row.user_id), ($event.target as HTMLSelectElement).value)">
+            <option v-for="role in ROLES" :key="role" :value="role">{{ role }}</option>
+          </select>
+          <StatusBadge v-else :value="String(value)" />
+        </template>
+        <template #cell-created_at="{ row, value }">
+          {{ new Date(String(value)).toLocaleDateString() }}
+          <button v-if="canManage" type="button" class="kp-button" @click="removeMember(String(row.user_id))">Remove</button>
+        </template>
       </DataTable>
-      <PanelCard title="Role changes and removal" eyebrow="Not available" source="unavailable">
-        <UnavailableState title="Member role change and removal" dependency="No browser API exists yet. Required contract: PATCH/DELETE /app/api/team/{user_id} restricted to owners and admins, plus GET /app/api/team/invitations for pending invitations." />
+      <PanelCard v-if="canManage" title="Pending invitations" eyebrow="Access lifecycle" source="live">
+        <EmptyState v-if="pending.length === 0" title="No pending invitations" description="Outstanding invitations will appear here until accepted, revoked or expired." />
+        <ul v-else>
+          <li v-for="item in pending" :key="item.id">
+            <SafeText :value="item.email" /> · {{ item.role }} · expires {{ new Date(item.expires_at).toLocaleString() }}
+            <button type="button" class="kp-button" @click="revokeInvite(item.id)">Revoke</button>
+          </li>
+        </ul>
       </PanelCard>
     </div>
 
