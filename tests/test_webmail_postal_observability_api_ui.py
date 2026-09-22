@@ -28,3 +28,18 @@ def test_health_thresholds_are_server_authoritative():
     assert "oldest_seconds > 300" in api
     assert "page.data.value.health" in ui
     assert "page.data.value.thresholds" in ui
+
+
+def test_observability_endpoint_inventory_and_incident_logic():
+    api = (ROOT / "apps/gateway/app/browser_observability.py").read_text()
+    routes = (ROOT / "apps/web/src/portal/routes.ts").read_text()
+    for endpoint in (
+        "/app/api/admin/observability/webmail-postal",
+        "/app/api/admin/observability/webmail-postal/slo",
+        "/app/api/admin/observability/webmail-postal/incidents",
+        "/app/api/admin/observability/webmail-postal/architecture",
+    ):
+        assert endpoint in api
+        assert endpoint in routes
+    assert '"direct_cross_system_writes": False' in api
+    assert "reconcile indeterminate work before retry" in api
