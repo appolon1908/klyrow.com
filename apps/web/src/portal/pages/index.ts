@@ -3,6 +3,7 @@ import type { PortalRoute } from '../routes'
 import UnavailablePage from './UnavailablePage.vue'
 import OverviewPage from './OverviewPage.vue'
 import AdminSystemPage from './AdminSystemPage.vue'
+import AdminObservabilityPage from './AdminObservabilityPage.vue'
 import EmailMessagesPage from './EmailMessagesPage.vue'
 import EmailMessagePage from './EmailMessagePage.vue'
 import EmailDomainsPage from './EmailDomainsPage.vue'
@@ -28,6 +29,7 @@ import EmailSuppressionsPage from './EmailSuppressionsPage.vue'
 const pages: Record<string, Component> = {
   overview: OverviewPage,
   'admin-system': AdminSystemPage,
+  'admin-observability': AdminObservabilityPage,
   'email-messages': EmailMessagesPage,
   'email-message': EmailMessagePage,
   'email-domains': EmailDomainsPage,
