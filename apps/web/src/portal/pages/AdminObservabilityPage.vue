@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { appApi, type BrowserSession } from '../../api'
 import type { PortalRoute } from '../routes'
 import { usePage } from '../composables/usePage'
@@ -30,6 +30,20 @@ const unresolved = computed(() => {
   const r = page.data.value?.reconciliation
   return r ? r.retry + r.dead_letter + r.indeterminate : 0
 })
+const traceId = ref('')
+const traceBusy = ref(false)
+const traceError = ref('')
+const traceResult = ref<{ correlation_id: string; found: boolean; path: string[]; timeline: Array<{at:string;layer:string;state:string;kind:string;attempts:number}>; privacy: string } | null>(null)
+async function inspectTrace() {
+  const value = traceId.value.trim()
+  if (!value) return
+  traceBusy.value = true; traceError.value = ''; traceResult.value = null
+  try {
+    traceResult.value = await appApi('/app/api/admin/observability/webmail-postal/traces/' + encodeURIComponent(value))
+  } catch (error) {
+    traceError.value = error instanceof Error ? error.message : 'trace_lookup_failed'
+  } finally { traceBusy.value = false }
+}
 const healthLabel = (value: string) => value === 'critical' ? 'Critical' : value === 'attention' ? 'Attention' : 'Healthy'
 </script>
 
@@ -90,6 +104,25 @@ const healthLabel = (value: string) => value === 'critical' ? 'Critical' : value
           <MetricCard label="Bounce ratio" :value="pct(page.data.value.slo.bounce_ratio)" :detail="'Target < ' + pct(page.data.value.thresholds.bounce_ratio)" :source="source" />
           <MetricCard label="Complaint ratio" :value="pct(page.data.value.slo.complaint_ratio)" :detail="'Target < ' + pct(page.data.value.thresholds.complaint_ratio)" :source="source" />
         </section>
+      </PanelCard>
+
+      <PanelCard title="Trace explorer" eyebrow="Correlation drill-down" :source="source">
+        <form class="kp-inline-actions" @submit.prevent="inspectTrace">
+          <label for="trace-correlation"><strong>Correlation ID</strong></label>
+          <input id="trace-correlation" v-model="traceId" class="kp-input" autocomplete="off" placeholder="corr-…" maxlength="128" />
+          <button class="kp-button" type="submit" :disabled="traceBusy || !traceId.trim()">{{ traceBusy ? 'Inspecting…' : 'Inspect trace' }}</button>
+        </form>
+        <p v-if="traceError" role="alert">{{ traceError }}</p>
+        <div v-if="traceResult" class="kp-stack">
+          <p><strong>{{ traceResult.found ? 'Trace evidence found' : 'No local durable evidence found' }}</strong> · {{ traceResult.correlation_id }}</p>
+          <ol v-if="traceResult.timeline.length">
+            <li v-for="item in traceResult.timeline" :key="item.at + item.layer + item.kind">
+              <strong>{{ item.layer }}</strong> — {{ item.kind }} · {{ item.state }} · attempts {{ item.attempts }}
+              <small>{{ new Date(item.at).toLocaleString() }}</small>
+            </li>
+          </ol>
+          <p>{{ traceResult.privacy }}</p>
+        </div>
       </PanelCard>
 
       <PanelCard title="Governed request path" eyebrow="Architecture" source="live">
