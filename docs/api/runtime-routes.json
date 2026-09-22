@@ -1405,6 +1405,18 @@
   },
   {
     "documented": true,
+    "handler": "stablecoin_payment_request",
+    "method": "POST",
+    "path": "/app/api/billing/invoices/{invoice_id}/stablecoin-payment"
+  },
+  {
+    "documented": true,
+    "handler": "stablecoin_transaction_submit",
+    "method": "POST",
+    "path": "/app/api/billing/payment-attempts/{payment_attempt_id}/stablecoin/transactions"
+  },
+  {
+    "documented": true,
     "handler": "cancel_subscription",
     "method": "POST",
     "path": "/app/api/billing/subscription/cancel"

@@ -240,6 +240,8 @@ This inventories the composed platform, including hidden compatibility and brows
 | PATCH | `/v1/templates/{template_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `template_patch` |
 | POST | `/app/api/admin/provisioning/postal/{tenant_id}/retry` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `admin_retry_provisioning` |
 | POST | `/app/api/billing/invoices/{invoice_id}/checkout` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `checkout_invoice` |
+| POST | `/app/api/billing/invoices/{invoice_id}/stablecoin-payment` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `stablecoin_payment_request` |
+| POST | `/app/api/billing/payment-attempts/{payment_attempt_id}/stablecoin/transactions` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `stablecoin_transaction_submit` |
 | POST | `/app/api/billing/subscription/cancel` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `cancel_subscription` |
 | POST | `/app/api/billing/subscription/change` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `change_subscription` |
 | POST | `/app/api/billing/subscription/quote` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `subscription_quote` |

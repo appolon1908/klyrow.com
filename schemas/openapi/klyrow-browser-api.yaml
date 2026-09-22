@@ -501,6 +501,21 @@
         "title": "RecoveryRequest",
         "type": "object"
       },
+      "StablecoinTransactionIn": {
+        "properties": {
+          "tx_hash": {
+            "maxLength": 66,
+            "minLength": 66,
+            "title": "Tx Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tx_hash"
+        ],
+        "title": "StablecoinTransactionIn",
+        "type": "object"
+      },
       "SubscriptionChangeIn": {
         "properties": {
           "expected_version": {
@@ -1316,6 +1331,85 @@
         "x-klyrow-enforced-auth-dependencies": []
       }
     },
+    "/app/api/billing/invoices/{invoice_id}/stablecoin-payment": {
+      "post": {
+        "operationId": "stablecoin_payment_request_app_api_billing_invoices__invoice_id__stablecoin_payment_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoice_id",
+            "required": true,
+            "schema": {
+              "title": "Invoice Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Stablecoin Payment Request App Api Billing Invoices  Invoice Id  Stablecoin Payment Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Stablecoin Payment Request",
+        "tags": [
+          "Browser billing"
+        ],
+        "x-durable-idempotency": true,
+        "x-idempotency-model": "REQUEST_SCOPED_ATOMIC",
+        "x-idempotency-required": true,
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
+      }
+    },
     "/app/api/billing/overview": {
       "get": {
         "operationId": "overview_app_api_billing_overview_get",
@@ -1397,6 +1491,81 @@
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
         "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/billing/payment-attempts/{payment_attempt_id}/stablecoin/transactions": {
+      "post": {
+        "operationId": "stablecoin_transaction_submit_app_api_billing_payment_attempts__payment_attempt_id__stablecoin_transactions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "payment_attempt_id",
+            "required": true,
+            "schema": {
+              "title": "Payment Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StablecoinTransactionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Stablecoin Transaction Submit App Api Billing Payment Attempts  Payment Attempt Id  Stablecoin Transactions Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Stablecoin Transaction Submit",
+        "tags": [
+          "Browser billing"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/payment-methods": {

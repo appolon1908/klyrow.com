@@ -34,6 +34,12 @@ from .auth_bff import csrf_guard
 from .billing_checkout import create_or_resume_checkout
 from .billing_config import BillingConfigError, load_billing_settings
 from .main import db
+from .stablecoin_provider import (
+    StablecoinChainEvent,
+    StablecoinPaymentRequest,
+    create_or_resume_stablecoin_request,
+    submit_stablecoin_transaction,
+)
 from .tenancy import ROLE_PERMISSIONS
 
 router = APIRouter(prefix="/app/api/billing", tags=["Browser billing"])
@@ -49,6 +55,10 @@ class SubscriptionLifecycleIn(BaseModel):
 
 class SubscriptionChangeIn(SubscriptionLifecycleIn):
     plan_code: str = Field(min_length=2, max_length=40)
+
+
+class StablecoinTransactionIn(BaseModel):
+    tx_hash: str = Field(min_length=66, max_length=66)
 
 
 def _tenant_subscription(s: Session, tenant_id: str) -> BillingSubscription:
@@ -373,6 +383,7 @@ def capabilities(ctx: dict[str, Any] = Depends(billing_context)) -> dict[str, An
             "checkout_enabled": False,
             "stripe": {"available": False, "environment": "sandbox"},
             "paypal": {"available": False, "environment": "sandbox"},
+            "stablecoin": {"available": False, "environment": "sandbox"},
             "live_charging": False,
         }
     stripe_available = (
@@ -387,11 +398,17 @@ def capabilities(ctx: dict[str, Any] = Depends(billing_context)) -> dict[str, An
         and settings.paypal.enabled
         and (settings.paypal.environment == "sandbox" or settings.live_charging_enabled and settings.paypal.production_approved)
     )
+    stablecoin_available = (
+        settings.enabled
+        and settings.stablecoin.enabled
+        and (settings.stablecoin.environment == "sandbox" or settings.live_charging_enabled and settings.stablecoin.production_approved)
+    )
     return {
         "billing_enabled": settings.enabled,
-        "checkout_enabled": (stripe_available or paypal_available) and _has_permission(ctx, "billing.manage"),
+        "checkout_enabled": (stripe_available or paypal_available or stablecoin_available) and _has_permission(ctx, "billing.manage"),
         "stripe": {"available": stripe_available, "environment": settings.stripe.environment},
         "paypal": {"available": paypal_available, "environment": settings.paypal.environment},
+        "stablecoin": {"available": stablecoin_available, "environment": settings.stablecoin.environment},
         "live_charging": settings.live_charging_enabled,
     }
 
@@ -422,6 +439,62 @@ def checkout_invoice(
         "status": result.status,
         "hosted_checkout_url": result.checkout_url,
         "expires_at": iso(result.expires_at),
+    }
+
+
+@router.post("/invoices/{invoice_id}/stablecoin-payment", status_code=201)
+def stablecoin_payment_request(
+    invoice_id: str,
+    ctx: dict[str, Any] = Depends(billing_manage_context),
+    s: Session = Depends(db),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
+) -> dict[str, Any]:
+    result = create_or_resume_stablecoin_request(
+        s,
+        tenant_id=ctx["tenant"],
+        actor_id=ctx["sub"],
+        invoice_id=invoice_id,
+        idempotency_key=idempotency_key,
+    )
+    return {
+        "payment_attempt_id": result.attempt_id,
+        "payment_request_id": result.request_id,
+        "invoice_id": result.invoice_id,
+        "provider": "stablecoin",
+        "asset": "USDC",
+        "chain_id": result.chain_id,
+        "token_contract": result.token_contract,
+        "token_decimals": result.token_decimals,
+        "recipient_address": result.recipient_address,
+        "wallet_reference": result.wallet_reference,
+        "amount_base_units": result.amount_base_units,
+        "amount": result.amount,
+        "currency": result.currency,
+        "expires_at": iso(result.expires_at),
+    }
+
+
+@router.post("/payment-attempts/{payment_attempt_id}/stablecoin/transactions", status_code=202)
+def stablecoin_transaction_submit(
+    payment_attempt_id: str,
+    payload: StablecoinTransactionIn,
+    ctx: dict[str, Any] = Depends(billing_manage_context),
+    s: Session = Depends(db),
+) -> dict[str, Any]:
+    event, duplicate = submit_stablecoin_transaction(
+        s,
+        tenant_id=ctx["tenant"],
+        actor_id=ctx["sub"],
+        payment_attempt_id=payment_attempt_id,
+        tx_hash=payload.tx_hash,
+    )
+    return {
+        "accepted": True,
+        "duplicate": duplicate,
+        "event_id": event.id,
+        "state": event.state,
+        "tx_hash": event.tx_hash,
+        "chain_id": event.chain_id,
     }
 
 

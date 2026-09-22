@@ -88,6 +88,7 @@ DURABLE_IDEMPOTENCY = {
     ("post", "/v1/commands"),
     ("post", "/v1/billing/payment-attempts"),
     ("post", "/app/api/billing/invoices/{invoice_id}/checkout"),
+    ("post", "/app/api/billing/invoices/{invoice_id}/stablecoin-payment"),
 }
 NON_ATOMIC_ITEM_IDEMPOTENCY = {
     ("post", "/v1/email/bulk"),
