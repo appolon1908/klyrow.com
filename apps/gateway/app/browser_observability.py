@@ -74,3 +74,42 @@ def webmail_postal_observability(ctx: dict = Depends(browser_context), session: 
             "complaint_ratio": complained / max(provider_total, 1),
         },
     }
+
+
+@router.get("/app/api/admin/observability/webmail-postal/slo")
+def webmail_postal_slo(ctx: dict = Depends(browser_context), session: Session = Depends(db)):
+    snapshot = webmail_postal_observability(ctx, session)
+    return {
+        "generated_at": snapshot["generated_at"],
+        "health": snapshot["health"],
+        "thresholds": snapshot["thresholds"],
+        "slo": snapshot["slo"],
+        "queue_age_seconds": snapshot["outbound"]["oldest_seconds"],
+    }
+
+@router.get("/app/api/admin/observability/webmail-postal/incidents")
+def webmail_postal_incidents(ctx: dict = Depends(browser_context), session: Session = Depends(db)):
+    snapshot = webmail_postal_observability(ctx, session)
+    incidents = []
+    def add(code: str, severity: str, area: str, reason: str, safe_action: str):
+        incidents.append({"code": code, "severity": severity, "area": area, "reason": reason, "safe_action": safe_action})
+    if snapshot["health"]["queue"] != "healthy":
+        add("email_queue_age", snapshot["health"]["queue"], "Middleware -> Postal adapter", f'Oldest active item is {snapshot["outbound"]["oldest_seconds"]}s.', "Inspect durable outbox and reconciliation before retry.")
+    if snapshot["health"]["inbound"] != "healthy":
+        add("inbound_failure_ratio", snapshot["health"]["inbound"], "Postal -> Middleware -> Klyrow inbound adapter", f'Inbound failure ratio is {snapshot["slo"]["inbound_failure_ratio"]:.4f}.', "Verify route/domain state and authenticated provider evidence.")
+    if snapshot["health"]["outbound"] != "healthy":
+        add("send_failure_ratio", snapshot["health"]["outbound"], "Middleware -> Postal adapter", f'Send failure ratio is {snapshot["slo"]["send_failure_ratio"]:.4f}.', "Inspect provider outcome; reconcile indeterminate work before retry.")
+    if snapshot["health"]["reconciliation"] != "healthy":
+        add("reconciliation_unresolved", snapshot["health"]["reconciliation"], "Middleware reconciliation", f'{snapshot["reconciliation"]["retry"] + snapshot["reconciliation"]["dead_letter"] + snapshot["reconciliation"]["indeterminate"]} unresolved items.', "Resolve authoritative provider state before replay.")
+    return {"generated_at": snapshot["generated_at"], "count": len(incidents), "items": incidents}
+
+@router.get("/app/api/admin/observability/webmail-postal/architecture")
+def webmail_postal_architecture(ctx: dict = Depends(browser_context), session: Session = Depends(db)):
+    snapshot = webmail_postal_observability(ctx, session)
+    return {
+        "path": ["Caddy", "Kong", "Middleware", "authorized-adapter", "Klyrow/Postal"],
+        "authority": "Middleware",
+        "browser_api_mode": "read-only",
+        "direct_cross_system_writes": False,
+        "description": snapshot["architecture"],
+    }
