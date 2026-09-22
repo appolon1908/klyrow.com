@@ -54,3 +54,22 @@ def test_trace_drilldown_is_bounded_and_redacted():
     assert "No addresses, subjects, bodies, tokens, provider IDs or payloads" in api
     assert "Trace explorer" in ui
     assert "Inspect trace" in ui
+
+
+def test_unified_operations_center_covers_user_billing_admin_suites():
+    api = (ROOT / "apps/gateway/app/browser_observability.py").read_text()
+    routes = (ROOT / "apps/web/src/portal/routes.ts").read_text()
+    pages = (ROOT / "apps/web/src/portal/pages/index.ts").read_text()
+    ui = (ROOT / "apps/web/src/portal/pages/AdminOperationsCenterPage.vue").read_text()
+    for endpoint in (
+        "/app/api/admin/observability/users",
+        "/app/api/admin/observability/billing",
+        "/app/api/admin/observability/system",
+        "/app/api/admin/observability/operations-center",
+    ):
+        assert endpoint in api and endpoint in routes
+    assert "/admin/operations" in routes
+    assert "'admin-operations': AdminOperationsCenterPage" in pages
+    assert "Users & access" in ui and "Billing operations" in ui and "Middleware & integrations" in ui
+    assert api.count('"direct_cross_system_writes": False') >= 5
+    assert '"sensitive_payment_data_returned": False' in api
