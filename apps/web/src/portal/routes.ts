@@ -196,7 +196,7 @@ export const portalRoutes: readonly PortalRoute[] = [
   admin({ name: 'admin-billing', pattern: '/admin/billing', group: 'Admin', title: 'Platform billing', breadcrumb: 'Billing', availability: 'unavailable', nav: true,
     dependency: missing('a platform billing browser API; no payment provider is active'), apis: [] }),
   admin({ name: 'admin-observability', pattern: '/admin/observability', group: 'Admin', title: 'Observability', breadcrumb: 'Observability', availability: 'implemented', nav: true,
-    dependency: 'Read-only Webmail/Postal operational projection from the authenticated browser BFF; cross-system commands remain Caddy → Kong → Middleware.', apis: ['GET /app/api/admin/observability/webmail-postal'] }),
+    dependency: 'Read-only Webmail/Postal operational projection from the authenticated browser BFF; cross-system commands remain Caddy → Kong → Middleware.', apis: ['GET /app/api/admin/observability/webmail-postal', 'GET /app/api/admin/observability/webmail-postal/slo', 'GET /app/api/admin/observability/webmail-postal/incidents', 'GET /app/api/admin/observability/webmail-postal/architecture'] }),
   admin({ name: 'admin-system', pattern: '/admin/system', group: 'Admin', title: 'System', breadcrumb: 'System', availability: 'implemented', nav: true,
     dependency: 'Platform counts come from the admin dashboard API.', apis: ['GET /app/api/admin/dashboard'] }),
   admin({ name: 'admin-audit', pattern: '/admin/audit', group: 'Admin', title: 'Platform audit', breadcrumb: 'Audit', availability: 'unavailable', nav: true,
