@@ -1439,6 +1439,49 @@
         "title": "SuspendIn",
         "type": "object"
       },
+      "TaxRuleIn": {
+        "properties": {
+          "evidence_label": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Evidence Label",
+            "type": "string"
+          },
+          "jurisdiction": {
+            "maxLength": 20,
+            "minLength": 2,
+            "title": "Jurisdiction",
+            "type": "string"
+          },
+          "mode": {
+            "pattern": "^(STANDARD|REDUCED|ZERO|NO_TAX|VAT)$",
+            "title": "Mode",
+            "type": "string"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Rate"
+          }
+        },
+        "required": [
+          "jurisdiction",
+          "mode",
+          "rate",
+          "evidence_label"
+        ],
+        "title": "TaxRuleIn",
+        "type": "object"
+      },
       "TenantIn": {
         "properties": {
           "name": {
@@ -1890,6 +1933,99 @@
           }
         ],
         "summary": "Dunning",
+        "tags": [
+          "Klyrow billing"
+        ],
+        "x-klyrow-audience": "ADMIN",
+        "x-klyrow-auth-model": "EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA",
+        "x-klyrow-enforced-auth-dependencies": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/admin/billing/tax-rules": {
+      "post": {
+        "operationId": "tax_rule_create_v1_admin_billing_tax_rules_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "x-klyrow-tenant-id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Klyrow-Tenant-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxRuleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Tax Rule Create",
         "tags": [
           "Klyrow billing"
         ],

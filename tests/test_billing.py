@@ -3,6 +3,7 @@ import pytest
 pytestmark = pytest.mark.usefixtures("canonical_api_owner")
 
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 from apps.gateway.app.main import Base, DB, Tenant, User, app, engine, ph, rate_buckets
 from apps.gateway.app.billing import BillingPrice, Invoice, InvoiceLine, Payment
@@ -193,3 +194,27 @@ def test_reconciliation_detects_paid_invoice_without_confirmed_payment():
     reconciliation=client.get("/v1/billing/reconciliation",headers=tenant)
     assert reconciliation.status_code==200 and reconciliation.json()["status"]=="DRIFT"
     assert any(item["invoice_id"]==created.json()["id"] and item["expected"]=="OPEN" for item in reconciliation.json()["issues"])
+
+
+def test_tax_snapshot_and_dispute_persistence():
+    root=login();tenant=login("a@example.com")
+    tax=client.post("/v1/admin/billing/tax-rules",headers=root,json={"jurisdiction":"de","mode":"STANDARD","rate":"0.19","evidence_label":"VAT standard rate"})
+    assert tax.status_code==201
+    assert tax.json()["jurisdiction"]=="DE"
+    assert tax.json()["rate"]=="0.190000"
+    created=client.post("/v1/billing/invoices",headers=tenant,json={"due_at":(datetime.now(timezone.utc)+timedelta(days=14)).isoformat(),"jurisdiction":"de"})
+    assert created.status_code==201,created.text
+    with DB() as session:
+        invoice=session.get(Invoice,created.json()["id"])
+        assert invoice.jurisdiction=="DE"
+        assert Decimal(invoice.tax_rate)==Decimal("0.190000")
+        assert Decimal(invoice.tax)==(Decimal(invoice.subtotal)*Decimal("0.19")).quantize(Decimal("0.01"))
+        original_status=invoice.status
+    dispute=client.post(f"/v1/billing/invoices/{created.json()['id']}/disputes",headers=tenant,json={"amount":"1.00","category":"TAX","reason":"VAT mismatch on invoice"})
+    assert dispute.status_code==201,dispute.text
+    listed=client.get(f"/v1/billing/invoices/{created.json()['id']}/disputes",headers=tenant)
+    assert listed.status_code==200
+    assert listed.json()["items"][0]["category"]=="TAX"
+    with DB() as session:
+        invoice=session.get(Invoice,created.json()["id"])
+        assert invoice.status==original_status
