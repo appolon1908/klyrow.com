@@ -12,6 +12,31 @@ const claims = [
   { id: 'claim-2', domain: 'pending.example', state: 'DNS_REQUIRED', dkim_selector: 'kly2', dkim_version: 1, return_path: 'bounce.pending.example', tracking_domain: 'track.pending.example', verified_at: null, created_at: '2026-08-02T00:00:00Z' },
 ]
 
+const messageDetail = {
+  ...messages[2],
+  current_outcome: 'DELIVERED',
+  correlation_id: 'corr-m2',
+  operation_id: 'op-m2',
+  outbox: { state: 'sent', attempts: 1, created_at: '2026-09-10T10:00:00Z', updated_at: '2026-09-10T10:01:00Z', next_attempt_at: null, provider_reference_present: true },
+  provider: { status: 'DELIVERED', attempts: 1, sandbox: false, provider_reference_present: true, updated_at: '2026-09-10T10:02:00Z' },
+  timeline: [
+    { id: 'accepted:m2', kind: 'message.accepted', status: 'QUEUED', source: 'klyrow', occurred_at: '2026-09-10T10:00:00Z' },
+    { id: 'event:m2', kind: 'email.delivered', status: 'DELIVERED', source: 'klyrow_event', occurred_at: '2026-09-10T10:02:00Z' },
+  ],
+}
+const domainDetail = {
+  id: 'claim-1',
+  domain: 'example.com',
+  state: 'VERIFIED',
+  verified_at: '2026-09-01T00:00:00Z',
+  suspended_at: null,
+  created_at: '2026-08-01T00:00:00Z',
+  dkim: { selector: 'kly1', version: 1, history: [{ selector: 'kly1', version: 1, active: true, created_at: '2026-08-01T00:00:00Z', retired_at: null }] },
+  dns: { return_path: 'bounce.example.com', tracking_domain: 'track.example.com' },
+  deliverability: { source: 'durable_snapshot', checked_at: '2026-09-21T12:00:00Z', spf: true, dkim: true, dmarc: true, mx: true, ptr: false, tls: false, alerts: [{ severity: 'critical', code: 'ptr_missing' }], stale: false },
+  provider_readiness: { sending_enabled: true, inbound_enabled: true, status: 'SENDING_ENABLED' },
+}
+
 async function mount(name: string, params: Record<string, string> = {}, session = reader) {
   const { routeByName } = await import('../portal/routes')
   const { pageFor } = await import('../portal/pages')
@@ -59,20 +84,21 @@ describe('messages list and detail', () => {
     await mount('email-messages')
     expect((await screen.findByRole('alert')).textContent).toContain('req-msg')
   })
-  it('renders a message summary with an honest timeline unavailability and no retry controls', async () => {
-    api.appApi.mockResolvedValue(messages)
+  it('renders normalized delivery evidence without raw provider controls', async () => {
+    api.appApi.mockResolvedValue(messageDetail)
     await mount('email-message', { id: 'm2' })
     expect(await screen.findByText('user2@example.com')).toBeTruthy()
-    expect(screen.getByRole('heading', { name: 'Event timeline' })).toBeTruthy()
-    expect(screen.getByText(/GET \/app\/api\/messages\/\{id\}/)).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Delivery evidence' })).toBeTruthy()
+    expect(screen.getByText('corr-m2')).toBeTruthy()
+    expect(screen.getAllByText(/delivered/i).length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull()
     expect(screen.queryByRole('button', { name: /cancel/i })).toBeNull()
-    expect(screen.getByText('m2')).toBeTruthy()
+    expect(api.appApi).toHaveBeenCalledWith('/app/api/messages/m2')
   })
-  it('shows not found for an unknown message id', async () => {
-    api.appApi.mockResolvedValue(messages)
+  it('shows a safe error for an unknown message id', async () => {
+    api.appApi.mockRejectedValueOnce(await apiError(404, 'message_not_found', 'req-missing'))
     await mount('email-message', { id: 'missing' })
-    expect(await screen.findByText(/message not found/i)).toBeTruthy()
+    expect((await screen.findByRole('alert')).textContent).toContain('req-missing')
   })
 })
 
@@ -110,15 +136,18 @@ describe('domains', () => {
     expect(alert.textContent).toContain('req-verify')
     expect(screen.queryByText(/verified/i, { selector: '.kp-badge' })?.textContent).not.toContain('pending.example')
   })
-  it('shows claim detail with DNS guidance and unavailable evidence sections', async () => {
-    api.appApi.mockResolvedValue(claims)
-    await mount('email-domain', { id: 'claim-2' })
-    expect(await screen.findByRole('heading', { level: 1, name: 'pending.example' })).toBeTruthy()
-    expect(screen.getByText('_klyrow-verification.pending.example')).toBeTruthy()
-    expect(screen.getByText('kly2._domainkey.pending.example')).toBeTruthy()
+  it('shows live domain readiness, DKIM history and deliverability evidence', async () => {
+    api.appApi.mockResolvedValue(domainDetail)
+    await mount('email-domain', { id: 'claim-1' })
+    expect(await screen.findByRole('heading', { level: 1, name: 'example.com' })).toBeTruthy()
+    expect(screen.getByText('_klyrow-verification.example.com')).toBeTruthy()
+    expect(screen.getByText('kly1._domainkey.example.com')).toBeTruthy()
+    await fireEvent.click(screen.getByRole('tab', { name: 'DKIM' }))
+    expect(screen.getAllByText(/kly1/).length).toBeGreaterThan(0)
     await fireEvent.click(screen.getByRole('tab', { name: 'Evidence' }))
-    expect(await screen.findByText(/GET \/app\/api\/domains\/\{id\}/)).toBeTruthy()
-    expect(screen.queryByText(/verified/i, { selector: '.kp-badge[data-tone="success"]' })).toBeNull()
+    expect(await screen.findByText(/ptr_missing/i)).toBeTruthy()
+    expect(screen.queryByText(/No browser API exists yet/i)).toBeNull()
+    expect(api.appApi).toHaveBeenCalledWith('/app/api/domains/claim-1')
   })
 })
 
