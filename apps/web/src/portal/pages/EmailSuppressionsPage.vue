@@ -19,7 +19,12 @@ type Suppression = { id: string; email: string; reason: string }
 type SuppressionResponse = { items: Suppression[]; limit: number; offset: number; has_more: boolean }
 
 defineProps<{ route: PortalRoute; params: Record<string, string>; session: BrowserSession }>()
-const page = usePage(() => appApi<SuppressionResponse>('/app/api/suppressions?limit=100&offset=0'), { isEmpty: result => result.items.length === 0 })
+const query = ref('')
+const reasonFilter = ref('')
+const page = usePage(
+  () => appApi<SuppressionResponse>(`/app/api/suppressions?limit=100&offset=0&q=${encodeURIComponent(query.value.trim())}&reason=${encodeURIComponent(reasonFilter.value.trim())}`),
+  { isEmpty: result => result.items.length === 0 },
+)
 const rows = computed(() => page.data.value?.items || [])
 const dialogOpen = ref(false)
 const email = ref('')
@@ -27,6 +32,16 @@ const reason = ref('manual')
 const submitError = ref('')
 const submitting = ref(false)
 const columns = [{ key: 'email', label: 'Email' }, { key: 'reason', label: 'Reason' }, { key: 'actions', label: 'Actions' }]
+
+async function applyFilters() {
+  await page.reload()
+}
+
+async function clearFilters() {
+  query.value = ''
+  reasonFilter.value = ''
+  await page.reload()
+}
 
 async function add() {
   submitting.value = true
@@ -64,6 +79,14 @@ async function remove(item: Suppression) {
       <button type="button" class="kp-button" :disabled="page.status.value === 'loading'" @click="page.reload">Refresh</button>
       <button type="button" class="kp-button--primary" @click="dialogOpen = true">Add suppression</button>
     </PageHeader>
+    <form class="kp-grid--2" aria-label="Suppression filters" @submit.prevent="applyFilters">
+      <FormField id="suppression-search" label="Search email"><input id="suppression-search" v-model="query" type="search" autocomplete="off" placeholder="recipient@example.com"></FormField>
+      <FormField id="suppression-filter-reason" label="Reason"><input id="suppression-filter-reason" v-model="reasonFilter" type="text" maxlength="100" autocomplete="off" placeholder="Any reason"></FormField>
+      <div>
+        <button type="submit" class="kp-button">Apply filters</button>
+        <button v-if="query || reasonFilter" type="button" class="kp-button" @click="clearFilters">Clear</button>
+      </div>
+    </form>
     <LoadingState v-if="page.status.value === 'loading'" label="Loading suppressions…" />
     <ForbiddenState v-else-if="page.status.value === 'forbidden'" reason="server" :request-id="page.failure.value?.requestId" :code="page.failure.value?.code" />
     <ErrorState v-else-if="page.failure.value" :failure="page.failure.value" @retry="page.reload" />
