@@ -18,3 +18,13 @@ def test_admin_observability_ui_registered():
     assert "GET /app/api/admin/observability/webmail-postal" in routes
     assert "'admin-observability': AdminObservabilityPage" in pages
     assert "Caddy → Kong → Middleware" in page
+
+
+def test_health_thresholds_are_server_authoritative():
+    api = (ROOT / "apps/gateway/app/browser_observability.py").read_text()
+    ui = (ROOT / "apps/web/src/portal/pages/AdminObservabilityPage.vue").read_text()
+    assert '"thresholds"' in api
+    assert '"health"' in api
+    assert "oldest_seconds > 300" in api
+    assert "page.data.value.health" in ui
+    assert "page.data.value.thresholds" in ui
