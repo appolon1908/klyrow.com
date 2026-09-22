@@ -4252,6 +4252,33 @@
         ]
       }
     },
+    "/v1/internal/billing/providers/paypal/webhook": {
+      "post": {
+        "operationId": "paypal_webhook_v1_internal_billing_providers_paypal_webhook_post",
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Paypal Webhook",
+        "tags": [
+          "Billing provider webhooks"
+        ],
+        "x-klyrow-audience": "INTERNAL",
+        "x-klyrow-auth-model": "BEARER_JWT_OR_API_KEY_ON_PRIVATE_ROUTE",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
     "/v1/internal/billing/providers/stripe/webhook": {
       "post": {
         "operationId": "stripe_webhook_v1_internal_billing_providers_stripe_webhook_post",

@@ -430,21 +430,21 @@
     "declared_path": "/invoices/{invoice_id}/checkout",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "checkout_invoice",
-    "line": 392,
+    "line": 400,
     "method": "POST"
   },
   {
     "declared_path": "/payment-attempts/{payment_attempt_id}",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "browser_payment_attempt",
-    "line": 415,
+    "line": 429,
     "method": "GET"
   },
   {
     "declared_path": "/wallet",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "wallet",
-    "line": 443,
+    "line": 457,
     "method": "GET"
   },
   {
@@ -479,14 +479,21 @@
     "declared_path": "/v1/internal/billing/providers/stripe/webhook",
     "file": "apps/gateway/app/billing_provider_events.py",
     "handler": "stripe_webhook",
-    "line": 59,
+    "line": 116,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/v1/internal/billing/providers/paypal/webhook",
+    "file": "apps/gateway/app/billing_provider_events.py",
+    "handler": "paypal_webhook",
+    "line": 163,
     "method": "POST"
   },
   {
     "declared_path": "/reconciliation",
     "file": "apps/gateway/app/billing_reconciliation.py",
     "handler": "reconciliation_report",
-    "line": 144,
+    "line": 181,
     "method": "GET"
   },
   {

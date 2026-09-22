@@ -430,3 +430,58 @@ def test_disabled_billing_never_opens_a_secret_file(tmp_path, monkeypatch):
     settings = load_billing_settings(env(KLYROW_STRIPE_SECRET_FILE=str(sentinel)))
     assert settings.enabled is False
     assert str(sentinel) not in opened
+
+
+# ---- PayPal ----
+
+def paypal_env(tmp_path, **overrides):
+    values = env(
+        KLYROW_BILLING_ENABLED="true",
+        KLYROW_PAYPAL_ENABLED="true",
+        KLYROW_PAYPAL_CLIENT_ID="sandbox-client-id",
+        KLYROW_PAYPAL_SECRET_FILE=write_secret(tmp_path, "paypal-secret"),
+    )
+    values.update(overrides)
+    return values
+
+
+def test_paypal_requires_client_id(tmp_path):
+    values = paypal_env(tmp_path)
+    values["KLYROW_PAYPAL_CLIENT_ID"] = ""
+    with pytest.raises(BillingConfigError) as excinfo:
+        load_billing_settings(values)
+    assert excinfo.value.code == "paypal_client_id_missing"
+
+
+def test_paypal_sandbox_defaults_to_official_api(tmp_path):
+    settings = load_billing_settings(paypal_env(tmp_path))
+    assert settings.paypal.api_base_url == "https://api-m.sandbox.paypal.com"
+    assert settings.paypal.client_id == "sandbox-client-id"
+
+
+def test_paypal_rejects_non_official_api_host(tmp_path):
+    values = paypal_env(tmp_path, KLYROW_PAYPAL_API_BASE_URL="https://example.com")
+    with pytest.raises(BillingConfigError) as excinfo:
+        load_billing_settings(values)
+    assert excinfo.value.code == "paypal_api_base_url_invalid"
+
+
+def test_paypal_webhook_processing_requires_registered_webhook_id_file(tmp_path):
+    values = paypal_env(tmp_path, KLYROW_BILLING_WEBHOOK_PROCESSING_ENABLED="true")
+    with pytest.raises(BillingConfigError, match="KLYROW_PAYPAL_WEBHOOK_SECRET_FILE"):
+        load_billing_settings(values)
+
+
+def test_paypal_production_requires_approval_currency_and_live_gate_inputs(tmp_path):
+    values = paypal_env(
+        tmp_path,
+        KLYROW_PAYPAL_ENVIRONMENT="production",
+        KLYROW_PAYPAL_API_BASE_URL="https://api-m.paypal.com",
+        KLYROW_PAYPAL_PRODUCTION_APPROVED="true",
+        KLYROW_PAYPAL_CURRENCY_ALLOWLIST="USD,EUR",
+        KLYROW_PAYPAL_WEBHOOK_SECRET_FILE=write_secret(tmp_path, "paypal-webhook-id", "WH-PROD"),
+    )
+    settings = load_billing_settings(values)
+    assert settings.paypal.environment == "production"
+    assert settings.paypal.production_approved is True
+    assert settings.paypal.currency_allowlist == ("USD", "EUR")

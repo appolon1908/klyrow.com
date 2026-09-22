@@ -1201,6 +1201,16 @@
           },
           {
             "in": "header",
+            "name": "X-Klyrow-Payment-Provider",
+            "required": false,
+            "schema": {
+              "default": "stripe",
+              "title": "X-Klyrow-Payment-Provider",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
             "name": "X-Klyrow-CSRF",
             "required": true,
             "schema": {

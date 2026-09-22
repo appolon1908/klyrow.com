@@ -31,7 +31,7 @@ from .billing_entitlements import SubscriptionSnapshot, transition as apply_subs
 from .billing_proration import quote_plan_change
 from .billing import enqueue_subscription_changed
 from .auth_bff import csrf_guard
-from .billing_checkout import create_or_resume_stripe_checkout
+from .billing_checkout import create_or_resume_checkout
 from .billing_config import BillingConfigError, load_billing_settings
 from .main import db
 from .tenancy import ROLE_PERMISSIONS
@@ -372,18 +372,26 @@ def capabilities(ctx: dict[str, Any] = Depends(billing_context)) -> dict[str, An
             "billing_enabled": False,
             "checkout_enabled": False,
             "stripe": {"available": False, "environment": "sandbox"},
+            "paypal": {"available": False, "environment": "sandbox"},
             "live_charging": False,
         }
     stripe_available = (
         settings.enabled
         and settings.webhook_processing_enabled
         and settings.stripe.enabled
-        and settings.stripe.environment == "sandbox"
+        and (settings.stripe.environment == "sandbox" or settings.live_charging_enabled and settings.stripe.production_approved)
+    )
+    paypal_available = (
+        settings.enabled
+        and settings.webhook_processing_enabled
+        and settings.paypal.enabled
+        and (settings.paypal.environment == "sandbox" or settings.live_charging_enabled and settings.paypal.production_approved)
     )
     return {
         "billing_enabled": settings.enabled,
-        "checkout_enabled": stripe_available and _has_permission(ctx, "billing.manage"),
+        "checkout_enabled": (stripe_available or paypal_available) and _has_permission(ctx, "billing.manage"),
         "stripe": {"available": stripe_available, "environment": settings.stripe.environment},
+        "paypal": {"available": paypal_available, "environment": settings.paypal.environment},
         "live_charging": settings.live_charging_enabled,
     }
 
@@ -394,9 +402,14 @@ def checkout_invoice(
     ctx: dict[str, Any] = Depends(billing_manage_context),
     s: Session = Depends(db),
     idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
+    payment_provider: str = Header(default="stripe", alias="X-Klyrow-Payment-Provider"),
 ) -> dict[str, Any]:
-    result = create_or_resume_stripe_checkout(
+    provider = payment_provider.strip().lower()
+    if provider not in {"stripe", "paypal"}:
+        raise HTTPException(422, "unsupported_checkout_provider")
+    result = create_or_resume_checkout(
         s,
+        provider=provider,
         tenant_id=ctx["tenant"],
         actor_id=ctx["sub"],
         invoice_id=invoice_id,
@@ -405,6 +418,7 @@ def checkout_invoice(
     return {
         "payment_attempt_id": result.attempt_id,
         "invoice_id": result.invoice_id,
+        "provider": result.provider,
         "status": result.status,
         "hosted_checkout_url": result.checkout_url,
         "expires_at": iso(result.expires_at),

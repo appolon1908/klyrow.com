@@ -16,6 +16,7 @@ import os
 import stat
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from urllib.parse import urlsplit
 
 _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 _FALSE_VALUES = frozenset({"0", "false", "no", "off"})
@@ -135,7 +136,8 @@ class StripeSettings(ProviderSettings):
 
 @dataclass(frozen=True)
 class PayPalSettings(ProviderSettings):
-    pass
+    client_id: str | None = field(default=None, repr=False)
+    api_base_url: str = ""
 
 
 @dataclass(frozen=True)
@@ -309,6 +311,40 @@ def _validate_provider_common(
     )
 
 
+def _validate_paypal(environment: Mapping[str, str] | None, webhook_processing_enabled: bool) -> PayPalSettings:
+    common = _validate_provider_common("paypal", environment, webhook_processing_enabled, PayPalSettings)
+    client_id = _text("KLYROW_PAYPAL_CLIENT_ID", environment)
+    if not client_id:
+        raise BillingConfigError("paypal_client_id_missing", "paypal requires KLYROW_PAYPAL_CLIENT_ID")
+
+    expected_host = "api-m.sandbox.paypal.com" if common.environment == "sandbox" else "api-m.paypal.com"
+    configured = _text("KLYROW_PAYPAL_API_BASE_URL", environment)
+    api_base_url = configured or f"https://{expected_host}"
+    parsed = urlsplit(api_base_url)
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != expected_host
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.port not in (None, 443)
+        or parsed.path not in ("", "/")
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise BillingConfigError("paypal_api_base_url_invalid", "paypal API base URL must match the selected environment")
+
+    return PayPalSettings(
+        enabled=True,
+        environment=common.environment,
+        production_approved=common.production_approved,
+        secret_configured=common.secret_configured,
+        webhook_secret_configured=common.webhook_secret_configured,
+        currency_allowlist=common.currency_allowlist,
+        client_id=client_id,
+        api_base_url=api_base_url.rstrip("/"),
+    )
+
+
 def _validate_stablecoin(environment: Mapping[str, str] | None, webhook_processing_enabled: bool) -> StablecoinSettings:
     common = _validate_provider_common("stablecoin", environment, webhook_processing_enabled, StablecoinSettings)
 
@@ -406,7 +442,7 @@ def load_billing_settings(environment: Mapping[str, str] | None = None) -> Billi
     )
 
     paypal = (
-        _validate_provider_common("paypal", environment, webhook_processing_enabled, PayPalSettings)
+        _validate_paypal(environment, webhook_processing_enabled)
         if dependents["paypal_enabled"]
         else _DISABLED_PAYPAL
     )
