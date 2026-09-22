@@ -9,6 +9,8 @@ EXPECTED = {
     "/app/api/billing/subscription",
     "/app/api/billing/catalog",
     "/app/api/billing/entitlements",
+    "/app/api/billing/usage/daily",
+    "/app/api/billing/usage/monthly",
     "/app/api/billing/subscription/quote",
     "/app/api/billing/subscription/change",
     "/app/api/billing/subscription/cancel",

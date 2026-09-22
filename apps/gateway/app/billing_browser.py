@@ -3,7 +3,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
@@ -35,6 +35,7 @@ from .billing_checkout import create_or_resume_stripe_checkout
 from .billing_config import BillingConfigError, load_billing_settings
 from .main import db
 from .tenancy import ROLE_PERMISSIONS
+from .usage_history import ERRORS as USAGE_HISTORY_ERRORS, UsageHistoryPage, UsageHistoryQuery, usage_history
 
 router = APIRouter(prefix="/app/api/billing", tags=["Browser billing"])
 
@@ -236,6 +237,34 @@ def entitlements(ctx: dict[str, Any] = Depends(billing_context), s: Session = De
     if item is None:
         raise HTTPException(404, "subscription_not_found")
     return {"status": item.status, "version": item.version, "entitlements": _subscription_entitlements(s, item)}
+
+
+@router.get(
+    "/usage/daily",
+    response_model=UsageHistoryPage,
+    responses=USAGE_HISTORY_ERRORS,
+    description="Daily UTC totals from the authoritative tenant usage ledger for the authenticated browser organization.",
+)
+def browser_usage_daily(
+    query: Annotated[UsageHistoryQuery, Query()],
+    ctx: dict[str, Any] = Depends(billing_context),
+    s: Session = Depends(db),
+) -> UsageHistoryPage:
+    return usage_history(query, "day", ctx, s)
+
+
+@router.get(
+    "/usage/monthly",
+    response_model=UsageHistoryPage,
+    responses=USAGE_HISTORY_ERRORS,
+    description="Monthly UTC totals from the authoritative tenant usage ledger for the authenticated browser organization.",
+)
+def browser_usage_monthly(
+    query: Annotated[UsageHistoryQuery, Query()],
+    ctx: dict[str, Any] = Depends(billing_context),
+    s: Session = Depends(db),
+) -> UsageHistoryPage:
+    return usage_history(query, "month", ctx, s)
 
 
 @router.post("/subscription/quote")

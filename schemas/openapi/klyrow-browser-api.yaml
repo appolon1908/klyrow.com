@@ -48,6 +48,19 @@
         "title": "BrowserInviteIn",
         "type": "object"
       },
+      "BrowserMemberRoleIn": {
+        "properties": {
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "BrowserMemberRoleIn",
+        "type": "object"
+      },
       "BrowserSuppressionIn": {
         "properties": {
           "email": {
@@ -600,6 +613,79 @@
         "title": "UploadIn",
         "type": "object"
       },
+      "UsageBucket": {
+        "properties": {
+          "period_start": {
+            "format": "date",
+            "title": "Period Start",
+            "type": "string"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "period_start",
+          "quantity"
+        ],
+        "title": "UsageBucket",
+        "type": "object"
+      },
+      "UsageHistoryPage": {
+        "properties": {
+          "granularity": {
+            "enum": [
+              "day",
+              "month"
+            ],
+            "title": "Granularity",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UsageBucket"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "window_end": {
+            "format": "date-time",
+            "title": "Window End",
+            "type": "string"
+          },
+          "window_start": {
+            "format": "date-time",
+            "title": "Window Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "granularity",
+          "unit",
+          "window_start",
+          "window_end",
+          "items",
+          "next_cursor"
+        ],
+        "title": "UsageHistoryPage",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -726,6 +812,288 @@
         "summary": "Platform Dashboard",
         "tags": [
           "Browser workspace"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/observability/billing": {
+      "get": {
+        "operationId": "billing_suite_observability_app_api_admin_observability_billing_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Billing Suite Observability",
+        "tags": [
+          "Browser observability"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/observability/operations-center": {
+      "get": {
+        "operationId": "operations_center_app_api_admin_observability_operations_center_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Operations Center",
+        "tags": [
+          "Browser observability"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/observability/system": {
+      "get": {
+        "operationId": "admin_system_observability_app_api_admin_observability_system_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Admin System Observability",
+        "tags": [
+          "Browser observability"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/observability/users": {
+      "get": {
+        "operationId": "user_suite_observability_app_api_admin_observability_users_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "User Suite Observability",
+        "tags": [
+          "Browser observability"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/observability/webmail-postal": {
+      "get": {
+        "operationId": "webmail_postal_observability_app_api_admin_observability_webmail_postal_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Webmail Postal Observability",
+        "tags": [
+          "Browser observability"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/observability/webmail-postal/architecture": {
+      "get": {
+        "operationId": "webmail_postal_architecture_app_api_admin_observability_webmail_postal_architecture_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Webmail Postal Architecture",
+        "tags": [
+          "Browser observability"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/observability/webmail-postal/incidents": {
+      "get": {
+        "operationId": "webmail_postal_incidents_app_api_admin_observability_webmail_postal_incidents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Webmail Postal Incidents",
+        "tags": [
+          "Browser observability"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/observability/webmail-postal/slo": {
+      "get": {
+        "operationId": "webmail_postal_slo_app_api_admin_observability_webmail_postal_slo_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Webmail Postal Slo",
+        "tags": [
+          "Browser observability"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/observability/webmail-postal/traces/{correlation_id}": {
+      "get": {
+        "operationId": "webmail_postal_trace_app_api_admin_observability_webmail_postal_traces__correlation_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "correlation_id",
+            "required": true,
+            "schema": {
+              "title": "Correlation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Webmail Postal Trace",
+        "tags": [
+          "Browser observability"
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
@@ -1902,6 +2270,264 @@
         ]
       }
     },
+    "/app/api/billing/usage/daily": {
+      "get": {
+        "description": "Daily UTC totals from the authoritative tenant usage ledger for the authenticated browser organization.",
+        "operationId": "browser_usage_daily_app_api_billing_usage_daily_get",
+        "parameters": [
+          {
+            "description": "Inclusive UTC date; maximum window is 366 days.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive UTC date; maximum window is 366 days.",
+              "title": "From"
+            }
+          },
+          {
+            "description": "Exclusive UTC date; defaults to tomorrow in UTC.",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exclusive UTC date; defaults to tomorrow in UTC.",
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "unit",
+            "required": false,
+            "schema": {
+              "default": "accepted_message",
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Unit",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 31,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageHistoryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant access denied or account suspended"
+          },
+          "404": {
+            "description": "Authenticated tenant resolution failed"
+          },
+          "422": {
+            "description": "Invalid date window, cursor, filter or pagination limit"
+          },
+          "429": {
+            "description": "Tenant request rate limit exceeded"
+          },
+          "503": {
+            "description": "Authorization or usage store unavailable"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Usage Daily",
+        "tags": [
+          "Browser billing"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/billing/usage/monthly": {
+      "get": {
+        "description": "Monthly UTC totals from the authoritative tenant usage ledger for the authenticated browser organization.",
+        "operationId": "browser_usage_monthly_app_api_billing_usage_monthly_get",
+        "parameters": [
+          {
+            "description": "Inclusive UTC date; maximum window is 366 days.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive UTC date; maximum window is 366 days.",
+              "title": "From"
+            }
+          },
+          {
+            "description": "Exclusive UTC date; defaults to tomorrow in UTC.",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exclusive UTC date; defaults to tomorrow in UTC.",
+              "title": "To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "unit",
+            "required": false,
+            "schema": {
+              "default": "accepted_message",
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Unit",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 31,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageHistoryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Tenant access denied or account suspended"
+          },
+          "404": {
+            "description": "Authenticated tenant resolution failed"
+          },
+          "422": {
+            "description": "Invalid date window, cursor, filter or pagination limit"
+          },
+          "429": {
+            "description": "Tenant request rate limit exceeded"
+          },
+          "503": {
+            "description": "Authorization or usage store unavailable"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Usage Monthly",
+        "tags": [
+          "Browser billing"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
     "/app/api/billing/wallet": {
       "get": {
         "operationId": "wallet_app_api_billing_wallet_get",
@@ -2234,6 +2860,35 @@
         "x-klyrow-enforced-auth-dependencies": [
           "browser_context",
           "csrf_guard"
+        ]
+      }
+    },
+    "/app/api/identity/capabilities": {
+      "get": {
+        "operationId": "browser_identity_capabilities_app_api_identity_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Identity Capabilities",
+        "tags": [
+          "Browser workspace"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
         ]
       }
     },
@@ -4572,6 +5227,33 @@
       }
     },
     "/app/api/team/invitations": {
+      "get": {
+        "operationId": "browser_invitations_app_api_team_invitations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Invitations",
+        "tags": [
+          "Browser workspace"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      },
       "post": {
         "description": "Return the production capability exactly once to the authorized creator.",
         "operationId": "browser_invite_app_api_team_invitations_post",
@@ -4626,6 +5308,190 @@
         "summary": "Browser Invite",
         "tags": [
           "Browser invitations"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
+          "csrf_guard"
+        ]
+      }
+    },
+    "/app/api/team/invitations/{invitation_id}": {
+      "delete": {
+        "operationId": "browser_revoke_invitation_app_api_team_invitations__invitation_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invitation_id",
+            "required": true,
+            "schema": {
+              "title": "Invitation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Revoke Invitation",
+        "tags": [
+          "Browser workspace"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
+          "csrf_guard"
+        ]
+      }
+    },
+    "/app/api/team/{user_id}": {
+      "delete": {
+        "operationId": "browser_remove_member_app_api_team__user_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Remove Member",
+        "tags": [
+          "Browser workspace"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
+          "csrf_guard"
+        ]
+      },
+      "patch": {
+        "operationId": "browser_update_member_app_api_team__user_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "title": "User Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrowserMemberRoleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Update Member",
+        "tags": [
+          "Browser workspace"
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",

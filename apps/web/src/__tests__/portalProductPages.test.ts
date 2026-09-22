@@ -64,6 +64,7 @@ describe('analytics, deliverability, developer logs and billing', () => {
       '/app/api/billing/subscription': { product: 'Klyrow Email', plan: 'Growth', status: 'ACTIVE', interval: 'MONTHLY', price: '29.00', currency: 'USD', usage: [] },
       '/app/api/billing/invoices?offset=0&limit=25': { items: [], limit: 25, offset: 0, has_more: false },
       '/app/api/billing/invoices/invoice-1': { id: 'invoice-1', reference: 'KLY-1', status: 'OPEN', issued_at: '2026-09-01T00:00:00Z', total: '29.00', currency: 'USD', line_items: [] },
+      '/app/api/billing/credit-notes': { items: [{ id: 'cn-1', number: 'CN-1', invoice_id: 'invoice-1', amount: '5.00', currency: 'USD', reason: 'Adjustment', created_at: '2026-09-02T00:00:00Z' }] },
       '/app/api/billing/payments': { items: [], limit: 50, offset: 0, has_more: false },
       '/app/api/billing/refunds': { items: [], limit: 50, offset: 0, has_more: false },
       '/app/api/billing/payment-methods': [],
@@ -104,16 +105,41 @@ describe('analytics, deliverability, developer logs and billing', () => {
     expect(screen.getAllByText(/operation log/i)).toBeTruthy()
     expect(screen.getAllByText(/Authorization: Bearer <redacted>/)).toBeTruthy()
   })
-  it('shows plan quota and usage from the dashboard with disabled live payment behaviour', async () => {
-    api.appApi.mockResolvedValue(dashboard)
+  it('surfaces canonical invoice and credit-note documents through same-origin billing routes', async () => {
+    api.appApi.mockImplementation(async (url: string) => {
+      if (url === '/app/api/billing/invoices/invoice-1') return { id: 'invoice-1', reference: 'KLY-1', status: 'OPEN', issued_at: '2026-09-01T00:00:00Z', total: '29.00', amount_due: '29.00', currency: 'USD', line_items: [] }
+      if (url === '/app/api/billing/credit-notes') return { items: [{ id: 'cn-1', number: 'CN-1', invoice_id: 'invoice-1', amount: '5.00', currency: 'USD', reason: 'Adjustment', created_at: '2026-09-02T00:00:00Z' }] }
+      throw new Error('unexpected ' + url)
+    })
+    await mount('billing-invoice', { id: 'invoice-1' }, reader)
+    const invoiceDocument = await screen.findByRole('link', { name: /canonical invoice document/i })
+    expect(invoiceDocument.getAttribute('href')).toBe('/app/api/billing/invoices/invoice-1/document')
+    const creditNote = await screen.findByRole('link', { name: /credit note CN-1/i })
+    expect(creditNote.getAttribute('href')).toBe('/app/api/billing/credit-notes/cn-1/document')
+  })
+
+  it('uses billing BFF composition for plan and authoritative usage history without mutation controls', async () => {
+    api.appApi.mockImplementation(async (url: string) => {
+      if (url === '/app/api/billing/catalog') return { items: [{ code: 'GROWTH', name: 'Growth', features: { messages: 1000 }, price_version: 2, currency: 'USD', billing_cycle: 'MONTHLY', base_amount: '29.00', included_units: 1000, overage_amount: '0.01' }] }
+      if (url === '/app/api/billing/subscription') return { product: 'Klyrow Email', plan: 'Growth', status: 'ACTIVE', interval: 'MONTHLY', price: '29.00', currency: 'USD', renews_at: '2026-10-01T00:00:00Z' }
+      if (url === '/app/api/billing/capabilities') return { billing_enabled: true, checkout_enabled: false, stripe: { available: false, environment: 'sandbox' }, live_charging: false }
+      if (url.startsWith('/app/api/billing/usage/daily')) return { granularity: 'day', unit: 'accepted_message', window_start: '2026-09-01T00:00:00Z', window_end: '2026-10-01T00:00:00Z', items: [{ period_start: '2026-09-20', quantity: 12 }], next_cursor: null }
+      if (url === '/app/api/billing/entitlements') return { status: 'ACTIVE', version: 3, entitlements: { messages: { limit: 1000, used: 12, remaining: 988 } } }
+      throw new Error('unexpected ' + url)
+    })
     const plan = await mount('billing-plan', {}, reader)
-    expect(await screen.findByText('100')).toBeTruthy()
-    expect(screen.getAllByText(/manual or sandbox/i)).toBeTruthy()
+    expect(await screen.findByText('Growth')).toBeTruthy()
+    expect(screen.getAllByText('$29.00').length).toBeGreaterThan(0)
+    expect(screen.getByText(/live charging is not enabled/i)).toBeTruthy()
     expect(screen.queryByRole('button', { name: /pay|upgrade|checkout/i })).toBeNull()
     plan.unmount()
+
     await mount('billing-usage', {}, reader)
-    expect(await screen.findByText('12')).toBeTruthy()
-    expect(screen.getAllByText(/usage history/i)).toBeTruthy()
+    expect((await screen.findAllByText('12')).length).toBeGreaterThan(0)
+    expect(screen.getByText('988')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Daily' }).getAttribute('aria-pressed')).toBe('true')
+    expect(api.appApi.mock.calls.some(call => String(call[0]).includes('/app/api/billing/usage/daily'))).toBe(true)
+    expect(api.appApi.mock.calls.some(call => /tenant[_-]?id|organization[_-]?id/.test(String(call[0])))).toBe(false)
   })
 })
 
