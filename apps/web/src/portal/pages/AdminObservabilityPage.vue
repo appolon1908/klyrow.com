@@ -17,6 +17,8 @@ interface ObservabilitySnapshot {
   outbound: { active: number; failed: number; oldest_seconds: number }
   provider: { delivered: number; bounced: number; complained: number; indeterminate: number }
   reconciliation: { retry: number; dead_letter: number; indeterminate: number }
+  health: { inbound: string; outbound: string; queue: string; reconciliation: string }
+  thresholds: { inbound_failure_ratio: number; send_failure_ratio: number; queue_age_seconds: number; bounce_ratio: number; complaint_ratio: number }
   slo: { inbound_failure_ratio: number; send_failure_ratio: number; bounce_ratio: number; complaint_ratio: number }
 }
 
@@ -28,9 +30,7 @@ const unresolved = computed(() => {
   const r = page.data.value?.reconciliation
   return r ? r.retry + r.dead_letter + r.indeterminate : 0
 })
-const queueState = computed(() => (page.data.value?.outbound.oldest_seconds || 0) > 300 ? 'Attention' : 'Healthy')
-const inboundState = computed(() => (page.data.value?.slo.inbound_failure_ratio || 0) > .02 ? 'Attention' : 'Healthy')
-const sendState = computed(() => (page.data.value?.slo.send_failure_ratio || 0) > .02 ? 'Attention' : 'Healthy')
+const healthLabel = (value: string) => value === 'critical' ? 'Critical' : value === 'attention' ? 'Attention' : 'Healthy'
 </script>
 
 <template>
@@ -47,10 +47,10 @@ const sendState = computed(() => (page.data.value?.slo.send_failure_ratio || 0) 
     <div v-else-if="page.data.value" class="kp-stack">
       <PanelCard title="Service health" eyebrow="Overview" :source="source">
         <section class="kp-grid" aria-label="Service health">
-          <MetricCard label="Inbound" :value="inboundState" :detail="pct(page.data.value.slo.inbound_failure_ratio) + ' failure ratio'" :source="source" />
-          <MetricCard label="Outbound" :value="sendState" :detail="pct(page.data.value.slo.send_failure_ratio) + ' failure ratio'" :source="source" />
-          <MetricCard label="Queue" :value="queueState" :detail="page.data.value.outbound.oldest_seconds + 's oldest item'" :source="source" />
-          <MetricCard label="Reconciliation" :value="unresolved === 0 ? 'Healthy' : 'Attention'" :detail="unresolved + ' unresolved'" :source="source" />
+          <MetricCard label="Inbound" :value="healthLabel(page.data.value.health.inbound)" :detail="pct(page.data.value.slo.inbound_failure_ratio) + ' failure ratio'" :source="source" />
+          <MetricCard label="Outbound" :value="healthLabel(page.data.value.health.outbound)" :detail="pct(page.data.value.slo.send_failure_ratio) + ' failure ratio'" :source="source" />
+          <MetricCard label="Queue" :value="healthLabel(page.data.value.health.queue)" :detail="page.data.value.outbound.oldest_seconds + 's oldest item'" :source="source" />
+          <MetricCard label="Reconciliation" :value="healthLabel(page.data.value.health.reconciliation)" :detail="unresolved + ' unresolved'" :source="source" />
         </section>
       </PanelCard>
 
@@ -79,6 +79,16 @@ const sendState = computed(() => (page.data.value?.slo.send_failure_ratio || 0) 
           <MetricCard label="Retry" :value="page.data.value.reconciliation.retry" detail="Awaiting bounded retry" :source="source" />
           <MetricCard label="Dead letter" :value="page.data.value.reconciliation.dead_letter" detail="Requires operator review" :source="source" />
           <MetricCard label="Indeterminate" :value="page.data.value.reconciliation.indeterminate" detail="Reconcile provider truth first" :source="source" />
+        </section>
+      </PanelCard>
+
+      <PanelCard title="SLO guardrails" eyebrow="Production objectives" :source="source">
+        <section class="kp-grid" aria-label="SLO guardrails">
+          <MetricCard label="Inbound failures" :value="pct(page.data.value.slo.inbound_failure_ratio)" :detail="'Target ≤ ' + pct(page.data.value.thresholds.inbound_failure_ratio)" :source="source" />
+          <MetricCard label="Send failures" :value="pct(page.data.value.slo.send_failure_ratio)" :detail="'Target ≤ ' + pct(page.data.value.thresholds.send_failure_ratio)" :source="source" />
+          <MetricCard label="Queue age" :value="page.data.value.outbound.oldest_seconds + 's'" :detail="'Target < ' + page.data.value.thresholds.queue_age_seconds + 's'" :source="source" />
+          <MetricCard label="Bounce ratio" :value="pct(page.data.value.slo.bounce_ratio)" :detail="'Target < ' + pct(page.data.value.thresholds.bounce_ratio)" :source="source" />
+          <MetricCard label="Complaint ratio" :value="pct(page.data.value.slo.complaint_ratio)" :detail="'Target < ' + pct(page.data.value.thresholds.complaint_ratio)" :source="source" />
         </section>
       </PanelCard>
 
