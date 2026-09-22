@@ -60,6 +60,13 @@ def webmail_postal_observability(ctx: dict = Depends(browser_context), session: 
         "outbound": {"active": len(active), "failed": send_failed, "oldest_seconds": oldest_seconds},
         "provider": {"delivered": delivered, "bounced": bounced, "complained": complained, "indeterminate": indeterminate},
         "reconciliation": {"retry": retry, "dead_letter": dead_letter, "indeterminate": indeterminate},
+        "health": {
+            "inbound": "attention" if ((inbound_quarantined + inbound_rejected) / max(inbound_total, 1)) > 0.02 else "healthy",
+            "outbound": "attention" if (send_failed / max(send_total, 1)) > 0.02 else "healthy",
+            "queue": "critical" if oldest_seconds > 300 else ("attention" if oldest_seconds > 120 else "healthy"),
+            "reconciliation": "critical" if dead_letter > 0 else ("attention" if (retry + indeterminate) > 0 else "healthy"),
+        },
+        "thresholds": {"inbound_failure_ratio": 0.02, "send_failure_ratio": 0.02, "queue_age_seconds": 300, "bounce_ratio": 0.05, "complaint_ratio": 0.002},
         "slo": {
             "inbound_failure_ratio": (inbound_quarantined + inbound_rejected) / max(inbound_total, 1),
             "send_failure_ratio": send_failed / max(send_total, 1),
