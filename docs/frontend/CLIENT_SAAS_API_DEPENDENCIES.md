@@ -49,10 +49,10 @@ audience; same UI as MISSING, recorded for the backend owner).
 | --- | --- | --- | --- |
 | `/app/overview` | PARTIAL | dashboard, onboarding, provisioning/postal, domains, senders | deliverability summary, incidents, plan summary have no browser API |
 | `/app/email/messages` | IMPLEMENTED | `GET /app/api/messages` (limit/offset) | cursor pagination and server-side status filter (client-side filter over the loaded page) |
-| `/app/email/messages/:id` | PARTIAL | row from `GET /app/api/messages` | `GET /app/api/messages/{id}` with event timeline, retry/cancel |
+| `/app/email/messages/:id` | IMPLEMENTED | `GET /app/api/messages/{message_id}` and `GET /app/api/messages/{message_id}/events` | — |
 | `/app/email/streams` | MISSING | — | `GET/POST /app/api/streams` |
 | `/app/email/domains` | IMPLEMENTED | domains list/create/verify | — |
-| `/app/email/domains/:id` | PARTIAL | row from domains list | DNS evidence (SPF/DMARC/PTR/TLS) and DKIM history via `GET /app/api/domains/{id}` |
+| `/app/email/domains/:id` | IMPLEMENTED | `GET /app/api/domains/{item_id}` plus deliverability check action | — |
 | `/app/email/senders` | IMPLEMENTED | senders list/create | suspension/approval actions |
 | `/app/email/inbound` | IMPLEMENTED | mailboxes list, inbound activate | inbound route listing |
 | `/app/email/suppressions` | MISSING | — | `GET/POST/DELETE /app/api/suppressions` |
@@ -79,8 +79,8 @@ audience; same UI as MISSING, recorded for the backend owner).
 | `/app/analytics/journeys` | MISSING | — | journey analytics |
 | `/app/analytics/segments` | MISSING | — | segment analytics |
 | `/app/analytics/links` | MISSING | — | link analytics |
-| `/app/deliverability` | PARTIAL | domains list | DNS/TLS/PTR checks, trends |
-| `/app/deliverability/domains/:id` | PARTIAL | domain row | evidence detail |
+| `/app/deliverability` | IMPLEMENTED | `GET /app/api/deliverability` | — |
+| `/app/deliverability/domains/:id` | IMPLEMENTED | `GET /app/api/deliverability/domains/{item_id}` and `POST /app/api/deliverability/domains/{item_id}/check` | — |
 | `/app/deliverability/ip-pools` | MISSING | — | IP pool/warmup state |
 | `/app/deliverability/alerts` | MISSING | — | alert feed |
 | `/app/developer/api-keys` | MISSING | — | `GET/POST/DELETE /app/api/api-keys` (+rotate) |
