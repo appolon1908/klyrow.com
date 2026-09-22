@@ -173,6 +173,46 @@ describe('Webmail client certification', () => {
     expect(await screen.findByText('Message accepted for delivery')).toBeTruthy()
   })
 
+  it('lets tenant managers grant shared mailbox access to workspace members', async () => {
+    const sharedMailbox = { ...mailbox, is_shared: true, grant_count: 1, my_access_role: 'OWNER', unread_count: 1 }
+    api.appApi.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === '/app/api/mailboxes') return [sharedMailbox]
+      if (url.startsWith('/app/api/mailboxes/mailbox-a/messages?')) return { items: [] }
+      if (url === '/app/api/mailboxes/mailbox-a/access' && !init?.method) {
+        return [{ id: 'grant-reader', user_id: 'dev-a', role: 'READER', created_at: '2026-09-21T12:00:00Z' }]
+      }
+      if (url === '/app/api/team') {
+        return [
+          { user_id: 'dev-a', email: 'dev@example.test', role: 'DEVELOPER' },
+          { user_id: 'sender-a', email: 'sender@example.test', role: 'DEVELOPER' },
+        ]
+      }
+      if (url === '/app/api/mailboxes/mailbox-a/access' && init?.method === 'POST') {
+        return { id: 'grant-sender', user_id: 'sender-a', role: 'SENDER' }
+      }
+      throw new Error('unexpected ' + url + ' ' + (init?.method || 'GET'))
+    })
+
+    render(Webmail)
+    await screen.findByRole('button', { name: /Inbox/ })
+    expect(screen.getByText(/1 shared/i)).toBeTruthy()
+    await fireEvent.click(screen.getByRole('button', { name: /manage mailbox access/i }))
+
+    expect(await screen.findByText('dev@example.test')).toBeTruthy()
+    await fireEvent.update(screen.getByLabelText('Workspace member'), 'sender-a')
+    await fireEvent.update(screen.getByLabelText('Mailbox role'), 'SENDER')
+    await fireEvent.click(screen.getByRole('button', { name: /grant \/ update access/i }))
+
+    await waitFor(() => expect(api.appApi).toHaveBeenCalledWith(
+      '/app/api/mailboxes/mailbox-a/access',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ user_id: 'sender-a', role: 'SENDER' }),
+      }),
+    ))
+    expect(await screen.findByText('Mailbox access updated')).toBeTruthy()
+  })
+
   it('shows a recoverable full-page error when mailbox loading is unavailable', async () => {
     api.appApi.mockRejectedValueOnce(new Error('mailbox_unavailable'))
     render(Webmail)
