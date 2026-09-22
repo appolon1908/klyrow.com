@@ -1411,6 +1411,8 @@ from . import business_events as _business_events
 from . import campaign_dispatcher as _campaign_dispatcher
 from .secret_responses import router as secret_responses_router
 app.include_router(secret_responses_router)
+from .browser_observability import router as browser_observability_router
+app.include_router(browser_observability_router)
 from . import webmail_models as _webmail_models
 from .provider import provider_worker_loop, reconcile_legacy_registry, router as provider_router, status_router as provider_status_router
 app.include_router(provider_router)
