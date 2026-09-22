@@ -19,14 +19,14 @@ authoritative for every call.
 | `/app/email/domains/:id` | Email | Domain | tenant | `mail.read` | PARTIAL | `GET /app/api/domains`, `POST /app/api/domains/{item_id}/verify` | Claim state and identifiers come from the domain list; SPF/DMARC/PTR/TLS evidence and DKIM history need GET /app/api/domains/{id}. |
 | `/app/email/senders` | Email | Senders | tenant | `mail.read` | IMPLEMENTED | `GET /app/api/senders`, `POST /app/api/senders`, `GET /app/api/domains` | Sender identities and creation use existing browser APIs. |
 | `/app/email/inbound` | Email | Inbound | tenant | `mail.read` | IMPLEMENTED | `GET /app/api/mailboxes`, `POST /app/api/mailboxes/inbound/activate` | Mailbox readiness and inbound activation use the webmail browser APIs. |
-| `/app/email/suppressions` | Email | Suppressions | tenant | `mail.read` | MISSING | — | No browser API exists yet. Required contract: GET/POST/DELETE /app/api/suppressions. |
+| `/app/email/suppressions` | Email | Suppressions | tenant | `mail.read` | IMPLEMENTED | `GET /app/api/suppressions`, `POST /app/api/suppressions`, `DELETE /app/api/suppressions/{suppression_id}` | Tenant-scoped suppression listing and add/remove actions use the authenticated browser BFF. |
 | `/app/content/templates` | Content | Templates | tenant | `campaign.manage` | MISSING | — | No browser API exists yet. Required contract: GET/POST /app/api/templates. |
 | `/app/content/templates/:id` | Content | Template | tenant | `campaign.manage` | MISSING | — | No browser API exists yet. Required contract: GET /app/api/templates/{id} with version history. |
 | `/app/content/builder/:id` | Content | Builder | tenant | `campaign.manage` | MISSING | — | No browser API exists yet. Required contract: template version create/publish/rollback/render browser APIs. |
-| `/app/content/media` | Content | Media | tenant | `campaign.manage` | BLOCKED | — | No browser API exists yet. Required contract: a media library API (none exists in any audience). |
+| `/app/content/media` | Content | Media | tenant | `campaign.manage` | BLOCKED | `GET /app/api/media`, `POST /app/api/media/uploads`, `POST /app/api/media/{asset_id}/complete`, `GET /app/api/media/{asset_id}`, `GET /app/api/media/{asset_id}/events`, `POST /app/api/media/{asset_id}/archive`, `DELETE /app/api/media/{asset_id}` | Tenant-isolated media metadata and lifecycle use the authenticated same-origin Media Library APIs. |
 | `/app/content/brand` | Content | Brand | tenant | `campaign.manage` | BLOCKED | — | No browser API exists yet. Required contract: a brand settings API (none exists in any audience). |
-| `/app/audience/profiles` | Audience | Profiles | tenant | `contact.manage` | MISSING | — | No browser API exists yet. Required contract: GET /app/api/profiles. |
-| `/app/audience/profiles/:id` | Audience | Profile | tenant | `contact.manage` | MISSING | — | No browser API exists yet. Required contract: GET /app/api/profiles/{id} with timeline, consent and preferences. |
+| `/app/audience/profiles` | Audience | Profiles | tenant | `contact.manage` | IMPLEMENTED | `GET /app/api/profiles` | Tenant-scoped profile listing uses the authenticated browser BFF. |
+| `/app/audience/profiles/:id` | Audience | Profile | tenant | `contact.manage` | IMPLEMENTED | `GET /app/api/profiles/{id}` | Tenant-scoped profile detail includes timeline, consent and preferences from the authenticated browser BFF. |
 | `/app/audience/imports` | Audience | Imports | tenant | `contact.manage` | MISSING | — | No browser API exists yet. Required contract: GET/POST /app/api/imports. |
 | `/app/audience/segments` | Audience | Segments | tenant | `contact.manage` | MISSING | — | No browser API exists yet. Required contract: GET/POST /app/api/segments. |
 | `/app/audience/segments/:id` | Audience | Segment | tenant | `contact.manage` | MISSING | — | No browser API exists yet. Required contract: GET /app/api/segments/{id} with preview; membership rebuild is not implemented. |
@@ -53,16 +53,21 @@ authoritative for every call.
 | `/app/developer/webhooks` | Developer | Webhooks | tenant | `webhook.manage` | MISSING | — | No browser API exists yet. Required contract: webhook subscription and delivery-history browser APIs. |
 | `/app/developer/logs` | Developer | Logs | tenant | `credential.manage` | PARTIAL | `GET /app/api/messages` | Accepted message intents come from the message list; an operation log browser API does not exist. |
 | `/app/developer/openapi` | Developer | OpenAPI | tenant | `credential.manage` | MISSING | — | No browser API exists yet. Required contract: a same-origin OpenAPI document endpoint under /app/api. |
-| `/app/billing/plan` | Billing | Plan | tenant | `billing.read` | PARTIAL | `GET /app/api/dashboard` | The daily quota comes from the dashboard API; subscription and plan detail have no browser API. Live payment actions are disabled. |
-| `/app/billing/usage` | Billing | Usage | tenant | `billing.read` | PARTIAL | `GET /app/api/dashboard` | Current-window usage comes from the dashboard API; usage history has no browser API. |
-| `/app/billing/invoices` | Billing | Invoices | tenant | `billing.read` | MISSING | — | No browser API exists yet. Required contract: GET /app/api/billing/invoices. |
-| `/app/billing/invoices/:id` | Billing | Invoice | tenant | `billing.read` | MISSING | — | No browser API exists yet. Required contract: GET /app/api/billing/invoices/{id}. |
-| `/app/billing/payment-methods` | Billing | Payment methods | tenant | `billing.read` | MISSING | — | No browser API exists yet. Required contract: GET/DELETE /app/api/billing/payment-methods; live payment provider actions are disabled by design. |
+| `/app/billing/overview` | Billing | Billing | tenant | `billing.read` | IMPLEMENTED | `GET /app/api/billing/overview` | Read-only tenant billing overview uses the authenticated browser BFF. |
+| `/app/billing/plan` | Billing | Plan | tenant | `billing.read` | IMPLEMENTED | `GET /app/api/billing/catalog`, `GET /app/api/billing/subscription`, `GET /app/api/billing/capabilities` | Plan catalog, current subscription and provider capability status use the authenticated billing BFF; provider settlement remains separately gated. |
+| `/app/billing/subscription` | Billing | Subscription | tenant | `billing.read` | IMPLEMENTED | `GET /app/api/billing/subscription` | Read-only tenant subscription data uses the authenticated browser BFF. |
+| `/app/billing/usage` | Billing | Usage | tenant | `billing.read` | IMPLEMENTED | `GET /app/api/billing/usage/daily`, `GET /app/api/billing/usage/monthly`, `GET /app/api/billing/entitlements` | Bounded daily/monthly history reuses the authoritative tenant usage ledger through authenticated browser BFF routes, with current entitlement context. |
+| `/app/billing/invoices` | Billing | Invoices | tenant | `billing.read` | IMPLEMENTED | `GET /app/api/billing/invoices` | Tenant-scoped invoice records use the authenticated browser BFF. |
+| `/app/billing/invoices/:id` | Billing | Invoice | tenant | `billing.read` | IMPLEMENTED | `GET /app/api/billing/invoices/{invoice_id}`, `GET /app/api/billing/invoices/{invoice_id}/document`, `GET /app/api/billing/credit-notes`, `GET /app/api/billing/credit-notes/{credit_note_id}/document` | Tenant-scoped invoice detail and canonical invoice/credit-note documents use existing authenticated browser billing authorities. |
+| `/app/billing/payments` | Billing | Payments | tenant | `billing.read` | IMPLEMENTED | `GET /app/api/billing/payments` | Historical payment records use the authenticated browser BFF. |
+| `/app/billing/refunds` | Billing | Refunds | tenant | `billing.read` | IMPLEMENTED | `GET /app/api/billing/refunds` | Historical refund records use the authenticated browser BFF. |
+| `/app/billing/payment-methods` | Billing | Payment methods | tenant | `billing.read` | IMPLEMENTED | `GET /app/api/billing/payment-methods` | Opaque payment-method references use the authenticated browser BFF; live provider actions remain disabled. |
+| `/app/billing/wallet` | Billing | Wallet | tenant | `billing.read` | IMPLEMENTED | `GET /app/api/billing/wallet` | Read-only wallet balance and transactions use the authenticated browser BFF. |
 | `/app/settings/organization` | Settings | Organization | tenant | `session` | IMPLEMENTED | `GET /app/api/context` | Organization identity and memberships come from the browser context API. |
 | `/app/settings/team` | Settings | Team | tenant | `session` | IMPLEMENTED | `GET /app/api/team`, `POST /app/api/team/invitations` | Membership and invitations use existing browser APIs; role changes and removals have no browser API. |
 | `/app/settings/security` | Settings | Security | tenant | `session` | IMPLEMENTED | `GET /auth/sessions`, `DELETE /auth/sessions/{session_id}`, `POST /auth/logout-all` | Session listing, revocation and sign-out-everywhere use the browser auth APIs; MFA is owned by Keycloak. |
-| `/app/settings/sso` | Settings | Single sign-on | tenant | `OWNER/ADMIN` | BLOCKED | — | Tenant SSO configuration is not implemented server-side; sign-in is brokered by Keycloak. |
-| `/app/settings/scim` | Settings | SCIM provisioning | tenant | `OWNER/ADMIN` | BLOCKED | — | SCIM provisioning is not implemented server-side. |
+| `/app/settings/sso` | Settings | Single sign-on | tenant | `OWNER/ADMIN` | BLOCKED | `GET /app/api/identity/capabilities` | Read-only enterprise identity readiness is implemented; configuration mutation waits for governed Keycloak/Middleware provisioning. |
+| `/app/settings/scim` | Settings | SCIM provisioning | tenant | `OWNER/ADMIN` | BLOCKED | `GET /app/api/identity/capabilities` | Read-only SCIM readiness is implemented; provisioning mutation waits for governed Keycloak/Middleware provisioning. |
 | `/app/settings/retention` | Settings | Retention | tenant | `OWNER/ADMIN` | MISSING | — | No browser API exists yet. Required contract: a retention-policy browser API. |
 | `/app/settings/audit` | Settings | Audit log | tenant | `OWNER/ADMIN` | MISSING | — | No browser API exists yet. Required contract: an audit read browser API. |
 | `/app/settings/integrations` | Settings | Integrations | tenant | `OWNER/ADMIN` | MISSING | — | No browser API exists yet. Required contract: an integration listing/creation browser API. |
@@ -74,16 +79,18 @@ authoritative for every call.
 | `/admin/queues` | Admin | Queues | platform-admin | `session` | PARTIAL | `GET /app/api/admin/dashboard` | Outbox active/failed counts come from the admin dashboard API; queue topology has no browser API. |
 | `/admin/reconciliation` | Admin | Reconciliation | platform-admin | `session` | MISSING | — | No browser API exists yet. Required contract: a reconciliation browser API. |
 | `/admin/billing` | Admin | Platform billing | platform-admin | `session` | MISSING | — | No browser API exists yet. Required contract: a platform billing browser API; no payment provider is active. |
+| `/admin/operations` | Admin | Operations Center | platform-admin | `session` | IMPLEMENTED | `GET /app/api/admin/observability/operations-center`, `GET /app/api/admin/observability/users`, `GET /app/api/admin/observability/billing`, `GET /app/api/admin/observability/system` | Unified read-only health across Users, Email, Billing and Middleware. |
+| `/admin/observability` | Admin | Observability | platform-admin | `session` | IMPLEMENTED | `GET /app/api/admin/observability/webmail-postal`, `GET /app/api/admin/observability/webmail-postal/slo`, `GET /app/api/admin/observability/webmail-postal/incidents`, `GET /app/api/admin/observability/webmail-postal/architecture`, `GET /app/api/admin/observability/webmail-postal/traces/{correlation_id}` | Read-only Webmail/Postal operational projection from the authenticated browser BFF; cross-system commands remain Caddy → Kong → Middleware. |
 | `/admin/system` | Admin | System | platform-admin | `session` | IMPLEMENTED | `GET /app/api/admin/dashboard` | Platform counts come from the admin dashboard API. |
 | `/admin/audit` | Admin | Platform audit | platform-admin | `session` | MISSING | — | No browser API exists yet. Required contract: a platform audit browser API. |
 
 ## Totals
 
 - BLOCKED: 4
-- IMPLEMENTED: 8
-- MISSING: 41
-- PARTIAL: 12
-- Routes: 65
+- IMPLEMENTED: 23
+- MISSING: 35
+- PARTIAL: 10
+- Routes: 72
 
 ## Navigation groups
 

@@ -25,6 +25,18 @@
   },
   {
     "documented": true,
+    "handler": "browser_revoke_invitation",
+    "method": "DELETE",
+    "path": "/app/api/team/invitations/{invitation_id}"
+  },
+  {
+    "documented": true,
+    "handler": "browser_remove_member",
+    "method": "DELETE",
+    "path": "/app/api/team/{user_id}"
+  },
+  {
+    "documented": true,
     "handler": "revoke_user_session",
     "method": "DELETE",
     "path": "/auth/sessions/{session_id}"
@@ -139,6 +151,60 @@
   },
   {
     "documented": true,
+    "handler": "billing_suite_observability",
+    "method": "GET",
+    "path": "/app/api/admin/observability/billing"
+  },
+  {
+    "documented": true,
+    "handler": "operations_center",
+    "method": "GET",
+    "path": "/app/api/admin/observability/operations-center"
+  },
+  {
+    "documented": true,
+    "handler": "admin_system_observability",
+    "method": "GET",
+    "path": "/app/api/admin/observability/system"
+  },
+  {
+    "documented": true,
+    "handler": "user_suite_observability",
+    "method": "GET",
+    "path": "/app/api/admin/observability/users"
+  },
+  {
+    "documented": true,
+    "handler": "webmail_postal_observability",
+    "method": "GET",
+    "path": "/app/api/admin/observability/webmail-postal"
+  },
+  {
+    "documented": true,
+    "handler": "webmail_postal_architecture",
+    "method": "GET",
+    "path": "/app/api/admin/observability/webmail-postal/architecture"
+  },
+  {
+    "documented": true,
+    "handler": "webmail_postal_incidents",
+    "method": "GET",
+    "path": "/app/api/admin/observability/webmail-postal/incidents"
+  },
+  {
+    "documented": true,
+    "handler": "webmail_postal_slo",
+    "method": "GET",
+    "path": "/app/api/admin/observability/webmail-postal/slo"
+  },
+  {
+    "documented": true,
+    "handler": "webmail_postal_trace",
+    "method": "GET",
+    "path": "/app/api/admin/observability/webmail-postal/traces/{correlation_id}"
+  },
+  {
+    "documented": true,
     "handler": "admin_provisioning",
     "method": "GET",
     "path": "/app/api/admin/provisioning/postal"
@@ -241,6 +307,18 @@
   },
   {
     "documented": true,
+    "handler": "browser_usage_daily",
+    "method": "GET",
+    "path": "/app/api/billing/usage/daily"
+  },
+  {
+    "documented": true,
+    "handler": "browser_usage_monthly",
+    "method": "GET",
+    "path": "/app/api/billing/usage/monthly"
+  },
+  {
+    "documented": true,
     "handler": "wallet",
     "method": "GET",
     "path": "/app/api/billing/wallet"
@@ -262,6 +340,12 @@
     "handler": "browser_domains",
     "method": "GET",
     "path": "/app/api/domains"
+  },
+  {
+    "documented": true,
+    "handler": "browser_identity_capabilities",
+    "method": "GET",
+    "path": "/app/api/identity/capabilities"
   },
   {
     "documented": true,
@@ -358,6 +442,12 @@
     "handler": "browser_team",
     "method": "GET",
     "path": "/app/api/team"
+  },
+  {
+    "documented": true,
+    "handler": "browser_invitations",
+    "method": "GET",
+    "path": "/app/api/team/invitations"
   },
   {
     "documented": false,
@@ -1348,6 +1438,12 @@
     "handler": "onboarding_update",
     "method": "PATCH",
     "path": "/app/api/onboarding"
+  },
+  {
+    "documented": true,
+    "handler": "browser_update_member",
+    "method": "PATCH",
+    "path": "/app/api/team/{user_id}"
   },
   {
     "documented": true,

@@ -33,6 +33,14 @@ async function stubWorkspace(page: Page, options: { session?: typeof session; ad
   await page.route('**/app/api/team', route => route.fulfill({ json: [{ user_id: 'user-one', email: 'owner@example.com', role: 'OWNER', created_at: '2026-01-01T00:00:00Z' }] }))
   await page.route('**/app/api/organizations/*/switch', route => { tenant = 'tenant-two'; return route.fulfill({ json: { ...current, tenant_id: tenant } }) })
   await page.route('**/app/api/mailboxes', route => route.fulfill({ json: [] }))
+  await page.route('**/app/api/billing/catalog', route => route.fulfill({ json: { items: [{ code: 'GROWTH', name: 'Growth', features: { messages: 1000 }, price_version: 2, currency: 'USD', billing_cycle: 'MONTHLY', base_amount: '29.00', included_units: 1000, overage_amount: '0.01' }] } }))
+  await page.route('**/app/api/billing/subscription', route => route.fulfill({ json: { product: 'Klyrow Email', plan: 'Growth', status: 'ACTIVE', interval: 'MONTHLY', price: '29.00', currency: 'USD', renews_at: '2026-10-01T00:00:00Z' } }))
+  await page.route('**/app/api/billing/capabilities', route => route.fulfill({ json: { billing_enabled: true, checkout_enabled: false, stripe: { available: false, environment: 'sandbox' }, live_charging: false } }))
+  await page.route('**/app/api/billing/entitlements', route => route.fulfill({ json: { status: 'ACTIVE', version: 3, entitlements: { messages: { limit: 1000, used: 12, remaining: 988 } } } }))
+  await page.route('**/app/api/billing/usage/daily*', route => route.fulfill({ json: { granularity: 'day', unit: 'accepted_message', window_start: '2026-09-01T00:00:00Z', window_end: '2026-10-01T00:00:00Z', items: [{ period_start: '2026-09-20', quantity: 12 }], next_cursor: null } }))
+  await page.route('**/app/api/billing/usage/monthly*', route => route.fulfill({ json: { granularity: 'month', unit: 'accepted_message', window_start: '2026-01-01T00:00:00Z', window_end: '2026-10-01T00:00:00Z', items: [{ period_start: '2026-09-01', quantity: 12 }], next_cursor: null } }))
+  await page.route('**/app/api/billing/invoices*', route => route.fulfill({ json: { items: [], limit: 25, offset: 0, has_more: false } }))
+  await page.route('**/app/api/billing/payment-methods', route => route.fulfill({ json: [] }))
 }
 
 test('1. signed-out user is redirected from the overview to sign-in with a safe return destination', async ({ page }) => {
@@ -140,7 +148,7 @@ test('9. SSO and SCIM pages show honest unavailable states', async ({ page }) =>
   }
 })
 
-test('10. billing pages expose no live payment actions or provider branding', async ({ page }) => {
+test('10. billing pages expose authoritative plan and usage without live payment actions or provider branding', async ({ page }) => {
   await stubWorkspace(page)
   for (const path of ['/app/billing/plan', '/app/billing/usage', '/app/billing/invoices', '/app/billing/payment-methods']) {
     await page.goto(path)
@@ -148,7 +156,13 @@ test('10. billing pages expose no live payment actions or provider branding', as
     await expect(page.getByRole('button', { name: /pay|checkout|upgrade|add card/i })).toHaveCount(0)
   }
   await page.goto('/app/billing/plan')
-  await expect(page.getByText('manual or sandbox only').first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Plan' })).toBeVisible()
+  await expect(page.getByText('Growth').first()).toBeVisible()
+  await expect(page.getByText(/live charging is not enabled/i)).toBeVisible()
+  await page.goto('/app/billing/usage')
+  await expect(page.getByRole('heading', { name: 'Usage' })).toBeVisible()
+  await expect(page.getByRole('table', { name: 'Billing usage history' })).toContainText('12')
+  await expect(page.getByText('988')).toBeVisible()
 })
 
 test('11. media upload transmits bytes and completes only after server confirmation', async ({ page }) => {
