@@ -427,10 +427,20 @@ def list_mailboxes(ctx: dict = Depends(browser_context), s: Session = Depends(db
             WebmailMessage.is_starred == True,
             WebmailMessage.deleted_at.is_(None),
         )) or 0
+        grants = s.scalars(select(WebmailAccess).where(
+            WebmailAccess.tenant_id == ctx["tenant"],
+            WebmailAccess.mailbox_id == item.id,
+        ).order_by(WebmailAccess.created_at)).all()
+        my_access_role = ctx.get("role") if ctx.get("role") in MANAGER_ROLES else next(
+            (grant.role for grant in grants if grant.user_id == ctx.get("sub")),
+            None,
+        )
         result.append({
             "id": item.id, "address": item.address, "domain": item.address.rsplit("@", 1)[-1],
             "display_name": item.display_name, "sending_enabled": item.sending_enabled,
             "receiving_enabled": item.receiving_enabled, "counts": counts,
+            "is_shared": bool(grants), "grant_count": len(grants),
+            "my_access_role": my_access_role, "unread_count": counts["UNREAD"],
         })
     return result
 
