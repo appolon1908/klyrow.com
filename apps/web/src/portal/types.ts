@@ -39,6 +39,86 @@ export interface DomainClaim {
   created_at?: string
 }
 
+export interface DeliverabilityEvidence {
+  source: 'durable_snapshot' | 'none'
+  checked_at: string | null
+  spf: boolean | null
+  dkim: boolean | null
+  dmarc: boolean | null
+  mx: boolean | null
+  ptr: boolean | null
+  tls: boolean | null
+  alerts: Array<{ severity?: string; code?: string }>
+  stale: boolean
+}
+
+export interface DomainDetail {
+  id: string
+  domain: string
+  state: string
+  verified_at?: string | null
+  suspended_at?: string | null
+  created_at?: string
+  dkim: {
+    selector?: string | null
+    version: number
+    history: Array<{ selector: string; version: number; active: boolean; created_at: string; retired_at?: string | null }>
+  }
+  dns: { return_path?: string | null; tracking_domain?: string | null }
+  deliverability: DeliverabilityEvidence
+  provider_readiness: { sending_enabled: boolean; inbound_enabled: boolean; status: string }
+  history?: DeliverabilityEvidence[]
+}
+
+export interface DeliverabilityRow extends DeliverabilityEvidence {
+  id: string
+  domain: string
+  state: string
+  verified_at?: string | null
+  suspended_at?: string | null
+  alert_count: number
+  sending_enabled: boolean
+  inbound_enabled: boolean
+  provider_status: string
+}
+
+export interface DeliverabilityResponse {
+  items: DeliverabilityRow[]
+  limit: number
+  offset: number
+  has_more: boolean
+}
+
+export interface MessageEvidenceEntry {
+  id: string
+  kind: string
+  status: string
+  source: string
+  occurred_at: string
+}
+
+export interface MessageDetail extends MessageRow {
+  current_outcome: string
+  correlation_id?: string | null
+  operation_id?: string | null
+  outbox?: {
+    state: string
+    attempts: number
+    created_at: string
+    updated_at: string
+    next_attempt_at?: string | null
+    provider_reference_present: boolean
+  } | null
+  provider?: {
+    status: string
+    attempts: number
+    sandbox: boolean
+    provider_reference_present: boolean
+    updated_at: string
+  } | null
+  timeline: MessageEvidenceEntry[]
+}
+
 export interface DomainClaimCreated {
   id: string
   state: string
@@ -71,6 +151,10 @@ export interface Mailbox {
   sending_enabled: boolean
   receiving_enabled: boolean
   counts: Record<string, number>
+  is_shared?: boolean
+  grant_count?: number
+  my_access_role?: string | null
+  unread_count?: number
 }
 
 export interface TeamMember { user_id: string; email: string | null; role: string; created_at: string }
