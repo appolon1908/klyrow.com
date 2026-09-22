@@ -1,0 +1,78 @@
+{
+  "title": "Klyrow Webmail / Postal",
+  "uid": "klyrow-webmail-postal",
+  "schemaVersion": 39,
+  "timezone": "browser",
+  "refresh": "30s",
+  "tags": [
+    "klyrow",
+    "webmail",
+    "postal"
+  ],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Inbound failure ratio",
+      "targets": [
+        {
+          "expr": "klyrow:webmail_inbound_failure:ratio15m",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Send failure ratio",
+      "targets": [
+        {
+          "expr": "klyrow:webmail_send_failure:ratio15m",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Oldest queue item (s)",
+      "targets": [
+        {
+          "expr": "klyrow:webmail_queue_age_seconds:max",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Postal/provider p95 latency",
+      "targets": [
+        {
+          "expr": "klyrow:webmail_provider_latency:p95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Bounce / complaint",
+      "targets": [
+        {
+          "expr": "klyrow:webmail_bounce:ratio30m",
+          "refId": "A"
+        },
+        {
+          "expr": "klyrow:webmail_complaint:ratio30m",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Reconciliation unresolved",
+      "targets": [
+        {
+          "expr": "klyrow:webmail_reconciliation_failures:sum",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}
