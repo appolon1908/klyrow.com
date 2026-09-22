@@ -145,3 +145,103 @@ def webmail_postal_trace(correlation_id: str, ctx: dict = Depends(browser_contex
         "privacy": "No addresses, subjects, bodies, tokens, provider IDs or payloads are returned.",
         "direct_cross_system_writes": False,
     }
+
+
+def _platform_admin(ctx: dict, session: Session) -> User:
+    user = session.get(User, ctx["sub"])
+    if not user or user.role != "platform_admin":
+        raise HTTPException(403, "platform_admin_required")
+    return user
+
+@router.get("/app/api/admin/observability/users")
+def user_suite_observability(ctx: dict = Depends(browser_context), session: Session = Depends(db)):
+    _platform_admin(ctx, session)
+    from .auth_bff import BrowserSession
+    total = _count(session, User)
+    enabled = _count(session, User, User.enabled == True)
+    disabled = max(total - enabled, 0)
+    sessions_active = _count(session, BrowserSession, BrowserSession.revoked_at.is_(None))
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "suite": "users",
+        "users": {"total": total, "enabled": enabled, "disabled": disabled},
+        "sessions": {"active": sessions_active},
+        "health": "attention" if disabled > 0 else "healthy",
+        "authority": "Keycloak/OIDC identity with Klyrow browser-session projection",
+        "cross_system_path": ["Caddy", "Kong", "Middleware", "identity-adapter", "Keycloak/Klyrow"],
+        "direct_cross_system_writes": False,
+    }
+
+@router.get("/app/api/admin/observability/billing")
+def billing_suite_observability(ctx: dict = Depends(browser_context), session: Session = Depends(db)):
+    _platform_admin(ctx, session)
+    from .billing import Invoice, Payment, Refund
+    from .payment_attempts import PaymentAttempt
+    attempts = _count(session, PaymentAttempt)
+    captured = _count(session, PaymentAttempt, PaymentAttempt.state == "CAPTURED")
+    failed = _count(session, PaymentAttempt, PaymentAttempt.state.in_(("FAILED", "CANCELED", "EXPIRED")))
+    invoices = _count(session, Invoice)
+    payments = _count(session, Payment)
+    refunds = _count(session, Refund)
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "suite": "billing",
+        "payment_attempts": {"total": attempts, "captured": captured, "failed": failed},
+        "ledger": {"invoices": invoices, "payments": payments, "refunds": refunds},
+        "health": "attention" if failed > 0 else "healthy",
+        "authority": "Klyrow billing ledger; provider effects only through Middleware billing adapters",
+        "cross_system_path": ["Caddy", "Kong", "Middleware", "billing-adapter", "Klyrow/provider"],
+        "direct_cross_system_writes": False,
+        "sensitive_payment_data_returned": False,
+    }
+
+@router.get("/app/api/admin/observability/system")
+def admin_system_observability(ctx: dict = Depends(browser_context), session: Session = Depends(db)):
+    _platform_admin(ctx, session)
+    from .main import MiddlewareCommandOperation
+    from .operations import IntegrationOutbox
+    commands = _count(session, MiddlewareCommandOperation)
+    command_failed = _count(session, MiddlewareCommandOperation, MiddlewareCommandOperation.state == "failed")
+    integration_pending = _count(session, IntegrationOutbox, IntegrationOutbox.state.in_(("PENDING", "RETRY")))
+    integration_dead = _count(session, IntegrationOutbox, IntegrationOutbox.state == "DEAD_LETTER")
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "suite": "admin-system",
+        "middleware_commands": {"total": commands, "failed": command_failed},
+        "integration_outbox": {"pending_or_retry": integration_pending, "dead_letter": integration_dead},
+        "health": "critical" if integration_dead else ("attention" if command_failed or integration_pending else "healthy"),
+        "authority": "Middleware command kernel",
+        "cross_system_path": ["Caddy", "Kong", "Middleware", "authorized-adapter"],
+        "direct_cross_system_writes": False,
+    }
+
+@router.get("/app/api/admin/observability/operations-center")
+def operations_center(ctx: dict = Depends(browser_context), session: Session = Depends(db)):
+    _platform_admin(ctx, session)
+    users = user_suite_observability(ctx, session)
+    mail = webmail_postal_observability(ctx, session)
+    billing = billing_suite_observability(ctx, session)
+    system = admin_system_observability(ctx, session)
+    severity = {"healthy": 0, "attention": 1, "critical": 2}
+    mail_health = max(mail["health"].values(), key=lambda value: severity[value])
+    suites = {
+        "users": users["health"],
+        "email": mail_health,
+        "billing": billing["health"],
+        "system": system["health"],
+    }
+    overall = max(suites.values(), key=lambda value: severity[value])
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "overall_health": overall,
+        "suites": suites,
+        "architecture": ["Caddy", "Kong", "Middleware", "authorized-adapter", "service/provider"],
+        "questions_answered": [
+            "Are users and sessions operational?",
+            "Is email inbound/outbound healthy?",
+            "Is billing processing healthy?",
+            "Are Middleware commands/integrations healthy?",
+            "Which suite requires operator attention first?",
+        ],
+        "direct_cross_system_writes": False,
+    }
