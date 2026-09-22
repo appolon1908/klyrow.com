@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from .auth_bff import csrf_guard
 from .capabilities import require_permission
-from .main import Suppression, db
+from .main import Suppression, audit, db
 from .saas import Consent, CustomerEvent, Preference, Profile, attrs, profile_payload
 
 router = APIRouter(prefix="/app/api", tags=["Browser profiles and suppressions"])
@@ -118,14 +118,19 @@ def profile(
 def suppressions(
     limit: int = Query(default=100, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    q: Optional[str] = Query(default=None, max_length=254),
+    reason: Optional[str] = Query(default=None, max_length=100),
     ctx: dict[str, Any] = Depends(browser_read_context),
     s: Session = Depends(db),
 ) -> dict[str, Any]:
     require_browser_permission(ctx, "mail.read")
+    query = select(Suppression).where(Suppression.tenant_id == ctx["tenant"])
+    if q and q.strip():
+        query = query.where(Suppression.email.ilike("%" + q.strip().lower() + "%"))
+    if reason and reason.strip():
+        query = query.where(Suppression.reason == reason.strip())
     rows = s.scalars(
-        select(Suppression)
-        .where(Suppression.tenant_id == ctx["tenant"])
-        .order_by(Suppression.email, Suppression.id)
+        query.order_by(Suppression.email, Suppression.id)
         .offset(offset)
         .limit(limit + 1)
     ).all()
@@ -161,6 +166,7 @@ def add_suppression(
         id=str(uuid.uuid4()), tenant_id=ctx["tenant"], email=email, reason=payload.reason,
     )
     s.add(item)
+    audit(s, ctx, "suppression.added")
     s.commit()
     return {"id": item.id, "email": item.email, "reason": item.reason, "duplicate": False}
 
@@ -179,4 +185,5 @@ def remove_suppression(
     if item is None:
         raise HTTPException(404, "suppression_not_found")
     s.delete(item)
+    audit(s, ctx, "suppression.removed")
     s.commit()
