@@ -211,14 +211,21 @@ def claim_job(
     return job
 
 
-def _require_lease(job: WorkerJob, worker_id: str) -> None:
-    if job.state != "LEASED" or job.lease_owner != worker_id:
+def _require_lease(job: WorkerJob, worker_id: str, *, at: Optional[datetime] = None) -> None:
+    at = at or utcnow()
+    expires = job.lease_expires_at
+    if (
+        job.state != "LEASED"
+        or job.lease_owner != worker_id
+        or expires is None
+        or expires <= at
+    ):
         raise JobLeaseLost("worker_job_lease_lost")
 
 
 def complete_job(session: Session, job: WorkerJob, *, worker_id: str, at: Optional[datetime] = None) -> WorkerJob:
     at = at or utcnow()
-    _require_lease(job, worker_id)
+    _require_lease(job, worker_id, at=at)
     job.state = "COMPLETED"
     job.completed_at = at
     job.updated_at = at
@@ -238,7 +245,7 @@ def retry_job(
     at: Optional[datetime] = None,
 ) -> WorkerJob:
     at = at or utcnow()
-    _require_lease(job, worker_id)
+    _require_lease(job, worker_id, at=at)
     job.state = "RETRYING"
     job.available_at = at + timedelta(seconds=max(0, delay_seconds))
     job.updated_at = at
