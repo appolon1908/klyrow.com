@@ -142,6 +142,10 @@ def test_job_lease_recovery_retry_completion_and_lease_guard(store):
         assert claimed_again.attempts == 2
         with pytest.raises(JobLeaseLost):
             complete_job(session, claimed_again, worker_id="journey-worker-1")
+        claimed_again.lease_expires_at = now - timedelta(microseconds=1)
+        with pytest.raises(JobLeaseLost):
+            complete_job(session, claimed_again, worker_id="journey-worker-2", at=now)
+        claimed_again.lease_expires_at = now + timedelta(seconds=30)
         complete_job(session, claimed_again, worker_id="journey-worker-2", at=now)
         assert claimed_again.state == "COMPLETED"
         assert claimed_again.lease_owner is None
