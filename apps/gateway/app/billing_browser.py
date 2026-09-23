@@ -30,7 +30,6 @@ from .billing_entitlements import SubscriptionState, calculate_entitlements, req
 from .billing_entitlements import SubscriptionSnapshot, transition as apply_subscription_transition
 from .billing_proration import quote_plan_change
 from .billing import enqueue_subscription_changed
-from .auth_bff import csrf_guard
 from .billing_checkout import create_or_resume_stripe_checkout
 from .billing_config import BillingConfigError, load_billing_settings
 from .main import db
@@ -38,6 +37,28 @@ from .tenancy import ROLE_PERMISSIONS
 from .usage_history import ERRORS as USAGE_HISTORY_ERRORS, UsageHistoryPage, UsageHistoryQuery, usage_history
 
 router = APIRouter(prefix="/app/api/billing", tags=["Browser billing"])
+
+
+
+
+
+def csrf_guard_dependency(
+
+    request: Request,
+
+    x_klyrow_csrf: str = Header(default="", alias="X-Klyrow-CSRF"),
+
+    s: Session = Depends(db),
+
+):
+
+    """Resolve the browser CSRF authority lazily to avoid main/auth router import cycles."""
+
+    from .auth_bff import csrf_guard
+
+
+
+    return csrf_guard(request=request, x_klyrow_csrf=x_klyrow_csrf, s=s)
 
 
 class SubscriptionQuoteIn(BaseModel):
@@ -97,7 +118,7 @@ def _has_permission(ctx: dict[str, Any], permission: str) -> bool:
 
 def billing_manage_context(
     request: Request,
-    current=Depends(csrf_guard),
+    current=Depends(csrf_guard_dependency),
     s: Session = Depends(db),
 ) -> dict[str, Any]:
     ctx = browser_context_dependency(request=request, s=s)

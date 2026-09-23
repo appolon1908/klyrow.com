@@ -22,7 +22,7 @@ def test_pro_s1_contract_and_no_identity_bypass():
     assert "Direct Keycloak writes" in enterprise
 
 def test_pro_s1_authority_freeze_exists():
-    doc=(ROOT/"docs/architecture/PRO_S1_ORGANIZATION_IDENTITY.md").read_text()
+    doc=(ROOT/"docs/architecture/PRO_S1_ORGANIZATION_IDENTITY.md").read_text(encoding="utf-8")
     assert "Keycloak owns human authentication" in doc
     assert "Klyrow PostgreSQL owns" in doc
     assert "Caddy → Kong → Middleware → authorized adapter" in doc

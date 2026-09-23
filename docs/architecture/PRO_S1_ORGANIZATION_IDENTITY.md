@@ -20,10 +20,10 @@ Status: **FROZEN FOR REVIEW**. This document is the implementation authority for
 
 | Concern | Authority | Classification | Rule |
 |---|---|---|---|
-| Human authentication | Keycloak | REUSE | Klyrow never stores passwords or implements a second IdP. |
+| Human authentication | Keycloak | REUSE | Keycloak owns human authentication; Klyrow never stores passwords or implements a second IdP. |
 | MFA/recovery | Keycloak | REUSE | Product may display readiness/status; runtime remains Keycloak-owned. |
 | Browser session | Klyrow BFF | REUSE/EXTEND | HttpOnly server session; no bearer token in browser storage. |
-| Organization | Klyrow PostgreSQL | REUSE/EXTEND | Tenant-scoped durable business truth. |
+| Organization | Klyrow PostgreSQL | REUSE/EXTEND | Klyrow PostgreSQL owns tenant-scoped durable organization business truth. |
 | Membership/role | Klyrow PostgreSQL | REUSE/EXTEND | Server-enforced capabilities. |
 | Invitations | Klyrow PostgreSQL | REUSE/EXTEND | Single-use, expiring, revocable. |
 | SSO/SCIM provisioning | Middleware → Keycloak adapter | NEW contract, not direct implementation | Browser cannot write Keycloak directly. |

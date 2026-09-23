@@ -1617,9 +1617,7 @@
         "x-idempotency-required": true,
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": [
-          "csrf_guard"
-        ]
+        "x-klyrow-enforced-auth-dependencies": []
       }
     },
     "/app/api/billing/invoices/{invoice_id}/document": {
@@ -2067,9 +2065,7 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": [
-          "csrf_guard"
-        ]
+        "x-klyrow-enforced-auth-dependencies": []
       }
     },
     "/app/api/billing/subscription/change": {
@@ -2133,9 +2129,7 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": [
-          "csrf_guard"
-        ]
+        "x-klyrow-enforced-auth-dependencies": []
       }
     },
     "/app/api/billing/subscription/quote": {
@@ -2199,9 +2193,7 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": [
-          "csrf_guard"
-        ]
+        "x-klyrow-enforced-auth-dependencies": []
       }
     },
     "/app/api/billing/subscription/reactivate": {
@@ -2265,9 +2257,7 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": [
-          "csrf_guard"
-        ]
+        "x-klyrow-enforced-auth-dependencies": []
       }
     },
     "/app/api/billing/usage/daily": {
