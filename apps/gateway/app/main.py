@@ -1409,6 +1409,8 @@ from .preferences import router as preferences_router
 app.include_router(preferences_router)
 from . import business_events as _business_events
 from . import campaign_dispatcher as _campaign_dispatcher
+from . import durable_jobs as _durable_jobs
+from . import journey_storage as _journey_storage
 from .secret_responses import router as secret_responses_router
 app.include_router(secret_responses_router)
 from .browser_observability import router as browser_observability_router
