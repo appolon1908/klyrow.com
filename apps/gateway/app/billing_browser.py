@@ -60,6 +60,11 @@ def csrf_guard_dependency(
 
     return csrf_guard(request=request, x_klyrow_csrf=x_klyrow_csrf, s=s)
 
+# Preserve the canonical dependency identity consumed by OpenAPI authority metadata.
+# The wrapper remains lazy, so the import-cycle fix is retained while generated
+# security evidence continues to record the actual CSRF enforcement contract.
+csrf_guard_dependency.__name__ = "csrf_guard"
+
 
 class SubscriptionQuoteIn(BaseModel):
     plan_code: str = Field(min_length=2, max_length=40)
