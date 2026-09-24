@@ -140,7 +140,7 @@ def set_core_message_status(message,value:str)->None:
     if value not in CANONICAL_SMTP_STATUSES:raise RuntimeError("noncanonical_message_status")
     message.status=value
 
-class Base(DeclarativeBase): pass
+from .db_base import Base
 class Tenant(Base):
     __tablename__="tenants"; id:Mapped[str]=mapped_column(String,primary_key=True); name:Mapped[str]=mapped_column(String); enabled:Mapped[bool]=mapped_column(Boolean,default=True); quota:Mapped[int]=mapped_column(Integer,default=10000)
 class User(Base):

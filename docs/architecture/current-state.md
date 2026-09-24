@@ -45,9 +45,12 @@ blueprint's `organization_id`/`project_id`. Organization membership and OIDC
 identity links exist. Do not silently rename tenant keys.
 
 The checked-in migrations establish a non-superuser runtime role with
-`NOBYPASSRLS`, but no `CREATE POLICY`/`ENABLE ROW LEVEL SECURITY` statements were
-found in `migrations/`. Application tenant predicates are the present boundary;
-RLS cannot be reported as implemented merely because the role cannot bypass it.
+`NOBYPASSRLS` and now include explicit tenant RLS policies for core billing,
+M6C dispute/receipt, and Webmail tables. These policies bind to `app.tenant_id`
+and provide defense in depth for those covered tables. This is **partial RLS
+coverage**, not a claim that every tenant-owned table is protected; application
+tenant predicates remain required and full-table/live-PostgreSQL verification
+is still a release gate.
 
 Message admission is asynchronous (`POST /v1/messages` → 202). Durable
 idempotency, outbox processing, delivery outcome normalization and tenant
