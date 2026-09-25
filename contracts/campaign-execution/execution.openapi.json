@@ -1,0 +1,86 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Klyrow MCR campaign execution contract",
+    "version": "1.0.0",
+    "description": "Contract-only sandbox preview/readback. No send, replay, money movement, or provider effect."
+  },
+  "x-runtime-status": "contract_only",
+  "paths": {
+    "/v1/campaign-executions/plan": {
+      "post": {
+        "operationId": "campaignExecutionPlan",
+        "security": [
+          {
+            "oauth": [
+              "klyrow.read"
+            ]
+          }
+        ],
+        "x-effects": "none",
+        "responses": {
+          "200": {
+            "description": "Sandbox plan"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Binding conflict"
+          },
+          "503": {
+            "description": "Dependency unavailable"
+          }
+        }
+      }
+    },
+    "/v1/campaign-executions/{command_id}": {
+      "get": {
+        "operationId": "campaignExecutionReadback",
+        "security": [
+          {
+            "oauth": [
+              "klyrow.read"
+            ]
+          }
+        ],
+        "x-effects": "none",
+        "responses": {
+          "200": {
+            "description": "Readback"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "503": {
+            "description": "Dependency unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://auth.codestra.co/realms/codestra/protocol/openid-connect/token",
+            "scopes": {
+              "klyrow.read": "Read sandbox execution plans"
+            }
+          }
+        }
+      }
+    }
+  }
+}

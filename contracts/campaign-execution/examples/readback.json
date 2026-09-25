@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "command_id": "5f3e32e2-ebf9-54a5-b9dd-618ee9e720a1",
+  "request_hash": "671ea2204ded3295d7e3f3dc1deb3bd6d795fe095da044f5679fdd5b627ef6cf",
+  "exposure_idempotency_key": "mcr1:d85495cf6f4d0b9d45220f77b0ebfa4a42ad3265dfa150c41409ffd9985fcffd",
+  "touch": {
+    "tenant_id": "tenant-a",
+    "lead_id": "100-L-00000001",
+    "campaign_id": "klyrow:campaign-a",
+    "campaign_version": 1,
+    "channel": "email",
+    "touch_index": 1
+  },
+  "status": "planned",
+  "provider_effects": "disabled"
+}
