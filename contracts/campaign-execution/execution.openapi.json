@@ -40,6 +40,18 @@
     "/v1/campaign-executions/{command_id}": {
       "get": {
         "operationId": "campaignExecutionReadback",
+        "parameters": [
+          {
+            "name": "command_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Opaque Middleware command identifier bound to the immutable execution plan"
+          }
+        ],
         "security": [
           {
             "oauth": [

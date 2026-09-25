@@ -8,7 +8,7 @@
     "channel": "email",
     "touch_index": 1
   },
-  "exposure_idempotency_key": "mcr1:d85495cf6f4d0b9d45220f77b0ebfa4a42ad3265dfa150c41409ffd9985fcffd",
+  "exposure_idempotency_key": "mcr1:ffa0fa51fed6f1bf4dcc8604a68d6e67825b58ce33ee19010e3905c4a25cfc6e",
   "sender_identity_id": "sender-a",
   "template_id": "template-a",
   "template_version": 1,
@@ -18,5 +18,5 @@
   },
   "provider_effects": "disabled",
   "mode": "sandbox-preview",
-  "request_hash": "671ea2204ded3295d7e3f3dc1deb3bd6d795fe095da044f5679fdd5b627ef6cf"
+  "request_hash": "9b093247f9ada787b640dc4ab64a4a38bf16b972efa8a42a12654f18c486e0f1"
 }

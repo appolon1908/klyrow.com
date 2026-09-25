@@ -8,7 +8,7 @@ from jsonschema.exceptions import ValidationError
 
 ROOT=Path(__file__).resolve().parents[1]
 DIR=ROOT/"contracts/campaign-execution"
-IDENTITY=("tenant_id","lead_id","campaign_id","campaign_version","touch_index")
+IDENTITY=("tenant_id","lead_id","campaign_id","campaign_version","channel","touch_index")
 
 def _canonical(v): return json.dumps(v,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode()
 def exposure_key(touch):
@@ -62,7 +62,7 @@ def recovery(outcome,attempt,retry_after_seconds=None):
         delay=[30,60,120,240][min(attempt,4)-1]
         if retry_after_seconds is not None:
             if type(retry_after_seconds) is not int or retry_after_seconds<0: raise ValueError("invalid_retry_after")
-            if retry_after_seconds>900:return {"action":"dead_letter","delay_seconds":None}
+            if retry_after_seconds>900:return {"action":"operator_review","delay_seconds":None}
             delay=max(delay,retry_after_seconds)
         return {"action":"retry" if attempt<5 else "dead_letter","delay_seconds":delay if attempt<5 else None}
     if outcome in {"unknown_outcome","readback_mismatch"}: return {"action":"reconcile","delay_seconds":None}
@@ -82,6 +82,10 @@ def validate_bundle():
     schema=json.loads((DIR/"execution.v1.schema.json").read_text()); Draft202012Validator.check_schema(schema)
     api=json.loads((DIR/"execution.openapi.json").read_text())
     if api.get("x-runtime-status")!="contract_only": raise ValueError("runtime_activation")
+    readback=api.get("paths",{}).get("/v1/campaign-executions/{command_id}",{}).get("get",{})
+    params=readback.get("parameters",[])
+    if not any(p.get("name")=="command_id" and p.get("in")=="path" and p.get("required") is True for p in params):
+        raise ValueError("command_id_path_parameter")
     plan=json.loads((DIR/"examples/plan.json").read_text()); validate_plan(plan,plan["touch"]["tenant_id"])
     read=json.loads((DIR/"examples/readback.json").read_text()); validate_readback(plan,read,plan["touch"]["tenant_id"])
     return True

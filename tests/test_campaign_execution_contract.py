@@ -41,7 +41,7 @@ def test_key_pins_every_natural_identity_field(reference, plan):
     assert original == plan['exposure_idempotency_key']
     for key, value in {'tenant_id': 'tenant-b', 'lead_id': '100-L-00000002',
                        'campaign_id': 'klyrow:other', 'campaign_version': 2,
-                       'touch_index': 2}.items():
+                       'channel': 'sms', 'touch_index': 2}.items():
         assert reference.exposure_key({**touch, key: value}) != original
     assert reference.exposure_key(dict(reversed(list(touch.items())))) == original
 
@@ -140,7 +140,7 @@ def test_backoff_and_retry_after(reference):
     assert [reference.recovery('transient_before_admission', i)['delay_seconds']
             for i in range(1,5)] == [30,60,120,240]
     assert reference.recovery('transient_before_admission', 1, 800)['delay_seconds'] == 800
-    assert reference.recovery('transient_before_admission', 1, 901)['action'] == 'dead_letter'
+    assert reference.recovery('transient_before_admission', 1, 901)['action'] == 'operator_review'
     for invalid in (0, -1, True, 6):
         with pytest.raises(ValueError):
             reference.recovery('transient_before_admission', invalid)
