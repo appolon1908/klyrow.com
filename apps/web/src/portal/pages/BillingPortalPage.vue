@@ -17,6 +17,7 @@ import UnavailableState from '../components/UnavailableState.vue'
 
 type Collection<T> = { items: T[]; offset?: number; limit?: number; has_more?: boolean }
 type RecordItem = BillingInvoice | BillingPayment | BillingRefund | BillingPaymentMethod
+type BillingCreditNote = { id: string; number: string; invoice_id: string; amount: number | string; currency: string; reason: string; created_at: string }
 
 const props = defineProps<{ route: PortalRoute; params: Record<string, string>; session: BrowserSession }>()
 const routeName = computed(() => props.route.name)
@@ -50,6 +51,8 @@ const wallet = computed(() => page.data.value as BillingWallet | null)
 const checkoutEnabled = ref(false)
 const checkoutLoading = ref(false)
 const checkoutFailure = ref('')
+const creditNotes = ref<BillingCreditNote[]>([])
+const creditNotesUnavailable = ref(false)
 const canManageBilling = computed(() => props.session.capabilities?.includes('billing.manage') === true)
 const collection = computed(() => {
   const value = page.data.value as Collection<RecordItem> | RecordItem[] | null
@@ -85,6 +88,20 @@ function displayRecord(item: RecordItem): Record<string, unknown> {
 function applyFilter() { offset.value = 0; void page.reload() }
 function previous() { offset.value = Math.max(0, offset.value - limit); void page.reload() }
 function next() { offset.value += limit; void page.reload() }
+
+watch(() => [routeName.value, invoice.value?.id] as const, async ([name, id]) => {
+  creditNotes.value = []
+  creditNotesUnavailable.value = false
+  if (name === 'billing-invoice' && id) {
+    try {
+      const result = await appApi<{ items: BillingCreditNote[] }>('/app/api/billing/credit-notes')
+      creditNotes.value = result.items.filter(item => item.invoice_id === id)
+    } catch {
+      creditNotes.value = []
+      creditNotesUnavailable.value = true
+    }
+  }
+}, { immediate: true })
 
 watch(() => [routeName.value, invoice.value?.id] as const, async ([name, id]) => {
   checkoutEnabled.value = false
@@ -142,6 +159,14 @@ async function startCheckout() {
     <div v-else-if="routeName === 'billing-invoice' && invoice" class="kp-stack">
       <PanelCard title="Invoice details" eyebrow="Canonical record"><dl class="kp-definition-list"><div><dt>Reference</dt><dd>{{ invoice.reference }}</dd></div><div><dt>Status</dt><dd>{{ readable(invoice.status) }}</dd></div><div><dt>Issued</dt><dd>{{ date(invoice.issued_at) }}</dd></div><div><dt>Due</dt><dd>{{ date(invoice.due_at) }}</dd></div><div><dt>Total</dt><dd>{{ money(invoice.total, invoice.currency) }}</dd></div><div><dt>Amount due</dt><dd>{{ money(invoice.amount_due, invoice.currency) }}</dd></div></dl><div v-if="canManageBilling && checkoutEnabled && Number(invoice.amount_due || 0) > 0 && !invoice.active_checkout && !['VOID', 'CREDITED', 'PAID'].includes(invoice.status)" class="kp-inline-actions"><button type="button" class="kp-button" :disabled="checkoutLoading" @click="startCheckout">{{ checkoutLoading ? 'Opening checkout…' : 'Pay invoice' }}</button></div><p v-if="invoice.active_checkout" class="kp-notice" role="status">A hosted checkout is already in progress. Reload this invoice to see its current status.</p><p v-if="checkoutFailure" class="kp-notice" role="alert">{{ checkoutFailure }}</p><p v-if="['PAID', 'PARTIALLY_PAID'].includes(invoice.status)" class="kp-notice" role="status">{{ invoice.status === 'PAID' ? 'Payment confirmed.' : 'Payment partially received.' }}</p></PanelCard>
       <PanelCard title="Line items" eyebrow="Invoice contents"><DataTable caption="Invoice line items" :columns="[{ key: 'description', label: 'Description' }, { key: 'quantity', label: 'Quantity' }, { key: 'amount', label: 'Amount' }]" :rows="invoice.line_items" empty-message="No line items are reported."><template #cell-amount="{ row }">{{ money(Number(row.amount), String(row.currency || invoice.currency)) }}</template></DataTable></PanelCard>
+      <PanelCard title="Billing documents" eyebrow="Canonical documents">
+        <div class="kp-inline-actions">
+          <a class="kp-button" :href="`/app/api/billing/invoices/${encodeURIComponent(invoice.id)}/document`" target="_blank" rel="noopener">View canonical invoice document</a>
+          <a v-for="note in creditNotes" :key="note.id" class="kp-button" :href="`/app/api/billing/credit-notes/${encodeURIComponent(note.id)}/document`" target="_blank" rel="noopener">Credit note {{ note.number }}</a>
+        </div>
+        <p v-if="creditNotesUnavailable" class="kp-notice kp-notice--warning" role="status">Credit-note records are temporarily unavailable. The invoice document remains available.</p>
+        <p v-else-if="!creditNotes.length" class="kp-muted">No credit notes are recorded for this invoice.</p>
+      </PanelCard>
     </div>
     <div v-else-if="routeName === 'billing-wallet' && wallet" class="kp-stack"><MetricCard label="Wallet balance" :value="money(wallet.balance, wallet.currency)" source="live" /><PanelCard title="Wallet transactions" eyebrow="Existing records"><DataTable caption="Wallet transactions" :columns="[{ key: 'description', label: 'Description' }, { key: 'status', label: 'Status' }, { key: 'created_at', label: 'Date' }, { key: 'amount', label: 'Amount' }]" :rows="wallet.transactions" empty-message="No wallet transactions are reported."><template #cell-status="{ row }"><StatusBadge :value="String(row.status)" /></template><template #cell-created_at="{ row }">{{ date(String(row.created_at)) }}</template><template #cell-amount="{ row }">{{ money(Number(row.amount), String(row.currency || wallet.currency)) }}</template></DataTable></PanelCard></div>
     <div v-else class="kp-stack">

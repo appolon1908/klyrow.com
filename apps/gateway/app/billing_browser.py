@@ -3,7 +3,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
@@ -30,13 +30,40 @@ from .billing_entitlements import SubscriptionState, calculate_entitlements, req
 from .billing_entitlements import SubscriptionSnapshot, transition as apply_subscription_transition
 from .billing_proration import quote_plan_change
 from .billing import enqueue_subscription_changed
-from .auth_bff import csrf_guard
 from .billing_checkout import create_or_resume_stripe_checkout
 from .billing_config import BillingConfigError, load_billing_settings
 from .main import db
 from .tenancy import ROLE_PERMISSIONS
+from .usage_history import ERRORS as USAGE_HISTORY_ERRORS, UsageHistoryPage, UsageHistoryQuery, usage_history
 
 router = APIRouter(prefix="/app/api/billing", tags=["Browser billing"])
+
+
+
+
+
+def csrf_guard_dependency(
+
+    request: Request,
+
+    x_klyrow_csrf: str = Header(default="", alias="X-Klyrow-CSRF"),
+
+    s: Session = Depends(db),
+
+):
+
+    """Resolve the browser CSRF authority lazily to avoid main/auth router import cycles."""
+
+    from .auth_bff import csrf_guard
+
+
+
+    return csrf_guard(request=request, x_klyrow_csrf=x_klyrow_csrf, s=s)
+
+# Preserve the canonical dependency identity consumed by OpenAPI authority metadata.
+# The wrapper remains lazy, so the import-cycle fix is retained while generated
+# security evidence continues to record the actual CSRF enforcement contract.
+csrf_guard_dependency.__name__ = "csrf_guard"
 
 
 class SubscriptionQuoteIn(BaseModel):
@@ -96,7 +123,7 @@ def _has_permission(ctx: dict[str, Any], permission: str) -> bool:
 
 def billing_manage_context(
     request: Request,
-    current=Depends(csrf_guard),
+    current=Depends(csrf_guard_dependency),
     s: Session = Depends(db),
 ) -> dict[str, Any]:
     ctx = browser_context_dependency(request=request, s=s)
@@ -236,6 +263,34 @@ def entitlements(ctx: dict[str, Any] = Depends(billing_context), s: Session = De
     if item is None:
         raise HTTPException(404, "subscription_not_found")
     return {"status": item.status, "version": item.version, "entitlements": _subscription_entitlements(s, item)}
+
+
+@router.get(
+    "/usage/daily",
+    response_model=UsageHistoryPage,
+    responses=USAGE_HISTORY_ERRORS,
+    description="Daily UTC totals from the authoritative tenant usage ledger for the authenticated browser organization.",
+)
+def browser_usage_daily(
+    query: Annotated[UsageHistoryQuery, Query()],
+    ctx: dict[str, Any] = Depends(billing_context),
+    s: Session = Depends(db),
+) -> UsageHistoryPage:
+    return usage_history(query, "day", ctx, s)
+
+
+@router.get(
+    "/usage/monthly",
+    response_model=UsageHistoryPage,
+    responses=USAGE_HISTORY_ERRORS,
+    description="Monthly UTC totals from the authoritative tenant usage ledger for the authenticated browser organization.",
+)
+def browser_usage_monthly(
+    query: Annotated[UsageHistoryQuery, Query()],
+    ctx: dict[str, Any] = Depends(billing_context),
+    s: Session = Depends(db),
+) -> UsageHistoryPage:
+    return usage_history(query, "month", ctx, s)
 
 
 @router.post("/subscription/quote")

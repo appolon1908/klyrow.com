@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from apps.gateway.app.main import Base
-from apps.gateway.app.billing import Invoice, Payment
+from apps.gateway.app.billing import Invoice, InvoiceReceipt, Payment
 from apps.gateway.app.billing_ledger import invoice_balance, post_settlement
 
 
@@ -59,3 +59,9 @@ def test_settlement_replay_is_one_payment(ledger_session):
     two = post_settlement(ledger_session, tenant_id="tenant", invoice_id="invoice", provider="SANDBOX", provider_reference="same-provider-reference", amount=Decimal("10.00"), currency="USD", confirmed_by="system")
     assert one.id == two.id
     assert ledger_session.query(Payment).count() == 1
+    receipts = ledger_session.query(InvoiceReceipt).all()
+    assert len(receipts) == 1
+    assert receipts[0].payment_id == one.id
+    assert receipts[0].invoice_id == "invoice"
+    assert receipts[0].checksum
+    assert '"document_type":"RECEIPT"' in receipts[0].payload_json

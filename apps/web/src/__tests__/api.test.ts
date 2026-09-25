@@ -59,3 +59,17 @@ describe('BFF browser transport', () => {
     expect(close).toHaveBeenCalledOnce()
   })
 })
+
+
+describe('idempotency keys', () => {
+  it('falls back to getRandomValues when randomUUID is unavailable', async () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues: (bytes: Uint8Array) => {
+        bytes.forEach((_, index) => { bytes[index] = index })
+        return bytes
+      },
+    })
+    const { idempotencyKey } = await import('../api')
+    expect(idempotencyKey('webmail-send')).toBe('webmail-send:00010203-0405-4607-8809-0a0b0c0d0e0f')
+  })
+})

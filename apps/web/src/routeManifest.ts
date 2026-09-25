@@ -18,7 +18,8 @@ const PORTAL_STATES = ['loading', 'error', 'empty', 'ready', 'forbidden', 'unava
 const portalPrefixes = [
   '/app/overview', '/app/email', '/app/content', '/app/audience', '/app/campaigns', '/app/journeys', '/app/analytics',
   '/app/deliverability', '/app/developer', '/app/billing', '/app/settings', '/app/support',
-  '/admin/tenants', '/admin/deliverability', '/admin/abuse', '/admin/queues', '/admin/reconciliation', '/admin/billing', '/admin/system', '/admin/audit',
+  '/admin/tenants', '/admin/deliverability', '/admin/abuse', '/admin/queues', '/admin/reconciliation', '/admin/billing',
+  '/admin/operations', '/admin/observability', '/admin/system', '/admin/audit',
 ] as const
 
 // Ordered before the general product prefixes. These are current root views,

@@ -9,7 +9,6 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .auth_bff import _public_origin
 from .billing import Invoice, money
 from .billing_config import BillingConfigError, load_billing_settings
 from .main import audit, scoped_idempotency_key, semantic_request_hash
@@ -54,6 +53,8 @@ def _settings():
 
 
 def _checkout_urls(invoice_id: str) -> tuple[str, str]:
+    from .auth_bff import _public_origin
+
     origin = _public_origin()
     path = f"/app/billing/invoices/{invoice_id}"
     return origin + path + "?checkout=return", origin + path + "?checkout=cancelled"

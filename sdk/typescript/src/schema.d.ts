@@ -640,6 +640,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/billing/invoices/{invoice_id}/disputes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoice Disputes */
+        get: operations["invoice_disputes_v1_billing_invoices__invoice_id__disputes_get"];
+        put?: never;
+        /** Invoice Dispute Create */
+        post: operations["invoice_dispute_create_v1_billing_invoices__invoice_id__disputes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/billing/odoo-sync": {
         parameters: {
             query?: never;
@@ -3817,6 +3835,20 @@ export interface components {
              */
             profile_retention_days: number;
         };
+        /** DisputeIn */
+        DisputeIn: {
+            /** Amount */
+            amount?: number | string | null;
+            /**
+             * Category
+             * @default GENERAL
+             */
+            category: string;
+            /** Provider Reference */
+            provider_reference?: string | null;
+            /** Reason */
+            reason: string;
+        };
         /** DomainClaimIn */
         DomainClaimIn: {
             /** Domain */
@@ -6015,6 +6047,80 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CreditNoteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invoice_disputes_v1_billing_invoices__invoice_id__disputes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    invoice_dispute_create_v1_billing_invoices__invoice_id__disputes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+                "x-klyrow-tenant-id"?: string | null;
+                "X-Tenant-ID"?: string | null;
+            };
+            path: {
+                invoice_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DisputeIn"];
             };
         };
         responses: {

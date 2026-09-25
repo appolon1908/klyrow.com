@@ -140,7 +140,7 @@ def set_core_message_status(message,value:str)->None:
     if value not in CANONICAL_SMTP_STATUSES:raise RuntimeError("noncanonical_message_status")
     message.status=value
 
-class Base(DeclarativeBase): pass
+from .db_base import Base
 class Tenant(Base):
     __tablename__="tenants"; id:Mapped[str]=mapped_column(String,primary_key=True); name:Mapped[str]=mapped_column(String); enabled:Mapped[bool]=mapped_column(Boolean,default=True); quota:Mapped[int]=mapped_column(Integer,default=10000)
 class User(Base):
@@ -187,6 +187,12 @@ class WebhookEndpoint(Base):
 
 def db():
     with DB() as s: yield s
+
+def bind_tenant_rls(s: Session, tenant_id: str) -> None:
+    """Bind PostgreSQL tenant RLS to the current request transaction only."""
+    if s.get_bind().dialect.name == "postgresql":
+        s.execute(select(func.set_config("app.tenant_id", tenant_id, True)))
+
 def sha(v): return hashlib.sha256(v.encode()).hexdigest()
 def scoped_idempotency_key(ctx:dict,raw_key:str,*,action:str,resource:str,api_version:str="v1")->str:
     """Bind a client key to the complete durable command identity."""
@@ -310,6 +316,7 @@ def auth(request:Request,authorization:str=Header(default=""),x_klyrow_tenant_id
                 request.state.klyrow_platform_owner_api_validated=True
     except HTTPException: raise
     except Exception: raise HTTPException(401,"invalid_credentials")
+    bind_tenant_rls(s, ctx["tenant"])
     now=time.time(); q=rate_buckets[ctx["tenant"]]
     while q and q[0]<now-60:q.popleft()
     if len(q)>=int(os.getenv("KLYROW_RATE_PER_MINUTE","60")): raise HTTPException(429,"rate_limit_exceeded")
@@ -1402,8 +1409,12 @@ from .preferences import router as preferences_router
 app.include_router(preferences_router)
 from . import business_events as _business_events
 from . import campaign_dispatcher as _campaign_dispatcher
+from . import durable_jobs as _durable_jobs
+from . import journey_storage as _journey_storage
 from .secret_responses import router as secret_responses_router
 app.include_router(secret_responses_router)
+from .browser_observability import router as browser_observability_router
+app.include_router(browser_observability_router)
 from . import webmail_models as _webmail_models
 from .provider import provider_worker_loop, reconcile_legacy_registry, router as provider_router, status_router as provider_status_router
 app.include_router(provider_router)

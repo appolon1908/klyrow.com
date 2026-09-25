@@ -27,7 +27,7 @@ not installation or activation of other Codestra repositories.
 | Full Odoo KPI writer/reconciler | FAIL | Included worker handles inbound mail, not the complete daily KPI loop; existing Odoo model mappings unavailable in this repo |
 | OTLP SDK and propagation source | PASS | Bounded OTLP/HTTP exporter, durable W3C context and both Postal delivery paths instrumented; redaction and instrumentation-failure tests pass |
 | Deployed end-to-end traces | FAIL | A fresh API → outbox → Postal trace in the private collector is still required |
-| PostgreSQL RLS | FAIL | Runtime role is restricted, but table policies are not implemented in checked-in migrations |
+| PostgreSQL RLS | PARTIAL | Checked-in migrations now enable tenant RLS for 7 core billing tables, 2 M6C dispute/receipt tables, and 5 Webmail tables using `app.tenant_id`; full tenant-table coverage and live PostgreSQL policy verification are still required before release. |
 
 ## Required production gates
 

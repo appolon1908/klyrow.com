@@ -110,7 +110,6 @@ export interface BillingWalletTransaction { id: string; type: string; status: st
 export interface BillingWallet { balance: number; currency: string; transactions: BillingWalletTransaction[] }
 export interface BillingOverview { subscription: BillingSubscription | null; outstanding_balance: number; currency: string; wallet_balance: number; most_recent_invoice: BillingInvoice | null; recent_payments: BillingPayment[]; capabilities: BillingCapability[] }
 
-
 export interface AdminAbuseAlert {
   id: string
   tenant_id: string
@@ -240,3 +239,10 @@ export interface AdminAuditPage {
   items: AdminAuditEntry[]
   next_cursor?: string | null
 }
+
+export interface BillingCatalogPlan { code: string; name: string; features: Record<string, unknown>; price_version: number; currency: string; billing_cycle: string; base_amount: number | string; included_units: number; overage_amount: number | string }
+export interface BillingCatalog { items: BillingCatalogPlan[] }
+export interface BillingProviderCapabilities { billing_enabled: boolean; checkout_enabled: boolean; stripe: { available: boolean; environment: string }; live_charging: boolean }
+export interface BillingEntitlements { status: string; version: number; entitlements: Record<string, unknown> }
+export interface BillingUsageBucket { period_start: string; quantity: number }
+export interface BillingUsageHistory { granularity: 'day' | 'month'; unit: string; window_start: string; window_end: string; items: BillingUsageBucket[]; next_cursor: string | null }

@@ -9,8 +9,65 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from .main import Base, SECRET, Tenant, User, audit, auth, db, ph, require, sha
-from .saas import SessionRecord
+from .db_base import Base
+def _main_module():
+    from . import main
+
+    return main
+
+
+def db():
+    yield from _main_module().db()
+
+
+def auth(
+    request: Request,
+    authorization: str = Header(default=""),
+    x_klyrow_tenant_id: Optional[str] = Header(default=None),
+    x_tenant_id: Optional[str] = Header(default=None, alias="X-Tenant-ID"),
+    s: Session = Depends(db),
+):
+    return _main_module().auth(
+        request=request,
+        authorization=authorization,
+        x_klyrow_tenant_id=x_klyrow_tenant_id,
+        x_tenant_id=x_tenant_id,
+        s=s,
+    )
+
+
+def require(*roles):
+    def inner(ctx=Depends(auth)):
+        if ctx["role"] not in roles:
+            raise HTTPException(403, "insufficient_role")
+        return ctx
+
+    return inner
+
+
+def audit(s: Session, ctx: dict, action: str):
+    return _main_module().audit(s, ctx, action)
+
+
+def sha(value: str) -> str:
+    return _main_module().sha(value)
+
+
+def _secret_value() -> str:
+    return _main_module().SECRET
+
+
+def _tenant_model():
+    return _main_module().Tenant
+
+
+def _user_model():
+    return _main_module().User
+
+
+def _password_hash(value: str) -> str:
+    return _main_module().ph.hash(value)
+
 
 router=APIRouter(prefix="/v1",tags=["Tenant authority"])
 now=lambda:datetime.now(timezone.utc)
@@ -70,16 +127,16 @@ def validate_scopes(scopes):
 def organization(x:OrgIn,ctx=Depends(auth),s:Session=Depends(db)):
     if s.scalar(select(Organization).where(Organization.slug==x.slug)):raise HTTPException(409,"organization_slug_taken")
     from .business_events import enqueue_named_event
-    tenant=Tenant(id=str(uuid.uuid4()),name=x.name,quota=1000);org=Organization(id=str(uuid.uuid4()),tenant_id=tenant.id,name=x.name,slug=x.slug);membership=TenantMember(id=str(uuid.uuid4()),tenant_id=tenant.id,user_id=ctx["sub"],role="OWNER");s.add_all([tenant,org,membership]);enqueue_named_event(s,event_type="klyrow.tenant.created",tenant_id=tenant.id,aggregate_id=tenant.id,causation_id=org.id,data={"tenant_id":tenant.id,"name":tenant.name,"organization_id":org.id,"enabled":True});audit(s,{**ctx,"tenant":tenant.id},"organization.created");s.commit();return {"id":org.id,"tenant_id":tenant.id,"slug":org.slug}
+    tenant=_tenant_model()(id=str(uuid.uuid4()),name=x.name,quota=1000);org=Organization(id=str(uuid.uuid4()),tenant_id=tenant.id,name=x.name,slug=x.slug);membership=TenantMember(id=str(uuid.uuid4()),tenant_id=tenant.id,user_id=ctx["sub"],role="OWNER");s.add_all([tenant,org,membership]);enqueue_named_event(s,event_type="klyrow.tenant.created",tenant_id=tenant.id,aggregate_id=tenant.id,causation_id=org.id,data={"tenant_id":tenant.id,"name":tenant.name,"organization_id":org.id,"enabled":True});audit(s,{**ctx,"tenant":tenant.id},"organization.created");s.commit();return {"id":org.id,"tenant_id":tenant.id,"slug":org.slug}
 @router.get("/auth/oidc/config")
 def oidc_config():
     issuer="https://auth.codestra.co/realms/codestra"
     return {"issuer":issuer,"authorization_endpoint":issuer+"/protocol/openid-connect/auth","token_endpoint":issuer+"/protocol/openid-connect/token","client_id":"klyrow-portal","response_type":"code","code_challenge_method":"S256","scopes":["openid","profile","email"],"local_password_login":False}
 @router.post("/admin/oidc-identities",status_code=201)
 def oidc_identity(x:OidcIdentityIn,ctx=Depends(require("platform_admin")),s:Session=Depends(db)):
-    issuer="https://auth.codestra.co/realms/codestra";user=s.get(User,x.user_id)
+    issuer="https://auth.codestra.co/realms/codestra";user=s.get(_user_model(),x.user_id)
     if not user:raise HTTPException(404,"user_not_found")
-    if x.default_tenant_id and not s.get(Tenant,x.default_tenant_id):raise HTTPException(404,"tenant_not_found")
+    if x.default_tenant_id and not s.get(_tenant_model(),x.default_tenant_id):raise HTTPException(404,"tenant_not_found")
     existing=s.scalar(select(OidcIdentity).where(OidcIdentity.issuer==issuer,OidcIdentity.subject==x.subject))
     if existing:raise HTTPException(409,"oidc_identity_exists")
     item=OidcIdentity(id=str(uuid.uuid4()),issuer=issuer,subject=x.subject,user_id=user.id,default_tenant_id=x.default_tenant_id,identity_type=x.identity_type);s.add(item);audit(s,ctx,"oidc_identity.created");s.commit();return {"id":item.id,"issuer":item.issuer,"subject":item.subject,"identity_type":item.identity_type}
@@ -88,9 +145,11 @@ def organizations(ctx=Depends(auth),s:Session=Depends(db)):
     ids=select(TenantMember.tenant_id).where(TenantMember.user_id==ctx["sub"],TenantMember.active==True);return s.scalars(select(Organization).where(Organization.tenant_id.in_(ids))).all()
 @router.post("/organizations/{tenant_id}/switch")
 def switch(tenant_id:str,ctx=Depends(auth),s:Session=Depends(db)):
+    from .saas import SessionRecord
+
     m=member(s,tenant_id,ctx["sub"])
     if not m:raise HTTPException(404,"organization_not_found")
-    sid=str(uuid.uuid4());s.add(SessionRecord(id=sid,user_id=ctx["sub"],tenant_id=tenant_id));s.commit();raw=jwt.encode({"sub":ctx["sub"],"tenant":tenant_id,"role":m.role,"sid":sid,"exp":now()+timedelta(hours=8)},SECRET,algorithm="HS256");return {"access_token":raw,"token_type":"bearer","tenant_id":tenant_id,"role":m.role}
+    sid=str(uuid.uuid4());s.add(SessionRecord(id=sid,user_id=ctx["sub"],tenant_id=tenant_id));s.commit();raw=jwt.encode({"sub":ctx["sub"],"tenant":tenant_id,"role":m.role,"sid":sid,"exp":now()+timedelta(hours=8)},_secret_value(),algorithm="HS256");return {"access_token":raw,"token_type":"bearer","tenant_id":tenant_id,"role":m.role}
 @router.post("/team/invitations",status_code=201)
 def invite(x:InviteIn,ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);role=validate_role(x.role);raw=secrets.token_urlsafe(32);item=TenantInvitation(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],email=x.email.lower(),role=role,token_hash=sha(raw),expires_at=now()+timedelta(hours=x.expires_hours),created_by=ctx["sub"]);s.add(item);audit(s,ctx,"tenant.invitation.created");s.commit();return {"id":item.id,"token":raw,"expires_at":item.expires_at}
@@ -104,7 +163,7 @@ def team_invitations(ctx=Depends(auth),s:Session=Depends(db)):
 def accept(x:AcceptIn,s:Session=Depends(db)):
     item=s.scalar(select(TenantInvitation).where(TenantInvitation.token_hash==sha(x.token)))
     if not item or item.revoked_at or item.accepted_at or item.expires_at.replace(tzinfo=timezone.utc)<now():raise HTTPException(410,"invitation_invalid_or_expired")
-    user=s.scalar(select(User).where(User.email==item.email));
+    user_model=_user_model();user=s.scalar(select(user_model).where(user_model.email==item.email));
     if not user:raise HTTPException(409,"keycloak_user_link_required")
     old=s.scalar(select(TenantMember).where(TenantMember.tenant_id==item.tenant_id,TenantMember.user_id==user.id));m=old or TenantMember(id=str(uuid.uuid4()),tenant_id=item.tenant_id,user_id=user.id,role=item.role);m.role=item.role;m.active=True;item.accepted_at=now();s.add(m);s.commit();return {"tenant_id":item.tenant_id,"role":m.role,"user_id":user.id}
 @router.patch("/team/members/{user_id}")
@@ -127,12 +186,12 @@ def service_accounts(ctx=Depends(auth),s:Session=Depends(db)):
     return [{"id":row.id,"name":row.name,"client_id":row.client_id,"scopes":json.loads(row.scopes_json),"expires_at":row.expires_at,"revoked_at":row.revoked_at,"rotated_at":row.rotated_at,"created_at":row.created_at} for row in rows]
 @router.post("/service-accounts",status_code=201)
 def service_create(x:ServiceIn,ctx=Depends(auth),s:Session=Depends(db)):
-    manage(ctx,s);validate_scopes(x.scopes);raw=new_service_secret();item=ServiceAccount(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],name=x.name,client_id="klyrow_"+secrets.token_hex(12),secret_hash=ph.hash(raw),scopes_json=json.dumps(sorted(set(x.scopes))),expires_at=x.expires_at,created_by=ctx["sub"]);s.add(item);audit(s,ctx,"service_account.created");s.commit();return {"id":item.id,"client_id":item.client_id,"client_secret":raw,"scopes":json.loads(item.scopes_json)}
+    manage(ctx,s);validate_scopes(x.scopes);raw=new_service_secret();item=ServiceAccount(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],name=x.name,client_id="klyrow_"+secrets.token_hex(12),secret_hash=_password_hash(raw),scopes_json=json.dumps(sorted(set(x.scopes))),expires_at=x.expires_at,created_by=ctx["sub"]);s.add(item);audit(s,ctx,"service_account.created");s.commit();return {"id":item.id,"client_id":item.client_id,"client_secret":raw,"scopes":json.loads(item.scopes_json)}
 @router.post("/service-accounts/{item_id}/rotate")
 def service_rotate(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);item=s.scalar(select(ServiceAccount).where(ServiceAccount.id==item_id,ServiceAccount.tenant_id==ctx["tenant"],ServiceAccount.revoked_at==None));
     if not item:raise HTTPException(404,"service_account_not_found")
-    raw=new_service_secret();item.secret_hash=ph.hash(raw);item.rotated_at=now();audit(s,ctx,"service_account.rotated");s.commit();return {"client_id":item.client_id,"client_secret":raw}
+    raw=new_service_secret();item.secret_hash=_password_hash(raw);item.rotated_at=now();audit(s,ctx,"service_account.rotated");s.commit();return {"client_id":item.client_id,"client_secret":raw}
 @router.delete("/service-accounts/{item_id}",status_code=204)
 def service_revoke(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);item=s.scalar(select(ServiceAccount).where(ServiceAccount.id==item_id,ServiceAccount.tenant_id==ctx["tenant"]));
@@ -163,7 +222,7 @@ def smtp_create(x:SmtpIn,ctx=Depends(auth),s:Session=Depends(db)):
     from .secret_responses import record_secret_response,response_metadata
     manage(ctx,s)
     if set(x.scopes)!={"smtp.send"}:raise HTTPException(422,"invalid_smtp_scope")
-    password=secrets.token_urlsafe(36);item=SmtpCredential(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],username="smtp_"+secrets.token_hex(10),verifier_hash=ph.hash(password),scopes_json='["smtp.send"]',created_by=ctx["sub"],expires_at=x.expires_at);s.add(item);result={"id":item.id,"username":item.username,"password":password,"tls_required":True};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="SMTP_CREDENTIAL",resource_id=item.id,action="CREATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"smtp_credential.created");s.commit();return {**result,**response_metadata(secret_response)}
+    password=secrets.token_urlsafe(36);item=SmtpCredential(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],username="smtp_"+secrets.token_hex(10),verifier_hash=_password_hash(password),scopes_json='["smtp.send"]',created_by=ctx["sub"],expires_at=x.expires_at);s.add(item);result={"id":item.id,"username":item.username,"password":password,"tls_required":True};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="SMTP_CREDENTIAL",resource_id=item.id,action="CREATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"smtp_credential.created");s.commit();return {**result,**response_metadata(secret_response)}
 @router.get("/developer/smtp-credentials")
 def smtp_credentials(ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);rows=s.scalars(select(SmtpCredential).where(SmtpCredential.tenant_id==ctx["tenant"]).order_by(SmtpCredential.created_at.desc())).all()
@@ -173,7 +232,7 @@ def smtp_rotate(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
     from .secret_responses import record_secret_response,response_metadata
     manage(ctx,s);item=s.scalar(select(SmtpCredential).where(SmtpCredential.id==item_id,SmtpCredential.tenant_id==ctx["tenant"],SmtpCredential.revoked_at==None));
     if not item:raise HTTPException(404,"smtp_credential_not_found")
-    password=secrets.token_urlsafe(36);item.verifier_hash=ph.hash(password);item.rotated_at=now();result={"username":item.username,"password":password,"tls_required":True};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="SMTP_CREDENTIAL",resource_id=item.id,action="ROTATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"smtp_credential.rotated");s.commit();return {**result,**response_metadata(secret_response)}
+    password=secrets.token_urlsafe(36);item.verifier_hash=_password_hash(password);item.rotated_at=now();result={"username":item.username,"password":password,"tls_required":True};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="SMTP_CREDENTIAL",resource_id=item.id,action="ROTATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"smtp_credential.rotated");s.commit();return {**result,**response_metadata(secret_response)}
 @router.delete("/developer/smtp-credentials/{item_id}",status_code=204)
 def smtp_revoke(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);item=s.scalar(select(SmtpCredential).where(SmtpCredential.id==item_id,SmtpCredential.tenant_id==ctx["tenant"]));

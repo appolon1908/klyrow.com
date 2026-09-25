@@ -3,6 +3,8 @@ import type { PortalRoute } from '../routes'
 import UnavailablePage from './UnavailablePage.vue'
 import OverviewPage from './OverviewPage.vue'
 import AdminSystemPage from './AdminSystemPage.vue'
+import AdminObservabilityPage from './AdminObservabilityPage.vue'
+import AdminOperationsCenterPage from './AdminOperationsCenterPage.vue'
 import EmailMessagesPage from './EmailMessagesPage.vue'
 import EmailMessagePage from './EmailMessagePage.vue'
 import EmailDomainsPage from './EmailDomainsPage.vue'
@@ -18,6 +20,7 @@ import BillingPortalPage from './BillingPortalPage.vue'
 import SettingsOrganizationPage from './SettingsOrganizationPage.vue'
 import SettingsTeamPage from './SettingsTeamPage.vue'
 import SettingsSecurityPage from './SettingsSecurityPage.vue'
+import SettingsEnterpriseIdentityPage from './SettingsEnterpriseIdentityPage.vue'
 import AdminCountsPage from './AdminCountsPage.vue'
 import AdminAbusePage from './AdminAbusePage.vue'
 import AdminReconciliationPage from './AdminReconciliationPage.vue'
@@ -32,6 +35,8 @@ import EmailSuppressionsPage from './EmailSuppressionsPage.vue'
 const pages: Record<string, Component> = {
   overview: OverviewPage,
   'admin-system': AdminSystemPage,
+  'admin-observability': AdminObservabilityPage,
+  'admin-operations': AdminOperationsCenterPage,
   'email-messages': EmailMessagesPage,
   'email-message': EmailMessagePage,
   'email-domains': EmailDomainsPage,
@@ -59,6 +64,8 @@ const pages: Record<string, Component> = {
   'settings-organization': SettingsOrganizationPage,
   'settings-team': SettingsTeamPage,
   'settings-security': SettingsSecurityPage,
+  'settings-sso': SettingsEnterpriseIdentityPage,
+  'settings-scim': SettingsEnterpriseIdentityPage,
   'admin-tenants': AdminCountsPage,
   'admin-queues': AdminCountsPage,
   'admin-deliverability': AdminCountsPage,

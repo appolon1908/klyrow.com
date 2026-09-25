@@ -11,7 +11,8 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .billing import Invoice, Payment, Refund, money
+from .billing import Invoice, InvoiceReceipt, Payment, Refund, money
+from .billing_documents import receipt_document
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,37 @@ def invoice_balance(session: Session, invoice: Invoice) -> InvoiceBalance:
     return InvoiceBalance(total, credits, settled, refunded, net_settled, remaining, status)
 
 
+def _persist_receipt(session: Session, payment: Payment, invoice: Invoice) -> InvoiceReceipt:
+    existing = session.scalar(select(InvoiceReceipt).where(
+        InvoiceReceipt.tenant_id == payment.tenant_id,
+        InvoiceReceipt.kind == "RECEIPT",
+        InvoiceReceipt.payment_id == payment.id,
+    ))
+    if existing:
+        return existing
+    document = receipt_document(
+        tenant_id=payment.tenant_id,
+        payment_reference=payment.provider_reference,
+        currency=payment.currency,
+        amount=payment.amount,
+        invoice_number=invoice.number,
+    )
+    receipt = InvoiceReceipt(
+        id=__import__("uuid").uuid4().hex,
+        tenant_id=payment.tenant_id,
+        invoice_id=invoice.id,
+        payment_id=payment.id,
+        kind="RECEIPT",
+        status="READY",
+        content_type="application/json",
+        checksum=document.content_hash,
+        payload_json=document.canonical_payload(),
+    )
+    session.add(receipt)
+    session.flush()
+    return receipt
+
+
 def post_settlement(session: Session, *, tenant_id: str, invoice_id: str, provider: str, provider_reference: str, amount: Decimal, currency: str, confirmed_by: str | None, payment_attempt_id: str | None = None) -> Payment:
     """Post one confirmed settlement and derive the invoice state atomically.
 
@@ -64,6 +96,7 @@ def post_settlement(session: Session, *, tenant_id: str, invoice_id: str, provid
     if replay and replay.status == "CONFIRMED":
         if replay.invoice_id != invoice.id or replay.tenant_id != tenant_id or money(replay.amount) != money(amount) or replay.currency != currency:
             raise ValueError("provider_reference_conflict")
+        _persist_receipt(session, replay, invoice)
         return replay
     if replay and (replay.invoice_id != invoice.id or replay.tenant_id != tenant_id or money(replay.amount) != money(amount) or replay.currency != currency):
         raise ValueError("provider_reference_conflict")
@@ -83,5 +116,6 @@ def post_settlement(session: Session, *, tenant_id: str, invoice_id: str, provid
         setattr(payment, "payment_attempt_id", payment_attempt_id)
     session.add(payment)
     session.flush()
+    _persist_receipt(session, payment, invoice)
     invoice.status = invoice_balance(session, invoice).financial_status
     return payment

@@ -32,6 +32,7 @@ async function mountAt(path: string, session = readOnly, admin: 'proven' | 'deni
     if (url === '/app/api/domains') return [{ id: 'claim-1', domain: 'example.com', state: 'VERIFIED', dkim_selector: 'kly1', return_path: 'bounce.example.com', tracking_domain: 'track.example.com', verified_at: '2026-09-01T00:00:00Z', created_at: '2026-08-01T00:00:00Z' }]
     if (url === '/app/api/senders') return []
     if (url === '/app/api/context') return { tenant: 'tenant-one', role: session.role, organizations: [{ tenant_id: 'tenant-one', organization_id: 'o1', name: 'Acme', slug: 'acme', role: session.role, enabled: true }, { tenant_id: 'tenant-two', organization_id: 'o2', name: 'Beta', slug: 'beta', role: 'OWNER', enabled: true }] }
+    if (url === '/app/api/identity/capabilities') return { identity_authority: 'Keycloak', browser_session_authority: 'Klyrow BFF', sso: { configured: false, mutation_available: false, dependency: 'Governed Keycloak provisioning required.' }, scim: { configured: false, mutation_available: false, dependency: 'Governed provisioning required.' }, runtime_certification: 'pending', direct_keycloak_writes: false }
     if (url === '/app/api/admin/provisioning/postal') return []
     if (url === '/app/api/admin/abuse') return { summary: { open_alerts: 2, critical_open: 1, active_suspensions: 1 }, alerts: [], suspensions: [] }
     if (url === '/app/api/admin/reconciliation') return { runs: [{ id: 'r1', kind: 'PLATFORM', state: 'PASS', drift_count: 0, detail_count: 0, started_at: '2026-09-21T00:00:00Z' }] }
@@ -76,11 +77,13 @@ describe('portal shell', () => {
     expect(api.appApi.mock.calls.map(call => call[0])).not.toContain('/app/api/campaigns')
   })
 
-  it('renders an honest unavailable state with the required contract for pages without a browser API', async () => {
+  it('renders read-only enterprise identity readiness without direct mutation controls', async () => {
     await mountAt('/app/settings/sso', owner)
-    expect(await screen.findByText(/not available in this release/i)).toBeTruthy()
-    expect(screen.getAllByText(/not implemented server-side/i).length).toBeGreaterThan(0)
-    expect(screen.queryByRole('button', { name: /enable/i })).toBeNull()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Enterprise identity' })).toBeTruthy()
+    expect(await screen.findByText('Keycloak')).toBeTruthy()
+    await waitFor(() => expect(document.body.textContent).toMatch(/configuration mutation:\s*not available/i))
+    expect(document.body.textContent).toMatch(/governed/i)
+    expect(screen.queryByRole('button', { name: /enable|configure|provision/i })).toBeNull()
   })
 
   it('keeps platform administration isolated until the server proves authority', async () => {

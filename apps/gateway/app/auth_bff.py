@@ -22,8 +22,68 @@ from jwt import PyJWKClient
 from sqlalchemy import DateTime, String, Text, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from .main import Base, SECRET, Tenant, User, db, sha
+from .db_base import Base
 from .tenancy import ROLE_PERMISSIONS, OidcIdentity, TenantMember
+
+def _main_module():
+
+    from . import main
+
+
+
+    return main
+
+
+
+
+
+def db():
+
+    yield from _main_module().db()
+
+
+
+
+
+def sha(value: str) -> str:
+
+    return _main_module().sha(value)
+
+
+
+
+
+def bind_tenant_rls(s: Session, tenant_id: str) -> None:
+
+    _main_module().bind_tenant_rls(s, tenant_id)
+
+
+
+
+
+def _secret_value() -> str:
+
+    return _main_module().SECRET
+
+
+
+
+
+def _user_model():
+
+    return _main_module().User
+
+
+
+
+
+def _tenant_model():
+
+    return _main_module().Tenant
+
+
+
+
 
 SESSION_COOKIE = "__Host-klyrow_session"
 from .identity_profile import canonical_issuer, identity_authority
@@ -152,7 +212,7 @@ def _flow_ttl() -> int:
 
 
 def _key() -> bytes:
-    return hashlib.sha256(("klyrow-bff:" + SECRET).encode()).digest()
+    return hashlib.sha256(("klyrow-bff:" + _secret_value()).encode()).digest()
 
 
 def _encrypt(value: str) -> str:
@@ -169,7 +229,7 @@ def _decrypt(value: str) -> str:
 def _metadata_hash(value: str) -> Optional[str]:
     if not value:
         return None
-    return hmac.new(SECRET.encode(), value.encode(), hashlib.sha256).hexdigest()[:32]
+    return hmac.new(_secret_value().encode(), value.encode(), hashlib.sha256).hexdigest()[:32]
 
 
 def _safe_return_to(value: Optional[str], default: str = "/app") -> str:
@@ -282,7 +342,7 @@ def _identity_context(s: Session, claims: dict) -> tuple[OidcIdentity, User, Ten
     )
     if not identity:
         raise HTTPException(409, "identity_onboarding_required")
-    user = s.get(User, identity.user_id)
+    user = s.get(_user_model(), identity.user_id)
     if not user or not user.enabled:
         raise HTTPException(403, "account_disabled")
     membership = None
@@ -300,7 +360,7 @@ def _identity_context(s: Session, claims: dict) -> tuple[OidcIdentity, User, Ten
         )
     if not membership:
         raise HTTPException(409, "workspace_onboarding_required")
-    tenant = s.get(Tenant, membership.tenant_id)
+    tenant = s.get(_tenant_model(), membership.tenant_id)
     if not tenant or not tenant.enabled:
         raise HTTPException(403, "tenant_suspended")
     return identity, user, membership
@@ -380,9 +440,10 @@ def browser_context(request: Request, s: Session = Depends(db)) -> dict:
             TenantMember.active == True,
         )
     )
-    tenant = s.get(Tenant, session.tenant_id)
+    tenant = s.get(_tenant_model(), session.tenant_id)
     if not member or not tenant or not tenant.enabled:
         raise HTTPException(403, "workspace_access_denied")
+    bind_tenant_rls(s, session.tenant_id)
     return {
         "sub": session.user_id,
         "identity_id": session.identity_id,
@@ -405,7 +466,7 @@ def csrf_guard(
 
 
 def _session_body(s: Session, item: BrowserSession, csrf: Optional[str] = None) -> dict:
-    user = s.get(User, item.user_id)
+    user = s.get(_user_model(), item.user_id)
     memberships = s.scalars(
         select(TenantMember).where(TenantMember.user_id == item.user_id, TenantMember.active == True).order_by(TenantMember.created_at)
     ).all()
@@ -508,7 +569,7 @@ def refresh_session(request: Request, current: BrowserSession = Depends(csrf_gua
         tokens["id_token"] = _decrypt(current.id_token_ciphertext) if current.id_token_ciphertext else ""
     tokens.setdefault("refresh_token", refresh_token)
     identity = s.get(OidcIdentity, current.identity_id)
-    user = s.get(User, current.user_id)
+    user = s.get(_user_model(), current.user_id)
     membership = s.scalar(select(TenantMember).where(TenantMember.tenant_id == current.tenant_id, TenantMember.user_id == current.user_id, TenantMember.active == True))
     if not identity or not user or not membership:
         raise HTTPException(403, "workspace_access_denied")
