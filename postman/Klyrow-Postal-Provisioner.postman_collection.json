@@ -1,0 +1,155 @@
+{
+  "info": {
+    "name": "Klyrow Postal Provisioner",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Generated from Klyrow/openapi/postal-provisioner.openapi.yaml. No secrets embedded."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "bearer_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "API",
+      "item": [
+        {
+          "name": "postalProvisionerHealth",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/healthz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "healthz"
+              ]
+            },
+            "description": "Source: Klyrow/openapi/postal-provisioner.openapi.yaml\noperationId: postalProvisionerHealth"
+          }
+        },
+        {
+          "name": "provisionPostalTenant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/provision",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "provision"
+              ]
+            },
+            "description": "Source: Klyrow/openapi/postal-provisioner.openapi.yaml\noperationId: provisionPostalTenant",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "reconcilePostalInbound",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/reconcile-inbound",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "reconcile-inbound"
+              ]
+            },
+            "description": "Source: Klyrow/openapi/postal-provisioner.openapi.yaml\noperationId: reconcilePostalInbound",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "reconcilePostalOutbound",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/reconcile-outbound",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "reconcile-outbound"
+              ]
+            },
+            "description": "Source: Klyrow/openapi/postal-provisioner.openapi.yaml\noperationId: reconcilePostalOutbound",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
