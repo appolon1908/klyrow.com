@@ -13,7 +13,7 @@ Public client -> Caddy -> Kong -> Middleware integration API :8095 -> /platform/
 3. Durability: effectful work requires idempotency, operation identity, durable persistence/ledger/outbox, replay-safe failure semantics, readback and reconciliation.
 4. Ownership: every service/adapter/connector has one declared owner. Runtime metadata must be representable in Middleware /platform/v1/services: service_id, owner, repository, environment, health, metrics, OpenAPI when applicable, dependencies, SLO, deployment SHA, status.
 5. Identity: Keycloak is central IdP. JWT signature, issuer, audience, azp/client, scopes/roles and tenant binding fail closed.
-6. Edge: Caddy owns public TLS; Kong owns gateway policy; Middleware integration traffic targets :8095. /internal/* and /metrics are never public.
+6. Edge: Caddy owns public TLS; Kong owns gateway policy and uses Middleware :8095 as its private upstream. Klyrow service-to-Middleware traffic does **not** use the historical plaintext :8095 route; it uses the enforced mTLS endpoint `https://middleware-email-events.internal.codestra.agency:18080` defined by this repository. /internal/* and /metrics are never public.
 7. Secrets: OpenBao/governed secret references are authoritative. Secrets are not committed, embedded in images or copied into evidence.
 8. Automation: n8n owns bounded workflow automation, not a parallel command ledger.
 9. Observability: monitoring components consume telemetry; they do not perform business/provider effects.
