@@ -219,20 +219,18 @@ def api_key_revoke(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
     item.revoked_at=now();audit(s,ctx,"api_key.revoked");s.commit()
 @router.post("/developer/smtp-credentials",status_code=201)
 def smtp_create(x:SmtpIn,ctx=Depends(auth),s:Session=Depends(db)):
-    from .secret_responses import record_secret_response,response_metadata
     manage(ctx,s)
     if set(x.scopes)!={"smtp.send"}:raise HTTPException(422,"invalid_smtp_scope")
-    password=secrets.token_urlsafe(36);item=SmtpCredential(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],username="smtp_"+secrets.token_hex(10),verifier_hash=_password_hash(password),scopes_json='["smtp.send"]',created_by=ctx["sub"],expires_at=x.expires_at);s.add(item);result={"id":item.id,"username":item.username,"password":password,"tls_required":True};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="SMTP_CREDENTIAL",resource_id=item.id,action="CREATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"smtp_credential.created");s.commit();return {**result,**response_metadata(secret_response)}
+    password=secrets.token_urlsafe(36);item=SmtpCredential(id=str(uuid.uuid4()),tenant_id=ctx["tenant"],username="smtp_"+secrets.token_hex(10),verifier_hash=_password_hash(password),scopes_json='["smtp.send"]',created_by=ctx["sub"],expires_at=x.expires_at);s.add(item);result={"id":item.id,"username":item.username,"password":password,"tls_required":True,"secret_display":"ONCE"};audit(s,ctx,"smtp_credential.created");s.commit();return result
 @router.get("/developer/smtp-credentials")
 def smtp_credentials(ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);rows=s.scalars(select(SmtpCredential).where(SmtpCredential.tenant_id==ctx["tenant"]).order_by(SmtpCredential.created_at.desc())).all()
     return [{"id":row.id,"username":row.username,"scopes":json.loads(row.scopes_json),"tls_required":True,"expires_at":row.expires_at,"revoked_at":row.revoked_at,"rotated_at":row.rotated_at,"created_at":row.created_at} for row in rows]
 @router.post("/developer/smtp-credentials/{item_id}/rotate")
 def smtp_rotate(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
-    from .secret_responses import record_secret_response,response_metadata
     manage(ctx,s);item=s.scalar(select(SmtpCredential).where(SmtpCredential.id==item_id,SmtpCredential.tenant_id==ctx["tenant"],SmtpCredential.revoked_at==None));
     if not item:raise HTTPException(404,"smtp_credential_not_found")
-    password=secrets.token_urlsafe(36);item.verifier_hash=_password_hash(password);item.rotated_at=now();result={"username":item.username,"password":password,"tls_required":True};secret_response=record_secret_response(s,tenant_id=ctx["tenant"],resource_type="SMTP_CREDENTIAL",resource_id=item.id,action="ROTATE",payload=result,actor=ctx["sub"]);audit(s,ctx,"smtp_credential.rotated");s.commit();return {**result,**response_metadata(secret_response)}
+    password=secrets.token_urlsafe(36);item.verifier_hash=_password_hash(password);item.rotated_at=now();result={"username":item.username,"password":password,"tls_required":True,"secret_display":"ONCE"};audit(s,ctx,"smtp_credential.rotated");s.commit();return result
 @router.delete("/developer/smtp-credentials/{item_id}",status_code=204)
 def smtp_revoke(item_id:str,ctx=Depends(auth),s:Session=Depends(db)):
     manage(ctx,s);item=s.scalar(select(SmtpCredential).where(SmtpCredential.id==item_id,SmtpCredential.tenant_id==ctx["tenant"]));
