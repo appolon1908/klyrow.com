@@ -75,6 +75,22 @@ def test_every_admin_browser_mutation_requires_csrf():
             assert "admin_csrf_guard" in dependency_names, route.path
 
 
+def test_every_admin_browser_success_response_has_typed_json_schema():
+    schema = app.openapi()
+    for path, method in EXPECTED_ROUTES:
+        operation = schema["paths"][path][method.lower()]
+        status = "201" if method == "POST" and path in {
+            "/app/api/admin/abuse/evaluate",
+            "/app/api/admin/abuse/suspensions",
+            "/app/api/admin/reconciliation",
+        } else "200"
+        response_schema = (
+            operation["responses"][status]["content"]["application/json"]["schema"]
+        )
+        assert response_schema, (method, path)
+        assert response_schema != {}, (method, path)
+
+
 def test_every_admin_browser_route_requires_browser_context():
     for route in router.routes:
         if not isinstance(route, APIRoute):

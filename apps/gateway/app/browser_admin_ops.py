@@ -71,6 +71,196 @@ class AdminDunningIn(BaseModel):
     suspend_days: int = Field(default=21, ge=2, le=180)
 
 
+class AdminAbuseSummaryOut(BaseModel):
+    open_alerts: int
+    critical_open: int
+    active_suspensions: int
+
+
+class AdminAbuseAlertOut(BaseModel):
+    id: str
+    tenant_id: str
+    tenant_name: Optional[str] = None
+    kind: str
+    severity: str
+    state: str
+    metrics: dict[str, Any]
+    created_at: datetime
+
+
+class AdminSuspensionOut(BaseModel):
+    id: str
+    tenant_id: str
+    tenant_name: Optional[str] = None
+    resource_type: str
+    resource_id: str
+    reason: str
+    created_by: str
+    created_at: datetime
+    active: bool
+
+
+class AdminAbuseStateOut(BaseModel):
+    summary: AdminAbuseSummaryOut
+    alerts: list[AdminAbuseAlertOut]
+    suspensions: list[AdminSuspensionOut]
+
+
+class AdminAbuseEvaluationOut(BaseModel):
+    id: Optional[str] = None
+    state: str
+    suspended: bool
+
+
+class AdminSuspensionCreateOut(BaseModel):
+    id: str
+    effective_immediately: bool
+
+
+class AdminSuspensionReleaseOut(BaseModel):
+    id: str
+    active: bool
+    effective_immediately: bool
+
+
+class AdminAlertStateOut(BaseModel):
+    id: str
+    state: str
+
+
+class AdminReconciliationRunOut(BaseModel):
+    id: str
+    tenant_id: Optional[str] = None
+    kind: str
+    state: str
+    drift_count: int
+    detail_count: int
+    started_at: datetime
+    completed_at: Optional[datetime] = None
+
+
+class AdminReconciliationListOut(BaseModel):
+    runs: list[AdminReconciliationRunOut]
+
+
+class AdminReconciliationDetailOut(AdminReconciliationRunOut):
+    details: list[dict[str, Any]]
+
+
+class AdminReconciliationExecutionOut(BaseModel):
+    id: str
+    state: str
+    drift_count: int
+    auto_corrected: bool
+
+
+class AdminBillingIssueOut(BaseModel):
+    code: str
+    tenant_id: str
+    resource_id: Optional[str] = None
+    details: dict[str, Any]
+
+
+class AdminBillingReconciliationOut(BaseModel):
+    tenant_id: Optional[str] = None
+    status: str
+    issue_count: int
+    issues: list[AdminBillingIssueOut]
+    auto_corrected: bool
+
+
+class AdminBillingConfigurationOut(BaseModel):
+    valid: bool
+    error: Optional[str] = None
+    enabled: bool
+    live_charging_enabled: bool
+    dunning_enabled: bool
+    refunds_enabled: bool
+    reconciliation_enabled: bool
+    providers: dict[str, str]
+
+
+class AdminBillingDriftOut(BaseModel):
+    status: str
+    issue_count: int
+
+
+class AdminActivePriceOut(BaseModel):
+    price_id: str
+    plan_id: str
+    plan_code: Optional[str] = None
+    plan_name: Optional[str] = None
+    version: int
+    currency: str
+    billing_cycle: str
+    base_amount: str
+    included_units: int
+    overage_amount: str
+    effective_at: datetime
+
+
+class AdminBillingInvoiceOut(BaseModel):
+    id: str
+    number: str
+    tenant_id: str
+    tenant_name: Optional[str] = None
+    status: str
+    total: str
+    currency: str
+    due_at: datetime
+    created_at: datetime
+
+
+class AdminBillingOverviewOut(BaseModel):
+    configuration: AdminBillingConfigurationOut
+    counts: dict[str, dict[str, int]]
+    billing_drift: AdminBillingDriftOut
+    active_prices: list[AdminActivePriceOut]
+    recent_invoices: list[AdminBillingInvoiceOut]
+
+
+class AdminBillingSubscriptionOut(BaseModel):
+    id: str
+    tenant_id: str
+    tenant_name: Optional[str] = None
+    status: str
+    plan_code: Optional[str] = None
+    plan_name: Optional[str] = None
+    billing_cycle: Optional[str] = None
+    currency: Optional[str] = None
+    period_start: datetime
+    period_end: datetime
+    trial_end: Optional[datetime] = None
+    cancel_at_period_end: bool
+    version: int
+    open_invoice_count: int
+
+
+class AdminDunningItemOut(BaseModel):
+    invoice_id: str
+    subscription_status: str
+
+
+class AdminDunningOut(BaseModel):
+    processed: int
+    items: list[AdminDunningItemOut]
+    login_disabled: bool
+
+
+class AdminAuditEntryOut(BaseModel):
+    id: str
+    tenant_id: str
+    tenant_name: Optional[str] = None
+    actor: str
+    action: str
+    created_at: datetime
+
+
+class AdminAuditPageOut(BaseModel):
+    items: list[AdminAuditEntryOut]
+    next_cursor: Optional[str] = None
+
+
 def _require_platform_admin(ctx: dict, session: Session) -> dict:
     user = session.get(User, ctx.get("sub"))
     if (
@@ -140,7 +330,7 @@ def _billing_configuration() -> dict[str, Any]:
     }
 
 
-@router.get("/app/api/admin/abuse")
+@router.get("/app/api/admin/abuse", response_model=AdminAbuseStateOut)
 def browser_admin_abuse(
     state: Optional[str] = Query(default=None, min_length=1, max_length=40),
     tenant_id: Optional[str] = Query(default=None, min_length=1, max_length=200),
@@ -217,7 +407,7 @@ def browser_admin_abuse(
     }
 
 
-@router.post("/app/api/admin/abuse/evaluate", status_code=201)
+@router.post("/app/api/admin/abuse/evaluate", status_code=201, response_model=AdminAbuseEvaluationOut)
 def browser_admin_abuse_evaluate(
     payload: AbuseIn,
     ctx: dict = Depends(admin_browser_context),
@@ -228,7 +418,7 @@ def browser_admin_abuse_evaluate(
     return evaluate_abuse(payload, ctx=ctx, s=session)
 
 
-@router.post("/app/api/admin/abuse/suspensions", status_code=201)
+@router.post("/app/api/admin/abuse/suspensions", status_code=201, response_model=AdminSuspensionCreateOut)
 def browser_admin_abuse_suspend(
     payload: SuspendIn,
     ctx: dict = Depends(admin_browser_context),
@@ -239,7 +429,7 @@ def browser_admin_abuse_suspend(
     return suspend_resource(payload, ctx=ctx, s=session)
 
 
-@router.post("/app/api/admin/abuse/suspensions/{item_id}/release")
+@router.post("/app/api/admin/abuse/suspensions/{item_id}/release", response_model=AdminSuspensionReleaseOut)
 def browser_admin_abuse_release(
     item_id: str,
     ctx: dict = Depends(admin_browser_context),
@@ -250,7 +440,7 @@ def browser_admin_abuse_release(
     return release_resource(item_id, ctx=ctx, s=session)
 
 
-@router.post("/app/api/admin/abuse/alerts/{alert_id}/state")
+@router.post("/app/api/admin/abuse/alerts/{alert_id}/state", response_model=AdminAlertStateOut)
 def browser_admin_abuse_alert_state(
     alert_id: str,
     payload: AbuseAlertStateIn,
@@ -292,7 +482,7 @@ def _run_summary(item: ReconciliationRun) -> dict[str, Any]:
     }
 
 
-@router.get("/app/api/admin/reconciliation")
+@router.get("/app/api/admin/reconciliation", response_model=AdminReconciliationListOut)
 def browser_admin_reconciliation(
     limit: int = Query(default=50, ge=1, le=200),
     ctx: dict = Depends(admin_browser_context),
@@ -307,7 +497,7 @@ def browser_admin_reconciliation(
     return {"runs": [_run_summary(item) for item in rows]}
 
 
-@router.get("/app/api/admin/reconciliation/billing")
+@router.get("/app/api/admin/reconciliation/billing", response_model=AdminBillingReconciliationOut)
 def browser_admin_billing_reconciliation(
     tenant_id: Optional[str] = Query(default=None, min_length=1, max_length=200),
     ctx: dict = Depends(admin_browser_context),
@@ -324,7 +514,7 @@ def browser_admin_billing_reconciliation(
     }
 
 
-@router.get("/app/api/admin/reconciliation/{run_id}")
+@router.get("/app/api/admin/reconciliation/{run_id}", response_model=AdminReconciliationDetailOut)
 def browser_admin_reconciliation_detail(
     run_id: str,
     ctx: dict = Depends(admin_browser_context),
@@ -337,7 +527,7 @@ def browser_admin_reconciliation_detail(
     return {**_run_summary(item), "details": _safe_json_list(item.details_json)}
 
 
-@router.post("/app/api/admin/reconciliation", status_code=201)
+@router.post("/app/api/admin/reconciliation", status_code=201, response_model=AdminReconciliationExecutionOut)
 def browser_admin_reconciliation_run(
     ctx: dict = Depends(admin_browser_context),
     _browser_session=Depends(admin_csrf_guard),
@@ -347,7 +537,7 @@ def browser_admin_reconciliation_run(
     return run_platform_reconciliation(ctx=ctx, s=session)
 
 
-@router.get("/app/api/admin/billing/overview")
+@router.get("/app/api/admin/billing/overview", response_model=AdminBillingOverviewOut)
 def browser_admin_billing_overview(
     ctx: dict = Depends(admin_browser_context),
     session: Session = Depends(db),
@@ -412,7 +602,7 @@ def browser_admin_billing_overview(
     }
 
 
-@router.get("/app/api/admin/billing/subscriptions")
+@router.get("/app/api/admin/billing/subscriptions", response_model=list[AdminBillingSubscriptionOut])
 def browser_admin_billing_subscriptions(
     status: Optional[str] = Query(default=None, min_length=1, max_length=40),
     tenant_id: Optional[str] = Query(default=None, min_length=1, max_length=200),
@@ -460,7 +650,7 @@ def browser_admin_billing_subscriptions(
     return result
 
 
-@router.post("/app/api/admin/billing/dunning")
+@router.post("/app/api/admin/billing/dunning", response_model=AdminDunningOut)
 def browser_admin_billing_dunning(
     payload: AdminDunningIn,
     ctx: dict = Depends(admin_browser_context),
@@ -513,7 +703,7 @@ def _decode_audit_cursor(value: str) -> tuple[datetime, str]:
         raise HTTPException(422, "invalid_audit_cursor") from None
 
 
-@router.get("/app/api/admin/audit")
+@router.get("/app/api/admin/audit", response_model=AdminAuditPageOut)
 def browser_admin_audit(
     tenant_id: Optional[str] = Query(default=None, min_length=1, max_length=200),
     actor: Optional[str] = Query(default=None, min_length=1, max_length=200),

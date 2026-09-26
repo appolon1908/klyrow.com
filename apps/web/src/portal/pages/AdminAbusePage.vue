@@ -22,7 +22,7 @@ const evaluating = ref(false)
 const suspending = ref(false)
 const tenantId = ref('')
 const suspendTenant = ref('')
-const suspendType = ref<'tenant' | 'domain' | 'sender'>('tenant')
+const suspendType = ref<'TENANT' | 'DOMAIN' | 'SENDER'>('TENANT')
 const suspendResource = ref('')
 const suspendReason = ref('')
 const bounceRate = ref('0')
@@ -86,7 +86,7 @@ async function suspend() {
       body: JSON.stringify({
         resource_type: suspendType.value,
         tenant_id: suspendTenant.value.trim(),
-        resource_id: suspendType.value === 'tenant' ? null : suspendResource.value.trim(),
+        resource_id: suspendType.value === 'TENANT' ? suspendTenant.value.trim() : suspendResource.value.trim(),
         reason: suspendReason.value.trim(),
       }),
     })
@@ -162,12 +162,12 @@ async function release(item: AdminSuspension) {
         <form class="kp-form" aria-label="Suspend a resource" @submit.prevent="suspend">
           <div class="kp-grid">
             <div class="kp-field"><label for="suspend-tenant">Tenant ID</label><input id="suspend-tenant" v-model="suspendTenant" required /></div>
-            <div class="kp-field"><label for="suspend-type">Resource type</label><select id="suspend-type" v-model="suspendType"><option value="tenant">Tenant</option><option value="domain">Domain</option><option value="sender">Sender</option></select></div>
-            <div v-if="suspendType !== 'tenant'" class="kp-field"><label for="suspend-resource">Resource ID</label><input id="suspend-resource" v-model="suspendResource" required /></div>
+            <div class="kp-field"><label for="suspend-type">Resource type</label><select id="suspend-type" v-model="suspendType"><option value="TENANT">Tenant</option><option value="DOMAIN">Domain</option><option value="SENDER">Sender</option></select></div>
+            <div v-if="suspendType !== 'TENANT'" class="kp-field"><label for="suspend-resource">Resource ID</label><input id="suspend-resource" v-model="suspendResource" required /></div>
           </div>
           <div class="kp-field"><label for="suspend-reason">Reason</label><textarea id="suspend-reason" v-model="suspendReason" required maxlength="500"></textarea></div>
           <p class="kp-notice">Suspension is explicit and audited. Use release on the active-suspensions table to restore a resource.</p>
-          <div class="kp-form__actions"><button type="submit" class="kp-button--danger" :disabled="suspending || (suspendType !== 'tenant' && !suspendResource.trim())">{{ suspending ? 'Suspending…' : 'Suspend resource' }}</button></div>
+          <div class="kp-form__actions"><button type="submit" class="kp-button--danger" :disabled="suspending || (suspendType !== 'TENANT' && !suspendResource.trim())">{{ suspending ? 'Suspending…' : 'Suspend resource' }}</button></div>
         </form>
       </PanelCard>
 
