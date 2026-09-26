@@ -145,6 +145,30 @@
   },
   {
     "documented": true,
+    "handler": "browser_admin_abuse",
+    "method": "GET",
+    "path": "/app/api/admin/abuse"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_audit",
+    "method": "GET",
+    "path": "/app/api/admin/audit"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_billing_overview",
+    "method": "GET",
+    "path": "/app/api/admin/billing/overview"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_billing_subscriptions",
+    "method": "GET",
+    "path": "/app/api/admin/billing/subscriptions"
+  },
+  {
+    "documented": true,
     "handler": "platform_dashboard",
     "method": "GET",
     "path": "/app/api/admin/dashboard"
@@ -208,6 +232,24 @@
     "handler": "admin_provisioning",
     "method": "GET",
     "path": "/app/api/admin/provisioning/postal"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_reconciliation",
+    "method": "GET",
+    "path": "/app/api/admin/reconciliation"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_billing_reconciliation",
+    "method": "GET",
+    "path": "/app/api/admin/reconciliation/billing"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_reconciliation_detail",
+    "method": "GET",
+    "path": "/app/api/admin/reconciliation/{run_id}"
   },
   {
     "documented": true,
@@ -1489,9 +1531,45 @@
   },
   {
     "documented": true,
+    "handler": "browser_admin_abuse_alert_state",
+    "method": "POST",
+    "path": "/app/api/admin/abuse/alerts/{alert_id}/state"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_abuse_evaluate",
+    "method": "POST",
+    "path": "/app/api/admin/abuse/evaluate"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_abuse_suspend",
+    "method": "POST",
+    "path": "/app/api/admin/abuse/suspensions"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_abuse_release",
+    "method": "POST",
+    "path": "/app/api/admin/abuse/suspensions/{item_id}/release"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_billing_dunning",
+    "method": "POST",
+    "path": "/app/api/admin/billing/dunning"
+  },
+  {
+    "documented": true,
     "handler": "admin_retry_provisioning",
     "method": "POST",
     "path": "/app/api/admin/provisioning/postal/{tenant_id}/retry"
+  },
+  {
+    "documented": true,
+    "handler": "browser_admin_reconciliation_run",
+    "method": "POST",
+    "path": "/app/api/admin/reconciliation"
   },
   {
     "documented": true,

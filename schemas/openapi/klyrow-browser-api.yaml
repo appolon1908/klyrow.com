@@ -1,6 +1,60 @@
 {
   "components": {
     "schemas": {
+      "AbuseAlertStateIn": {
+        "properties": {
+          "state": {
+            "pattern": "^(ACKNOWLEDGED|RESOLVED)$",
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "AbuseAlertStateIn",
+        "type": "object"
+      },
+      "AbuseIn": {
+        "properties": {
+          "bounce_rate": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Bounce Rate",
+            "type": "number"
+          },
+          "complaint_rate": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Complaint Rate",
+            "type": "number"
+          },
+          "invalid_rate": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Invalid Rate",
+            "type": "number"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "volume_ratio": {
+            "minimum": 0.0,
+            "title": "Volume Ratio",
+            "type": "number"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "bounce_rate",
+          "complaint_rate",
+          "invalid_rate",
+          "volume_ratio"
+        ],
+        "title": "AbuseIn",
+        "type": "object"
+      },
       "AccessGrantIn": {
         "properties": {
           "role": {
@@ -20,6 +74,1023 @@
           "role"
         ],
         "title": "AccessGrantIn",
+        "type": "object"
+      },
+      "AdminAbuseAlertOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "tenant_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Name"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "kind",
+          "severity",
+          "state",
+          "metrics",
+          "created_at"
+        ],
+        "title": "AdminAbuseAlertOut",
+        "type": "object"
+      },
+      "AdminAbuseEvaluationOut": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "suspended": {
+            "title": "Suspended",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "state",
+          "suspended"
+        ],
+        "title": "AdminAbuseEvaluationOut",
+        "type": "object"
+      },
+      "AdminAbuseStateOut": {
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/AdminAbuseAlertOut"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AdminAbuseSummaryOut"
+          },
+          "suspensions": {
+            "items": {
+              "$ref": "#/components/schemas/AdminSuspensionOut"
+            },
+            "title": "Suspensions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summary",
+          "alerts",
+          "suspensions"
+        ],
+        "title": "AdminAbuseStateOut",
+        "type": "object"
+      },
+      "AdminAbuseSummaryOut": {
+        "properties": {
+          "active_suspensions": {
+            "title": "Active Suspensions",
+            "type": "integer"
+          },
+          "critical_open": {
+            "title": "Critical Open",
+            "type": "integer"
+          },
+          "open_alerts": {
+            "title": "Open Alerts",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "open_alerts",
+          "critical_open",
+          "active_suspensions"
+        ],
+        "title": "AdminAbuseSummaryOut",
+        "type": "object"
+      },
+      "AdminActivePriceOut": {
+        "properties": {
+          "base_amount": {
+            "title": "Base Amount",
+            "type": "string"
+          },
+          "billing_cycle": {
+            "title": "Billing Cycle",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "effective_at": {
+            "format": "date-time",
+            "title": "Effective At",
+            "type": "string"
+          },
+          "included_units": {
+            "title": "Included Units",
+            "type": "integer"
+          },
+          "overage_amount": {
+            "title": "Overage Amount",
+            "type": "string"
+          },
+          "plan_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Code"
+          },
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "plan_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Name"
+          },
+          "price_id": {
+            "title": "Price Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "price_id",
+          "plan_id",
+          "version",
+          "currency",
+          "billing_cycle",
+          "base_amount",
+          "included_units",
+          "overage_amount",
+          "effective_at"
+        ],
+        "title": "AdminActivePriceOut",
+        "type": "object"
+      },
+      "AdminAlertStateOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ],
+        "title": "AdminAlertStateOut",
+        "type": "object"
+      },
+      "AdminAuditEntryOut": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "tenant_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Name"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "actor",
+          "action",
+          "created_at"
+        ],
+        "title": "AdminAuditEntryOut",
+        "type": "object"
+      },
+      "AdminAuditPageOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminAuditEntryOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "AdminAuditPageOut",
+        "type": "object"
+      },
+      "AdminBillingConfigurationOut": {
+        "properties": {
+          "dunning_enabled": {
+            "title": "Dunning Enabled",
+            "type": "boolean"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "live_charging_enabled": {
+            "title": "Live Charging Enabled",
+            "type": "boolean"
+          },
+          "providers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Providers",
+            "type": "object"
+          },
+          "reconciliation_enabled": {
+            "title": "Reconciliation Enabled",
+            "type": "boolean"
+          },
+          "refunds_enabled": {
+            "title": "Refunds Enabled",
+            "type": "boolean"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid",
+          "enabled",
+          "live_charging_enabled",
+          "dunning_enabled",
+          "refunds_enabled",
+          "reconciliation_enabled",
+          "providers"
+        ],
+        "title": "AdminBillingConfigurationOut",
+        "type": "object"
+      },
+      "AdminBillingDriftOut": {
+        "properties": {
+          "issue_count": {
+            "title": "Issue Count",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "issue_count"
+        ],
+        "title": "AdminBillingDriftOut",
+        "type": "object"
+      },
+      "AdminBillingInvoiceOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "currency": {
+            "title": "Currency",
+            "type": "string"
+          },
+          "due_at": {
+            "format": "date-time",
+            "title": "Due At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "tenant_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Name"
+          },
+          "total": {
+            "title": "Total",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "tenant_id",
+          "status",
+          "total",
+          "currency",
+          "due_at",
+          "created_at"
+        ],
+        "title": "AdminBillingInvoiceOut",
+        "type": "object"
+      },
+      "AdminBillingIssueOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "resource_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resource Id"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "tenant_id",
+          "details"
+        ],
+        "title": "AdminBillingIssueOut",
+        "type": "object"
+      },
+      "AdminBillingOverviewOut": {
+        "properties": {
+          "active_prices": {
+            "items": {
+              "$ref": "#/components/schemas/AdminActivePriceOut"
+            },
+            "title": "Active Prices",
+            "type": "array"
+          },
+          "billing_drift": {
+            "$ref": "#/components/schemas/AdminBillingDriftOut"
+          },
+          "configuration": {
+            "$ref": "#/components/schemas/AdminBillingConfigurationOut"
+          },
+          "counts": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "recent_invoices": {
+            "items": {
+              "$ref": "#/components/schemas/AdminBillingInvoiceOut"
+            },
+            "title": "Recent Invoices",
+            "type": "array"
+          }
+        },
+        "required": [
+          "configuration",
+          "counts",
+          "billing_drift",
+          "active_prices",
+          "recent_invoices"
+        ],
+        "title": "AdminBillingOverviewOut",
+        "type": "object"
+      },
+      "AdminBillingReconciliationOut": {
+        "properties": {
+          "auto_corrected": {
+            "title": "Auto Corrected",
+            "type": "boolean"
+          },
+          "issue_count": {
+            "title": "Issue Count",
+            "type": "integer"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/AdminBillingIssueOut"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          }
+        },
+        "required": [
+          "status",
+          "issue_count",
+          "issues",
+          "auto_corrected"
+        ],
+        "title": "AdminBillingReconciliationOut",
+        "type": "object"
+      },
+      "AdminBillingSubscriptionOut": {
+        "properties": {
+          "billing_cycle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billing Cycle"
+          },
+          "cancel_at_period_end": {
+            "title": "Cancel At Period End",
+            "type": "boolean"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "open_invoice_count": {
+            "title": "Open Invoice Count",
+            "type": "integer"
+          },
+          "period_end": {
+            "format": "date-time",
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_start": {
+            "format": "date-time",
+            "title": "Period Start",
+            "type": "string"
+          },
+          "plan_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Code"
+          },
+          "plan_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Name"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "tenant_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Name"
+          },
+          "trial_end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trial End"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "status",
+          "period_start",
+          "period_end",
+          "cancel_at_period_end",
+          "version",
+          "open_invoice_count"
+        ],
+        "title": "AdminBillingSubscriptionOut",
+        "type": "object"
+      },
+      "AdminDunningIn": {
+        "properties": {
+          "grace_days": {
+            "default": 7,
+            "maximum": 90.0,
+            "minimum": 1.0,
+            "title": "Grace Days",
+            "type": "integer"
+          },
+          "suspend_days": {
+            "default": 21,
+            "maximum": 180.0,
+            "minimum": 2.0,
+            "title": "Suspend Days",
+            "type": "integer"
+          }
+        },
+        "title": "AdminDunningIn",
+        "type": "object"
+      },
+      "AdminDunningItemOut": {
+        "properties": {
+          "invoice_id": {
+            "title": "Invoice Id",
+            "type": "string"
+          },
+          "subscription_status": {
+            "title": "Subscription Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id",
+          "subscription_status"
+        ],
+        "title": "AdminDunningItemOut",
+        "type": "object"
+      },
+      "AdminDunningOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminDunningItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "login_disabled": {
+            "title": "Login Disabled",
+            "type": "boolean"
+          },
+          "processed": {
+            "title": "Processed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "processed",
+          "items",
+          "login_disabled"
+        ],
+        "title": "AdminDunningOut",
+        "type": "object"
+      },
+      "AdminReconciliationDetailOut": {
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "detail_count": {
+            "title": "Detail Count",
+            "type": "integer"
+          },
+          "details": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Details",
+            "type": "array"
+          },
+          "drift_count": {
+            "title": "Drift Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "state",
+          "drift_count",
+          "detail_count",
+          "started_at",
+          "details"
+        ],
+        "title": "AdminReconciliationDetailOut",
+        "type": "object"
+      },
+      "AdminReconciliationExecutionOut": {
+        "properties": {
+          "auto_corrected": {
+            "title": "Auto Corrected",
+            "type": "boolean"
+          },
+          "drift_count": {
+            "title": "Drift Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "drift_count",
+          "auto_corrected"
+        ],
+        "title": "AdminReconciliationExecutionOut",
+        "type": "object"
+      },
+      "AdminReconciliationListOut": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/AdminReconciliationRunOut"
+            },
+            "title": "Runs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "runs"
+        ],
+        "title": "AdminReconciliationListOut",
+        "type": "object"
+      },
+      "AdminReconciliationRunOut": {
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "detail_count": {
+            "title": "Detail Count",
+            "type": "integer"
+          },
+          "drift_count": {
+            "title": "Drift Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "state",
+          "drift_count",
+          "detail_count",
+          "started_at"
+        ],
+        "title": "AdminReconciliationRunOut",
+        "type": "object"
+      },
+      "AdminSuspensionCreateOut": {
+        "properties": {
+          "effective_immediately": {
+            "title": "Effective Immediately",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "effective_immediately"
+        ],
+        "title": "AdminSuspensionCreateOut",
+        "type": "object"
+      },
+      "AdminSuspensionOut": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "resource_id": {
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "tenant_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Name"
+          }
+        },
+        "required": [
+          "id",
+          "tenant_id",
+          "resource_type",
+          "resource_id",
+          "reason",
+          "created_by",
+          "created_at",
+          "active"
+        ],
+        "title": "AdminSuspensionOut",
+        "type": "object"
+      },
+      "AdminSuspensionReleaseOut": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "effective_immediately": {
+            "title": "Effective Immediately",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "active",
+          "effective_immediately"
+        ],
+        "title": "AdminSuspensionReleaseOut",
         "type": "object"
       },
       "BrowserInviteIn": {
@@ -564,6 +1635,39 @@
         "title": "SubscriptionQuoteIn",
         "type": "object"
       },
+      "SuspendIn": {
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 5,
+            "title": "Reason",
+            "type": "string"
+          },
+          "resource_id": {
+            "maxLength": 320,
+            "minLength": 1,
+            "title": "Resource Id",
+            "type": "string"
+          },
+          "resource_type": {
+            "pattern": "^(TENANT|DOMAIN|SENDER|STREAM|API_KEY|SMTP_CREDENTIAL)$",
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "resource_type",
+          "resource_id",
+          "reason"
+        ],
+        "title": "SuspendIn",
+        "type": "object"
+      },
       "UploadIn": {
         "properties": {
           "declared_content_type": {
@@ -791,6 +1895,678 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/app/api/admin/abuse": {
+      "get": {
+        "operationId": "browser_admin_abuse_app_api_admin_abuse_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tenant_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAbuseStateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Abuse",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/abuse/alerts/{alert_id}/state": {
+      "post": {
+        "operationId": "browser_admin_abuse_alert_state_app_api_admin_abuse_alerts__alert_id__state_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "title": "Alert Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbuseAlertStateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAlertStateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Abuse Alert State",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/abuse/evaluate": {
+      "post": {
+        "operationId": "browser_admin_abuse_evaluate_app_api_admin_abuse_evaluate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AbuseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAbuseEvaluationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Abuse Evaluate",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/abuse/suspensions": {
+      "post": {
+        "operationId": "browser_admin_abuse_suspend_app_api_admin_abuse_suspensions_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuspendIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSuspensionCreateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Abuse Suspend",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/abuse/suspensions/{item_id}/release": {
+      "post": {
+        "operationId": "browser_admin_abuse_release_app_api_admin_abuse_suspensions__item_id__release_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSuspensionReleaseOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Abuse Release",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/audit": {
+      "get": {
+        "operationId": "browser_admin_audit_app_api_admin_audit_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenant_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "actor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action_prefix",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 160,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action Prefix"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 1000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAuditPageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Audit",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/billing/dunning": {
+      "post": {
+        "operationId": "browser_admin_billing_dunning_app_api_admin_billing_dunning_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminDunningIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminDunningOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Billing Dunning",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/billing/overview": {
+      "get": {
+        "operationId": "browser_admin_billing_overview_app_api_admin_billing_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBillingOverviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Billing Overview",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/billing/subscriptions": {
+      "get": {
+        "operationId": "browser_admin_billing_subscriptions_app_api_admin_billing_subscriptions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tenant_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminBillingSubscriptionOut"
+                  },
+                  "title": "Response Browser Admin Billing Subscriptions App Api Admin Billing Subscriptions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Billing Subscriptions",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
     "/app/api/admin/dashboard": {
       "get": {
         "operationId": "platform_dashboard_app_api_admin_dashboard_get",
@@ -1190,6 +2966,226 @@
         "x-klyrow-enforced-auth-dependencies": [
           "browser_context",
           "csrf_guard"
+        ]
+      }
+    },
+    "/app/api/admin/reconciliation": {
+      "get": {
+        "operationId": "browser_admin_reconciliation_app_api_admin_reconciliation_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReconciliationListOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Reconciliation",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      },
+      "post": {
+        "operationId": "browser_admin_reconciliation_run_app_api_admin_reconciliation_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReconciliationExecutionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Reconciliation Run",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/reconciliation/billing": {
+      "get": {
+        "operationId": "browser_admin_billing_reconciliation_app_api_admin_reconciliation_billing_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenant_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tenant Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBillingReconciliationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Billing Reconciliation",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/admin/reconciliation/{run_id}": {
+      "get": {
+        "operationId": "browser_admin_reconciliation_detail_app_api_admin_reconciliation__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminReconciliationDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Browser Admin Reconciliation Detail",
+        "tags": [
+          "Browser platform administration"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
         ]
       }
     },
@@ -1617,7 +3613,9 @@
         "x-idempotency-required": true,
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/invoices/{invoice_id}/document": {
@@ -2065,7 +4063,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/subscription/change": {
@@ -2129,7 +4129,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/subscription/quote": {
@@ -2193,7 +4195,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/subscription/reactivate": {
@@ -2257,7 +4261,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/usage/daily": {
