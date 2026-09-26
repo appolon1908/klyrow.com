@@ -104,7 +104,19 @@ def test_api_secret_response_is_visible_only_to_the_creating_actor(response_stor
             "sub": "owner-a",
             "role": "tenant_admin",
         }
-        assert client.get(f"/v1/secret-responses/{response_id}").status_code == 200
+        first = client.get(f"/v1/secret-responses/{response_id}")
+        assert first.status_code == 200
+        assert first.json()["secret"]["secret"] == "kly_live_fixture"
+
+        second = client.get(f"/v1/secret-responses/{response_id}")
+        assert second.status_code == 410
+        assert second.json()["detail"] == "secret_response_consumed"
+
+        with response_store() as session:
+            stored = session.get(SecretResponse, response_id)
+            assert stored.retrieved_at is not None
+            assert stored.encrypted_payload is None
+            assert stored.redacted_at is not None
     finally:
         main.app.dependency_overrides.pop(main.auth, None)
 
