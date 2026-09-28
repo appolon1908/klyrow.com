@@ -104,7 +104,19 @@ def test_api_secret_response_is_visible_only_to_the_creating_actor(response_stor
             "sub": "owner-a",
             "role": "tenant_admin",
         }
-        assert client.get(f"/v1/secret-responses/{response_id}").status_code == 200
+        first = client.get(f"/v1/secret-responses/{response_id}")
+        assert first.status_code == 200
+        assert first.json()["secret"]["secret"] == "kly_live_fixture"
+
+        second = client.get(f"/v1/secret-responses/{response_id}")
+        assert second.status_code == 410
+        assert second.json()["detail"] == "secret_response_consumed"
+
+        with response_store() as session:
+            stored = session.get(SecretResponse, response_id)
+            assert stored.retrieved_at is not None
+            assert stored.encrypted_payload is None
+            assert stored.redacted_at is not None
     finally:
         main.app.dependency_overrides.pop(main.auth, None)
 
@@ -132,7 +144,7 @@ def test_retention_configuration_cannot_exceed_24_hours(response_store, monkeypa
         create_response(session, datetime.now(timezone.utc))
 
 
-def test_api_smtp_and_webhook_create_rotate_paths_record_expiring_responses(monkeypatch):
+def test_api_keys_and_webhooks_record_expiring_responses_but_smtp_is_immediate_only(monkeypatch):
     from apps.gateway.app import messaging, tenancy
     engine = create_engine("sqlite://", poolclass=StaticPool, connect_args={"check_same_thread":False})
     for model in (
@@ -156,6 +168,10 @@ def test_api_smtp_and_webhook_create_rotate_paths_record_expiring_responses(monk
         assert session.get(tenancy.ScopedApiKey, key["id"]).verifier_hash != old_hash
         smtp = tenancy.smtp_create(tenancy.SmtpIn(), ctx, session)
         rotated_smtp = tenancy.smtp_rotate(smtp["id"], ctx, session)
+        assert smtp["secret_display"] == "ONCE"
+        assert rotated_smtp["secret_display"] == "ONCE"
+        assert "secret_response_id" not in smtp
+        assert "secret_response_id" not in rotated_smtp
         assert rotated_smtp["password"] != smtp["password"]
         webhook = messaging.webhook_create(messaging.WebhookIn(
             url="https://hooks.example.com/klyrow", events=["message.delivered"]
@@ -165,8 +181,8 @@ def test_api_smtp_and_webhook_create_rotate_paths_record_expiring_responses(monk
         rows = list(session.query(SecretResponse).order_by(SecretResponse.created_at))
         assert [(row.resource_type, row.action) for row in rows] == [
             ("API_KEY","CREATE"), ("API_KEY","ROTATE"),
-            ("SMTP_CREDENTIAL","CREATE"), ("SMTP_CREDENTIAL","ROTATE"),
             ("WEBHOOK_SECRET","CREATE"), ("WEBHOOK_SECRET","ROTATE"),
         ]
+        assert not any(row.resource_type == "SMTP_CREDENTIAL" for row in rows)
         assert all(row.expires_at is not None and row.encrypted_payload for row in rows)
     engine.dispose()
