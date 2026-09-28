@@ -221,3 +221,118 @@ describe('platform administration pages', () => {
     expect(screen.getByRole('link', { name: /provisioning operations/i }).getAttribute('href')).toBe('/admin/provisioning')
   })
 })
+
+
+describe('support center', () => {
+  it('lists tenant tickets and exposes the create form without claiming external dispatch', async () => {
+    api.appApi.mockImplementation(async (url: string) => {
+      if (url === '/app/api/support/tickets?offset=0&limit=50') return {
+        items: [{ id: 'ticket-1', subject: 'Invoice question', category: 'billing', priority: 'NORMAL', status: 'OPEN', created_at: '2026-09-26T09:00:00Z', updated_at: '2026-09-26T09:00:00Z', last_message_at: '2026-09-26T09:00:00Z' }],
+        limit: 50, offset: 0, has_more: false,
+      }
+      throw new Error('unexpected ' + url)
+    })
+    await mount('support')
+    const link = await screen.findByRole('link', { name: 'Invoice question' })
+    expect(link.getAttribute('href')).toBe('/app/support/tickets/ticket-1')
+    expect(screen.getAllByText(/does not send email, SMS, or trigger an external provider/i)).toBeTruthy()
+    await fireEvent.click(screen.getByRole('button', { name: /new ticket/i }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByLabelText('Subject')).toBeTruthy()
+    expect((within(dialog).getByLabelText('Category') as HTMLSelectElement).value).toBe('technical')
+    expect(within(dialog).getByLabelText('Description')).toBeTruthy()
+  })
+
+  it('reads a ticket and posts an idempotent customer reply through the browser BFF', async () => {
+    const detail = {
+      id: 'ticket-1', subject: 'Invoice question', category: 'billing', priority: 'NORMAL', status: 'OPEN',
+      created_at: '2026-09-26T09:00:00Z', updated_at: '2026-09-26T09:00:00Z', last_message_at: '2026-09-26T09:00:00Z',
+      messages: [{ id: 'message-1', author_kind: 'CUSTOMER', body: 'Please explain this invoice.', created_at: '2026-09-26T09:00:00Z' }],
+    }
+    api.appApi.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === '/app/api/support/tickets/ticket-1' && !init?.method) return detail
+      if (url === '/app/api/support/tickets/ticket-1/messages' && init?.method === 'POST') {
+        return { ...detail, messages: [...detail.messages, { id: 'message-2', author_kind: 'CUSTOMER', body: 'More context', created_at: '2026-09-26T09:05:00Z' }] }
+      }
+      throw new Error('unexpected ' + url)
+    })
+    await mount('support-ticket', { id: 'ticket-1' })
+    expect(await screen.findByText('Please explain this invoice.')).toBeTruthy()
+    await fireEvent.update(screen.getByLabelText('Reply'), 'More context')
+    await fireEvent.click(screen.getByRole('button', { name: 'Add reply' }))
+    await waitFor(() => {
+      const replyCall = api.appApi.mock.calls.find(call => call[0] === '/app/api/support/tickets/ticket-1/messages')
+      expect(replyCall).toBeTruthy()
+      expect(replyCall?.[1]?.method).toBe('POST')
+      const headers = replyCall?.[1]?.headers as Record<string, string>
+      expect(headers['Idempotency-Key']).toBe('unit-key')
+    })
+  })
+})
+
+
+describe('support center', () => {
+  it('lists tenant tickets and renders ticket detail with customer replies', async () => {
+    api.appApi.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === '/app/api/support/tickets?offset=0&limit=50') return {
+        items: [{
+          id: 'ticket-1',
+          subject: 'Invoice question',
+          category: 'BILLING',
+          priority: 'NORMAL',
+          status: 'OPEN',
+          created_at: '2026-09-20T10:00:00Z',
+          updated_at: '2026-09-20T10:00:00Z',
+          last_message_at: '2026-09-20T10:00:00Z',
+        }],
+        limit: 50,
+        offset: 0,
+        has_more: false,
+      }
+      if (url === '/app/api/support/tickets/ticket-1' && !init?.method) return {
+        id: 'ticket-1',
+        subject: 'Invoice question',
+        category: 'BILLING',
+        priority: 'NORMAL',
+        status: 'OPEN',
+        created_at: '2026-09-20T10:00:00Z',
+        updated_at: '2026-09-20T10:00:00Z',
+        last_message_at: '2026-09-20T10:00:00Z',
+        messages: [{ id: 'message-1', author_kind: 'CUSTOMER', body: 'Please explain this invoice.', created_at: '2026-09-20T10:00:00Z' }],
+      }
+      if (url === '/app/api/support/tickets/ticket-1/messages' && init?.method === 'POST') return {
+        id: 'ticket-1',
+        subject: 'Invoice question',
+        category: 'BILLING',
+        priority: 'NORMAL',
+        status: 'OPEN',
+        created_at: '2026-09-20T10:00:00Z',
+        updated_at: '2026-09-20T11:00:00Z',
+        last_message_at: '2026-09-20T11:00:00Z',
+        messages: [
+          { id: 'message-1', author_kind: 'CUSTOMER', body: 'Please explain this invoice.', created_at: '2026-09-20T10:00:00Z' },
+          { id: 'message-2', author_kind: 'CUSTOMER', body: 'More context.', created_at: '2026-09-20T11:00:00Z' },
+        ],
+      }
+      throw new Error('unexpected ' + url)
+    })
+
+    const list = await mount('support')
+    expect(await screen.findByText('Invoice question')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Invoice question' }).getAttribute('href')).toBe('/app/support/tickets/ticket-1')
+    expect(screen.getAllByText(/does not send email, SMS/i)).toBeTruthy()
+    list.unmount()
+
+    await mount('support-ticket', { id: 'ticket-1' })
+    expect(await screen.findByText('Please explain this invoice.')).toBeTruthy()
+    await fireEvent.update(screen.getByLabelText('Reply'), 'More context.')
+    await fireEvent.submit(screen.getByLabelText('Reply').closest('form')!)
+    await waitFor(() => expect(api.appApi).toHaveBeenCalledWith(
+      '/app/api/support/tickets/ticket-1/messages',
+      expect.objectContaining({ method: 'POST' }),
+    ))
+    const replyCall = api.appApi.mock.calls.find(call => call[0] === '/app/api/support/tickets/ticket-1/messages')!
+    expect((replyCall[1]?.headers as Record<string, string>)['Idempotency-Key']).toBe('unit-key')
+    expect(JSON.parse(String(replyCall[1]?.body))).toEqual({ body: 'More context.' })
+  })
+})

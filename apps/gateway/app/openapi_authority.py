@@ -74,6 +74,8 @@ DURABLE_IDEMPOTENCY = {
     ("post", "/v1/internal/email/beyvra/send"),
     ("post", "/app/api/email/send"),
     ("post", "/app/api/mailboxes/{mailbox_id}/send"),
+    ("post", "/app/api/support/tickets"),
+    ("post", "/app/api/support/tickets/{ticket_id}/messages"),
     ("post", "/v1/campaigns"),
     ("post", "/v1/messages/{message_id}/cancel"),
     ("post", "/v1/campaigns/{campaign_id}/schedule"),
