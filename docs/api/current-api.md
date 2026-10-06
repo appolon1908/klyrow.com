@@ -60,6 +60,9 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/billing/usage/daily` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_usage_daily` |
 | GET | `/app/api/billing/usage/monthly` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_usage_monthly` |
 | GET | `/app/api/billing/wallet` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `wallet` |
+| GET | `/app/api/brands` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `list_brands` |
+| GET | `/app/api/brands/{brand_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `get_brand` |
+| GET | `/app/api/brands/{brand_id}/versions` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `list_brand_versions` |
 | GET | `/app/api/context` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `context` |
 | GET | `/app/api/dashboard` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `dashboard` |
 | GET | `/app/api/domains` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_domains` |
@@ -244,6 +247,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/verify-email` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `auth_page` |
 | GET | `/version` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `provider_version` |
 | GET | `/version` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `version` |
+| PATCH | `/app/api/brands/{brand_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `update_brand` |
 | PATCH | `/app/api/mailboxes/{mailbox_id}/messages/{message_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `update_message` |
 | PATCH | `/app/api/onboarding` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `onboarding_update` |
 | PATCH | `/app/api/team/{user_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_update_member` |
@@ -260,6 +264,9 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/app/api/billing/subscription/change` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `change_subscription` |
 | POST | `/app/api/billing/subscription/quote` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `subscription_quote` |
 | POST | `/app/api/billing/subscription/reactivate` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `reactivate_subscription` |
+| POST | `/app/api/brands` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `create_brand` |
+| POST | `/app/api/brands/{brand_id}/publish` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `publish_brand` |
+| POST | `/app/api/brands/{brand_id}/versions/{version}/restore` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `restore_brand_version` |
 | POST | `/app/api/domains` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_domain_create` |
 | POST | `/app/api/domains/{item_id}/verify` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_domain_verify` |
 | POST | `/app/api/email/send` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_send` |

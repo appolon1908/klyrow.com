@@ -26,6 +26,7 @@ import MediaLibraryPage from './MediaLibraryPage.vue'
 import AudienceProfilesPage from './AudienceProfilesPage.vue'
 import AudienceProfilePage from './AudienceProfilePage.vue'
 import EmailSuppressionsPage from './EmailSuppressionsPage.vue'
+import BrandSettingsPage from './BrandSettingsPage.vue'
 
 /** Pages backed by a browser API. Every other route renders the honest unavailable page. */
 const pages: Record<string, Component> = {
@@ -43,6 +44,7 @@ const pages: Record<string, Component> = {
   'audience-profiles': AudienceProfilesPage,
   'audience-profile': AudienceProfilePage,
   'content-media': MediaLibraryPage,
+  'content-brand': BrandSettingsPage,
   'analytics-overview': AnalyticsOverviewPage,
   deliverability: DeliverabilityPage,
   'deliverability-domain': EmailDomainPage,

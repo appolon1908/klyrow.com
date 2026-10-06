@@ -22,6 +22,340 @@
         "title": "AccessGrantIn",
         "type": "object"
       },
+      "BrandInput": {
+        "properties": {
+          "accent_color": {
+            "title": "Accent Color",
+            "type": "string"
+          },
+          "background_color": {
+            "title": "Background Color",
+            "type": "string"
+          },
+          "body_font": {
+            "title": "Body Font",
+            "type": "string"
+          },
+          "company_name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Company Name",
+            "type": "string"
+          },
+          "footer_text": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Footer Text"
+          },
+          "heading_font": {
+            "title": "Heading Font",
+            "type": "string"
+          },
+          "icon_asset_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Asset Id"
+          },
+          "is_default": {
+            "default": false,
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "logo_asset_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Asset Id"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "physical_address": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Physical Address"
+          },
+          "primary_color": {
+            "title": "Primary Color",
+            "type": "string"
+          },
+          "secondary_color": {
+            "title": "Secondary Color",
+            "type": "string"
+          },
+          "support_email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Email"
+          },
+          "text_color": {
+            "title": "Text Color",
+            "type": "string"
+          },
+          "website_url": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website Url"
+          }
+        },
+        "required": [
+          "name",
+          "company_name",
+          "primary_color",
+          "secondary_color",
+          "accent_color",
+          "background_color",
+          "text_color",
+          "heading_font",
+          "body_font"
+        ],
+        "title": "BrandInput",
+        "type": "object"
+      },
+      "BrandPatch": {
+        "properties": {
+          "accent_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accent Color"
+          },
+          "background_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Background Color"
+          },
+          "body_font": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body Font"
+          },
+          "company_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name"
+          },
+          "footer_text": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Footer Text"
+          },
+          "heading_font": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Heading Font"
+          },
+          "icon_asset_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icon Asset Id"
+          },
+          "is_default": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Default"
+          },
+          "logo_asset_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logo Asset Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "physical_address": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Physical Address"
+          },
+          "primary_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Color"
+          },
+          "secondary_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secondary Color"
+          },
+          "support_email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Email"
+          },
+          "text_color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Color"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          },
+          "website_url": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website Url"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "BrandPatch",
+        "type": "object"
+      },
       "BrowserInviteIn": {
         "properties": {
           "email": {
@@ -1617,7 +1951,9 @@
         "x-idempotency-required": true,
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/invoices/{invoice_id}/document": {
@@ -2065,7 +2401,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/subscription/change": {
@@ -2129,7 +2467,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/subscription/quote": {
@@ -2193,7 +2533,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/subscription/reactivate": {
@@ -2257,7 +2599,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/billing/usage/daily": {
@@ -2547,6 +2891,399 @@
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
         "x-klyrow-enforced-auth-dependencies": []
+      }
+    },
+    "/app/api/brands": {
+      "get": {
+        "operationId": "list_brands_app_api_brands_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "List Brands",
+        "tags": [
+          "Brand profiles"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      },
+      "post": {
+        "operationId": "create_brand_app_api_brands_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Create Brand",
+        "tags": [
+          "Brand profiles"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
+          "csrf_guard"
+        ]
+      }
+    },
+    "/app/api/brands/{brand_id}": {
+      "get": {
+        "operationId": "get_brand_app_api_brands__brand_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brand_id",
+            "required": true,
+            "schema": {
+              "title": "Brand Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Get Brand",
+        "tags": [
+          "Brand profiles"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      },
+      "patch": {
+        "operationId": "update_brand_app_api_brands__brand_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brand_id",
+            "required": true,
+            "schema": {
+              "title": "Brand Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Update Brand",
+        "tags": [
+          "Brand profiles"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
+          "csrf_guard"
+        ]
+      }
+    },
+    "/app/api/brands/{brand_id}/publish": {
+      "post": {
+        "operationId": "publish_brand_app_api_brands__brand_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brand_id",
+            "required": true,
+            "schema": {
+              "title": "Brand Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Publish Brand",
+        "tags": [
+          "Brand profiles"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
+          "csrf_guard"
+        ]
+      }
+    },
+    "/app/api/brands/{brand_id}/versions": {
+      "get": {
+        "operationId": "list_brand_versions_app_api_brands__brand_id__versions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brand_id",
+            "required": true,
+            "schema": {
+              "title": "Brand Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "List Brand Versions",
+        "tags": [
+          "Brand profiles"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/brands/{brand_id}/versions/{version}/restore": {
+      "post": {
+        "operationId": "restore_brand_version_app_api_brands__brand_id__versions__version__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "brand_id",
+            "required": true,
+            "schema": {
+              "title": "Brand Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Restore Brand Version",
+        "tags": [
+          "Brand profiles"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
+          "csrf_guard"
+        ]
       }
     },
     "/app/api/context": {

@@ -75,8 +75,8 @@ export const portalRoutes: readonly PortalRoute[] = [
     dependency: missing('template version create/publish/rollback/render browser APIs'), apis: [] }),
   tenant({ name: 'content-media', pattern: '/app/content/media', group: 'Content', title: 'Media', breadcrumb: 'Media', capability: 'campaign.manage', availability: 'implemented', nav: true,
     dependency: 'Tenant-isolated media metadata and lifecycle use the authenticated same-origin Media Library APIs.', apis: ['GET /app/api/media', 'POST /app/api/media/uploads', 'POST /app/api/media/{asset_id}/complete', 'GET /app/api/media/{asset_id}', 'GET /app/api/media/{asset_id}/events', 'POST /app/api/media/{asset_id}/archive', 'DELETE /app/api/media/{asset_id}'] }),
-  tenant({ name: 'content-brand', pattern: '/app/content/brand', group: 'Content', title: 'Brand', breadcrumb: 'Brand', capability: 'campaign.manage', availability: 'unavailable', nav: true,
-    dependency: missing('a brand settings API (none exists in any audience)'), apis: [] }),
+  tenant({ name: 'content-brand', pattern: '/app/content/brand', group: 'Content', title: 'Brand', breadcrumb: 'Brand', capability: 'brand.read', availability: 'implemented', nav: true,
+    dependency: 'Tenant-scoped Brand Profile browser APIs provide draft, publish, immutable history and restore. Media remains the canonical asset authority.', apis: ['GET /app/api/brands', 'POST /app/api/brands', 'GET /app/api/brands/{brand_id}', 'PATCH /app/api/brands/{brand_id}', 'POST /app/api/brands/{brand_id}/publish', 'GET /app/api/brands/{brand_id}/versions', 'POST /app/api/brands/{brand_id}/versions/{version}/restore'] }),
 
   tenant({ name: 'audience-profiles', pattern: '/app/audience/profiles', group: 'Audience', title: 'Profiles', breadcrumb: 'Profiles', capability: 'contact.manage', availability: 'implemented', nav: true,
     dependency: 'Tenant-scoped profile listing uses the authenticated browser BFF.', apis: ['GET /app/api/profiles'] }),

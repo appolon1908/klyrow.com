@@ -442,6 +442,23 @@
     "columns": [
       "id",
       "tenant_id",
+      "job_id",
+      "job_type",
+      "aggregate_id",
+      "payload_json",
+      "attempts",
+      "reason_code",
+      "last_error_safe",
+      "correlation_id",
+      "created_at"
+    ],
+    "table": "dead_letters",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
       "domain_id",
       "spf",
       "dkim",
@@ -765,6 +782,63 @@
     "columns": [
       "id",
       "tenant_id",
+      "run_id",
+      "profile_id",
+      "node_execution_id",
+      "event_name",
+      "filter_json",
+      "expires_at",
+      "state",
+      "created_at",
+      "matched_at"
+    ],
+    "table": "journey_event_waits",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "run_id",
+      "goal_node_id",
+      "event_id",
+      "hit_at"
+    ],
+    "table": "journey_goal_hits",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "journey_id",
+      "journey_version",
+      "run_id",
+      "profile_id",
+      "node_id",
+      "node_type",
+      "execution_generation",
+      "state",
+      "attempt",
+      "input_json",
+      "output_json",
+      "idempotency_key",
+      "scheduled_at",
+      "lease_owner",
+      "lease_expires_at",
+      "started_at",
+      "completed_at",
+      "error_code_safe",
+      "created_at",
+      "updated_at"
+    ],
+    "table": "journey_node_executions",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
       "journey_id",
       "profile_id",
       "status",
@@ -786,6 +860,20 @@
       "created_at"
     ],
     "table": "journey_versions",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "run_id",
+      "node_execution_id",
+      "wake_at",
+      "state",
+      "claimed_at",
+      "created_at"
+    ],
+    "table": "journey_wakeups",
     "tenant_scoped": true
   },
   {
@@ -857,6 +945,49 @@
       "created_at"
     ],
     "table": "klyrow_billing_work_items",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "brand_profile_id",
+      "tenant_id",
+      "version_number",
+      "snapshot_json",
+      "created_by",
+      "created_at"
+    ],
+    "table": "klyrow_brand_profile_versions",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "name",
+      "is_default",
+      "company_name",
+      "website_url",
+      "support_email",
+      "logo_asset_id",
+      "icon_asset_id",
+      "primary_color",
+      "secondary_color",
+      "accent_color",
+      "background_color",
+      "text_color",
+      "heading_font",
+      "body_font",
+      "footer_text",
+      "physical_address",
+      "status",
+      "created_by",
+      "created_at",
+      "updated_at",
+      "published_at",
+      "version"
+    ],
+    "table": "klyrow_brand_profiles",
     "tenant_scoped": true
   },
   {
@@ -2208,6 +2339,44 @@
       "updated_at"
     ],
     "table": "webmail_messages",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "worker_id",
+      "worker_type",
+      "instance_id",
+      "started_at",
+      "heartbeat_at",
+      "version",
+      "release_sha",
+      "current_job_id"
+    ],
+    "table": "worker_heartbeats",
+    "tenant_scoped": false
+  },
+  {
+    "columns": [
+      "id",
+      "tenant_id",
+      "job_type",
+      "aggregate_id",
+      "generation",
+      "state",
+      "priority",
+      "attempts",
+      "available_at",
+      "lease_owner",
+      "lease_expires_at",
+      "payload_json",
+      "correlation_id",
+      "idempotency_key",
+      "error_code_safe",
+      "created_at",
+      "updated_at",
+      "completed_at"
+    ],
+    "table": "worker_jobs",
     "tenant_scoped": true
   }
 ]

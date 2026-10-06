@@ -332,133 +332,133 @@
     "declared_path": "/overview",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "overview",
-    "line": 198,
+    "line": 203,
     "method": "GET"
   },
   {
     "declared_path": "/subscription",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "subscription",
-    "line": 226,
+    "line": 231,
     "method": "GET"
   },
   {
     "declared_path": "/catalog",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "catalog",
-    "line": 234,
+    "line": 239,
     "method": "GET"
   },
   {
     "declared_path": "/entitlements",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "entitlements",
-    "line": 256,
+    "line": 261,
     "method": "GET"
   },
   {
     "declared_path": "/usage/daily",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "browser_usage_daily",
-    "line": 269,
+    "line": 274,
     "method": "GET"
   },
   {
     "declared_path": "/usage/monthly",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "browser_usage_monthly",
-    "line": 283,
+    "line": 288,
     "method": "GET"
   },
   {
     "declared_path": "/subscription/quote",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "subscription_quote",
-    "line": 292,
+    "line": 297,
     "method": "POST"
   },
   {
     "declared_path": "/subscription/change",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "change_subscription",
-    "line": 306,
+    "line": 311,
     "method": "POST"
   },
   {
     "declared_path": "/subscription/cancel",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "cancel_subscription",
-    "line": 351,
+    "line": 356,
     "method": "POST"
   },
   {
     "declared_path": "/subscription/reactivate",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "reactivate_subscription",
-    "line": 356,
+    "line": 361,
     "method": "POST"
   },
   {
     "declared_path": "/invoices",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "invoices",
-    "line": 361,
+    "line": 366,
     "method": "GET"
   },
   {
     "declared_path": "/invoices/{invoice_id}",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "invoice_detail",
-    "line": 377,
+    "line": 382,
     "method": "GET"
   },
   {
     "declared_path": "/payments",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "payments",
-    "line": 396,
+    "line": 401,
     "method": "GET"
   },
   {
     "declared_path": "/refunds",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "refunds",
-    "line": 404,
+    "line": 409,
     "method": "GET"
   },
   {
     "declared_path": "/payment-methods",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "payment_methods",
-    "line": 411,
+    "line": 416,
     "method": "GET"
   },
   {
     "declared_path": "/capabilities",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "capabilities",
-    "line": 417,
+    "line": 422,
     "method": "GET"
   },
   {
     "declared_path": "/invoices/{invoice_id}/checkout",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "checkout_invoice",
-    "line": 442,
+    "line": 447,
     "method": "POST"
   },
   {
     "declared_path": "/payment-attempts/{payment_attempt_id}",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "browser_payment_attempt",
-    "line": 465,
+    "line": 470,
     "method": "GET"
   },
   {
     "declared_path": "/wallet",
     "file": "apps/gateway/app/billing_browser.py",
     "handler": "wallet",
-    "line": 493,
+    "line": 498,
     "method": "GET"
   },
   {
@@ -502,6 +502,55 @@
     "handler": "reconciliation_report",
     "line": 144,
     "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/brands",
+    "file": "apps/gateway/app/brand_profiles.py",
+    "handler": "list_brands",
+    "line": 226,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/brands",
+    "file": "apps/gateway/app/brand_profiles.py",
+    "handler": "create_brand",
+    "line": 233,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/app/api/brands/{brand_id}",
+    "file": "apps/gateway/app/brand_profiles.py",
+    "handler": "get_brand",
+    "line": 246,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/brands/{brand_id}",
+    "file": "apps/gateway/app/brand_profiles.py",
+    "handler": "update_brand",
+    "line": 252,
+    "method": "PATCH"
+  },
+  {
+    "declared_path": "/app/api/brands/{brand_id}/publish",
+    "file": "apps/gateway/app/brand_profiles.py",
+    "handler": "publish_brand",
+    "line": 270,
+    "method": "POST"
+  },
+  {
+    "declared_path": "/app/api/brands/{brand_id}/versions",
+    "file": "apps/gateway/app/brand_profiles.py",
+    "handler": "list_brand_versions",
+    "line": 289,
+    "method": "GET"
+  },
+  {
+    "declared_path": "/app/api/brands/{brand_id}/versions/{version}/restore",
+    "file": "apps/gateway/app/brand_profiles.py",
+    "handler": "restore_brand_version",
+    "line": 300,
+    "method": "POST"
   },
   {
     "declared_path": "/auth/callback",
@@ -1844,35 +1893,35 @@
     "declared_path": "/admin",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 156,
+    "line": 158,
     "method": "GET"
   },
   {
     "declared_path": "/admin/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 156,
+    "line": 158,
     "method": "GET"
   },
   {
     "declared_path": "/app",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 164,
+    "line": 166,
     "method": "GET"
   },
   {
     "declared_path": "/app/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 164,
+    "line": 166,
     "method": "GET"
   },
   {
     "declared_path": "/onboarding",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 164,
+    "line": 166,
     "method": "GET"
   },
   {

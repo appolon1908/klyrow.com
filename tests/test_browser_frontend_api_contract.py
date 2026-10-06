@@ -84,6 +84,13 @@ def test_browser_api_contract_has_expected_methods():
         ("/app/api/media/{asset_id}/events", "GET"),
         ("/app/api/media/{asset_id}/archive", "POST"),
         ("/app/api/media/{asset_id}", "DELETE"),
+        ("/app/api/brands", "GET"),
+        ("/app/api/brands", "POST"),
+        ("/app/api/brands/{brand_id}", "GET"),
+        ("/app/api/brands/{brand_id}", "PATCH"),
+        ("/app/api/brands/{brand_id}/publish", "POST"),
+        ("/app/api/brands/{brand_id}/versions", "GET"),
+        ("/app/api/brands/{brand_id}/versions/{version}/restore", "POST"),
     }
     actual = _openapi_methods()
     assert expected <= actual

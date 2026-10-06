@@ -325,6 +325,24 @@
   },
   {
     "documented": true,
+    "handler": "list_brands",
+    "method": "GET",
+    "path": "/app/api/brands"
+  },
+  {
+    "documented": true,
+    "handler": "get_brand",
+    "method": "GET",
+    "path": "/app/api/brands/{brand_id}"
+  },
+  {
+    "documented": true,
+    "handler": "list_brand_versions",
+    "method": "GET",
+    "path": "/app/api/brands/{brand_id}/versions"
+  },
+  {
+    "documented": true,
     "handler": "context",
     "method": "GET",
     "path": "/app/api/context"
@@ -1429,6 +1447,12 @@
   },
   {
     "documented": true,
+    "handler": "update_brand",
+    "method": "PATCH",
+    "path": "/app/api/brands/{brand_id}"
+  },
+  {
+    "documented": true,
     "handler": "update_message",
     "method": "PATCH",
     "path": "/app/api/mailboxes/{mailbox_id}/messages/{message_id}"
@@ -1522,6 +1546,24 @@
     "handler": "reactivate_subscription",
     "method": "POST",
     "path": "/app/api/billing/subscription/reactivate"
+  },
+  {
+    "documented": true,
+    "handler": "create_brand",
+    "method": "POST",
+    "path": "/app/api/brands"
+  },
+  {
+    "documented": true,
+    "handler": "publish_brand",
+    "method": "POST",
+    "path": "/app/api/brands/{brand_id}/publish"
+  },
+  {
+    "documented": true,
+    "handler": "restore_brand_version",
+    "method": "POST",
+    "path": "/app/api/brands/{brand_id}/versions/{version}/restore"
   },
   {
     "documented": true,

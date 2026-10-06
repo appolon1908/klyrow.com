@@ -73,10 +73,10 @@ router=APIRouter(prefix="/v1",tags=["Tenant authority"])
 now=lambda:datetime.now(timezone.utc)
 
 ROLE_PERMISSIONS={
- "OWNER":{"*"},"ADMIN":{"tenant.manage","member.manage","credential.manage","mail.send","mail.read","billing.read"},
- "DEVELOPER":{"credential.manage","mail.send","mail.read","webhook.manage"},"BILLING":{"billing.read","billing.manage"},
- "SUPPORT":{"mail.read","support.manage"},"MARKETING":{"mail.send","campaign.manage","contact.manage"},
- "ANALYST":{"mail.read","analytics.read"},"READ_ONLY":{"mail.read","analytics.read","billing.read"},
+ "OWNER":{"*"},"ADMIN":{"tenant.manage","member.manage","credential.manage","mail.send","mail.read","billing.read","brand.read","brand.manage"},
+ "DEVELOPER":{"credential.manage","mail.send","mail.read","webhook.manage","brand.read"},"BILLING":{"billing.read","billing.manage","brand.read"},
+ "SUPPORT":{"mail.read","support.manage","brand.read"},"MARKETING":{"mail.send","campaign.manage","contact.manage","brand.read","brand.manage"},
+ "ANALYST":{"mail.read","analytics.read","brand.read"},"READ_ONLY":{"mail.read","analytics.read","billing.read","brand.read"},
 }
 
 class Organization(Base):
