@@ -1,0 +1,92 @@
+repository: appolon1908/klyrow.com
+governance_branch: workstation/governance-control-plane
+promotion_chain: [development, testing, staging, production]
+workstations:
+  - branch: workstation/01-core
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/02-api
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/03-security
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/04-database
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/05-frontend
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/06-backend
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/07-integrations
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/08-testing
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/09-observability
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/10-ci-cd
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/11-release
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/12-saas
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/dev-desktop
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/governance-control-plane
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/ws01-core
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/ws02-api
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/ws03-security
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/ws04-deployment
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/ws05-observability
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/ws06-testing
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/ws07-saas
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
+  - branch: workstation/ws08-release
+    kind: section
+    status: NOT_STARTED
+    required_gates: [lint, unit, integration, contract, security, clean_tree, remote_sha_match, ci_exact_sha, review]
