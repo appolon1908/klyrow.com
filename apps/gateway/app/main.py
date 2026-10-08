@@ -1367,6 +1367,8 @@ def portal(): return Path(__file__).with_name("portal.html").read_text()
 @app.get("/logged-out",include_in_schema=False)
 @app.get("/service-error",include_in_schema=False)
 @app.get("/account-disabled",include_in_schema=False)
+@app.get("/terms",include_in_schema=False)
+@app.get("/privacy",include_in_schema=False)
 def auth_page():
     index=AUTH_WEB_DIST/"index.html"
     if not index.exists(): raise HTTPException(503,"authentication_ui_not_built")
