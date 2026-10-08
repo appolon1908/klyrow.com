@@ -467,7 +467,7 @@ async def emit_middleware(event_type:str,payload:dict)->bool:
             "operation_id":str(payload.get("operation_id") or payload.get("message_id") or event_id),"payload_hash":source_payload_hash,
             "message_id":str(payload.get("message_id") or ""),"provider_message_id":str(payload.get("provider_message_id") or payload.get("message_id") or ""),
             "stream":str(payload.get("stream") or "transactional"),"recipient_reference":str(payload.get("recipient_reference") or "sha256:"+hashlib.sha256(str(payload.get("recipient") or "").lower().encode()).hexdigest()),
-            "status":str(payload.get("canonical_status") or payload.get("status") or event_type.rsplit(".",1)[-1]),"provider":str(payload.get("provider") or "postal"),
+            "status":str(payload.get("canonical_status") or payload.get("status") or event_type.rsplit(".",1)[-1]),"provider":str(payload.get("provider") or os.getenv("KLYROW_EMAIL_TRANSPORT","postal")),
             "correlation_id":str(payload.get("correlation_id") or event_id),"causation_id":str(payload.get("causation_id") or payload.get("correlation_id") or event_id),
             "attempt":max(1,int(payload.get("attempt") or 1)),"metadata":payload.get("metadata") if isinstance(payload.get("metadata"),dict) else {}}
     else:payload={"event_id":event_id,"source_system":"klyrow","event_type":event_type,"timestamp":datetime.now(timezone.utc).isoformat(),**payload}
@@ -870,7 +870,7 @@ def capabilities():
         "events":sorted({value for value in SMTP_EVENT_MAP.values()}),
         "external_delivery_enabled":not SAFE_MODE and activation["live_delivery_enabled"],
         "email_activation":activation,
-        "provider":"postal",
+        "provider":os.getenv("KLYROW_EMAIL_TRANSPORT","postal"),
     }
 @app.get("/version")
 def version():
@@ -1015,7 +1015,7 @@ def queue_email_lifecycle_event(s:Session, *, kind:str, tenant_id:str, message_i
         "operation_id":operation_id,"correlation_id":correlation_id,
         "provider_message_id":provider_message_id or message_id,"message_id":message_id,
         "event_type":kind,"occurred_at":occurred_at,"status":kind.rsplit(".",1)[-1],
-        "provider":"postal","attempt":attempt,
+        "provider":os.getenv("KLYROW_EMAIL_TRANSPORT","postal"),"attempt":attempt,
         "recipient_reference":"sha256:"+hashlib.sha256((recipient or "").lower().encode()).hexdigest()}
     payload["payload_hash"]=hashlib.sha256(json.dumps(payload,separators=(",",":"),sort_keys=True).encode()).hexdigest()
     s.add(ProviderEvent(id=event_id,tenant_id=tenant_id,message_id=message_id,kind=kind,
