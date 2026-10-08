@@ -172,3 +172,9 @@ def test_postal_default_retained():
     assert 'os.getenv("KLYROW_EMAIL_TRANSPORT","postal")' in main
     assert 'elif transport=="postal"' in main
     assert 'raise RuntimeError("unknown_email_transport")' in main
+
+
+def test_ses_event_provider_attribution():
+    source = Path("apps/gateway/app/main.py").read_text()
+    assert '"provider":os.getenv("KLYROW_EMAIL_TRANSPORT","postal")' in source
+    assert '"provider":str(payload.get("provider") or os.getenv("KLYROW_EMAIL_TRANSPORT","postal"))' in source
