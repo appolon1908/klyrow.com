@@ -731,16 +731,27 @@ async def email_outbox_loop():
                 if message:set_core_message_status(message,"submitted")
                 provider_payload=json.dumps(payload,separators=(",",":"),sort_keys=True)
                 snapshot=(item.id,item.message_id,provider_payload,item.operation_id,item.correlation_id,item.tenant_id,item.trace_context_json);s.commit()
-            key_file=os.getenv("KLYROW_POSTAL_API_KEY_FILE","")
-            key=Path(key_file).read_text(encoding="utf-8").strip() if key_file else ""
-            if not key:raise RuntimeError("postal credential unavailable")
-            headers={"X-Server-API-Key":key,"Idempotency-Key":"klyrow:"+snapshot[1]}
-            postal_host=os.getenv("KLYROW_POSTAL_API_HOST_HEADER","").strip()
-            if postal_host:headers["Host"]=postal_host
-            with traced("postal submit", stored_carrier(snapshot[6])):
-                headers.update(trace_carrier())
-                async with httpx.AsyncClient(timeout=10,trust_env=False,follow_redirects=False) as client:
-                    response=await client.post(os.environ["KLYROW_POSTAL_API_URL"]+"/api/v1/send/message",headers=headers,json=json.loads(snapshot[2]));response.raise_for_status();provider_id=str(response.json().get("data",{}).get("message_id") or snapshot[1])
+            transport=os.getenv("KLYROW_EMAIL_TRANSPORT","postal")
+            if transport=="ses":
+                from .ses_transport import send_ses_message
+                with traced("ses smtp submit", stored_carrier(snapshot[6])):
+                    provider_id=await send_ses_message(
+                        json.loads(snapshot[2]),
+                        correlation_id=str(snapshot[4] or snapshot[1]),
+                    )
+            elif transport=="postal":
+                key_file=os.getenv("KLYROW_POSTAL_API_KEY_FILE","")
+                key=Path(key_file).read_text(encoding="utf-8").strip() if key_file else ""
+                if not key:raise RuntimeError("postal credential unavailable")
+                headers={"X-Server-API-Key":key,"Idempotency-Key":"klyrow:"+snapshot[1]}
+                postal_host=os.getenv("KLYROW_POSTAL_API_HOST_HEADER","").strip()
+                if postal_host:headers["Host"]=postal_host
+                with traced("postal submit", stored_carrier(snapshot[6])):
+                    headers.update(trace_carrier())
+                    async with httpx.AsyncClient(timeout=10,trust_env=False,follow_redirects=False) as client:
+                        response=await client.post(os.environ["KLYROW_POSTAL_API_URL"]+"/api/v1/send/message",headers=headers,json=json.loads(snapshot[2]));response.raise_for_status();provider_id=str(response.json().get("data",{}).get("message_id") or snapshot[1])
+            else:
+                raise RuntimeError("unknown_email_transport")
             with DB() as s:
                 item=s.get(EmailOutbox,snapshot[0]);message=s.get(Message,snapshot[1])
                 if item:item.state="delivered";item.provider_message_id=provider_id;item.last_error=None;item.updated_at=datetime.now(timezone.utc)
