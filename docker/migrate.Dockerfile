@@ -8,8 +8,8 @@ LABEL org.opencontainers.image.source="https://github.com/appolon1908-hue/klyrow
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 RUN apk add --no-cache --upgrade \
     libuuid=2.41.6-r1 \
-    libcrypto3=3.5.8-r0 \
-    libssl3=3.5.8-r0 \
+    libcrypto3=3.5.9-r0 \
+    libssl3=3.5.9-r0 \
     && rm -f /var/log/apk.log
 RUN adduser --disabled-password --gecos "" --uid 10002 klyrow-migrate
 WORKDIR /app
