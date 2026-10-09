@@ -1923,6 +1923,21 @@
   {
     "columns": [
       "id",
+      "ticket_id",
+      "tenant_id",
+      "author_user_id",
+      "author_kind",
+      "body",
+      "idempotency_key",
+      "request_hash",
+      "created_at"
+    ],
+    "table": "support_ticket_messages",
+    "tenant_scoped": true
+  },
+  {
+    "columns": [
+      "id",
       "tenant_id",
       "created_by",
       "category",

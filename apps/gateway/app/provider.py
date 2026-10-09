@@ -1298,7 +1298,6 @@ def policy_update(payload: PolicyIn, ctx=Depends(auth), s: Session = Depends(db)
 
 @router.post("/smtp/credentials", status_code=201)
 def smtp_credential_create(payload: SmtpCredentialIn, ctx=Depends(auth), s: Session = Depends(db)):
-    from .secret_responses import record_secret_response, response_metadata
     if ctx.get("role") not in {"platform_admin", "tenant_admin"}:
         raise HTTPException(403, "insufficient_role")
     senders = list(s.scalars(select(SenderIdentity).where(SenderIdentity.id.in_(payload.allowed_sender_ids),
@@ -1315,17 +1314,14 @@ def smtp_credential_create(payload: SmtpCredentialIn, ctx=Depends(auth), s: Sess
     s.add(item)
     result = {"credential_id": item.id, "username": item.username, "password": secret,
         "secret_display": "ONCE", "expires_at": item.expires_at.isoformat()}
-    secret_response = record_secret_response(s, tenant_id=ctx["tenant"], resource_type="SMTP_CREDENTIAL",
-        resource_id=item.id, action="CREATE", payload=result, actor=ctx["sub"])
     audit_provider(s, ctx, "smtp_credential.created", "accepted", resource_id=item.id)
     s.commit()
     return {"credential_id": item.id, "username": item.username, "password": secret,
-        "secret_display": "ONCE", "expires_at": item.expires_at, **response_metadata(secret_response)}
+        "secret_display": "ONCE", "expires_at": item.expires_at}
 
 
 @router.post("/smtp/credentials/{credential_id}/rotate")
 def smtp_credential_rotate(credential_id: str, ctx=Depends(auth), s: Session = Depends(db)):
-    from .secret_responses import record_secret_response, response_metadata
     require_permission(ctx, "credential.manage")
     item = s.scalar(select(SmtpCredential).where(SmtpCredential.id == credential_id,
         SmtpCredential.tenant_id == ctx["tenant"], SmtpCredential.status == "ACTIVE"))
@@ -1336,11 +1332,9 @@ def smtp_credential_rotate(credential_id: str, ctx=Depends(auth), s: Session = D
     item.rotated_at = now()
     result = {"credential_id": item.id, "username": item.username, "password": secret,
         "secret_display": "ONCE"}
-    secret_response = record_secret_response(s, tenant_id=ctx["tenant"], resource_type="SMTP_CREDENTIAL",
-        resource_id=item.id, action="ROTATE", payload=result, actor=ctx["sub"])
     audit_provider(s, ctx, "smtp_credential.rotated", "accepted", resource_id=item.id)
     s.commit()
-    return {**result, **response_metadata(secret_response)}
+    return result
 
 
 @router.post("/smtp/credentials/{credential_id}/revoke", status_code=204)

@@ -246,3 +246,9 @@ export interface BillingProviderCapabilities { billing_enabled: boolean; checkou
 export interface BillingEntitlements { status: string; version: number; entitlements: Record<string, unknown> }
 export interface BillingUsageBucket { period_start: string; quantity: number }
 export interface BillingUsageHistory { granularity: 'day' | 'month'; unit: string; window_start: string; window_end: string; items: BillingUsageBucket[]; next_cursor: string | null }
+
+
+export interface SupportTicketSummary { id: string; subject: string; category: string; priority: string; status: string; created_at: string; updated_at: string; last_message_at: string }
+export interface SupportTicketMessage { id: string; author_kind: string; body: string; created_at: string }
+export interface SupportTicketDetail extends SupportTicketSummary { messages: SupportTicketMessage[]; duplicate?: boolean }
+export interface SupportTicketPage { items: SupportTicketSummary[]; limit: number; offset: number; has_more: boolean }
