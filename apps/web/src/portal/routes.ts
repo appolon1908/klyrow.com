@@ -178,10 +178,10 @@ export const portalRoutes: readonly PortalRoute[] = [
   tenant({ name: 'settings-integrations', pattern: '/app/settings/integrations', group: 'Settings', title: 'Integrations', breadcrumb: 'Integrations', roles: MANAGEMENT, availability: 'unavailable', nav: true,
     dependency: missing('an integration listing/creation browser API'), apis: [] }),
 
-  tenant({ name: 'support', pattern: '/app/support', group: 'Support', title: 'Support', breadcrumb: 'Support', availability: 'unavailable', nav: true,
-    dependency: missing('GET/POST /app/api/support/tickets'), apis: [] }),
-  tenant({ name: 'support-ticket', pattern: '/app/support/tickets/:id', group: 'Support', title: 'Support ticket', breadcrumb: 'Ticket', availability: 'unavailable',
-    dependency: missing('GET /app/api/support/tickets/{id}'), apis: [] }),
+  tenant({ name: 'support', pattern: '/app/support', group: 'Support', title: 'Support', breadcrumb: 'Support', availability: 'implemented', nav: true,
+    dependency: 'Tenant-scoped support tickets are persisted by the authenticated browser BFF; no external provider dispatch is implied.', apis: ['GET /app/api/support/tickets', 'POST /app/api/support/tickets'] }),
+  tenant({ name: 'support-ticket', pattern: '/app/support/tickets/:id', group: 'Support', title: 'Support ticket', breadcrumb: 'Ticket', availability: 'implemented',
+    dependency: 'Tenant-scoped ticket detail and customer replies use the authenticated browser BFF.', apis: ['GET /app/api/support/tickets/{ticket_id}', 'POST /app/api/support/tickets/{ticket_id}/messages'] }),
 
   admin({ name: 'admin-tenants', pattern: '/admin/tenants', group: 'Admin', title: 'Tenants', breadcrumb: 'Tenants', availability: 'partial', nav: true,
     dependency: 'Tenant and user counts come from the admin dashboard API; a tenant listing browser API does not exist.', apis: ['GET /app/api/admin/dashboard'] }),

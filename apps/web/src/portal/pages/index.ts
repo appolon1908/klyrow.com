@@ -30,6 +30,7 @@ import MediaLibraryPage from './MediaLibraryPage.vue'
 import AudienceProfilesPage from './AudienceProfilesPage.vue'
 import AudienceProfilePage from './AudienceProfilePage.vue'
 import EmailSuppressionsPage from './EmailSuppressionsPage.vue'
+import SupportCenterPage from './SupportCenterPage.vue'
 
 /** Pages backed by a browser API. Every other route renders the honest unavailable page. */
 const pages: Record<string, Component> = {
@@ -66,6 +67,8 @@ const pages: Record<string, Component> = {
   'settings-security': SettingsSecurityPage,
   'settings-sso': SettingsEnterpriseIdentityPage,
   'settings-scim': SettingsEnterpriseIdentityPage,
+  support: SupportCenterPage,
+  'support-ticket': SupportCenterPage,
   'admin-tenants': AdminCountsPage,
   'admin-queues': AdminCountsPage,
   'admin-deliverability': AdminCountsPage,
