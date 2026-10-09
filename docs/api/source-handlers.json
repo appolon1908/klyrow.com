@@ -696,63 +696,63 @@
     "declared_path": "/app/api/admin/observability/webmail-postal",
     "file": "apps/gateway/app/browser_observability.py",
     "handler": "webmail_postal_observability",
-    "line": 25,
+    "line": 26,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/observability/webmail-postal/slo",
     "file": "apps/gateway/app/browser_observability.py",
     "handler": "webmail_postal_slo",
-    "line": 80,
+    "line": 81,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/observability/webmail-postal/incidents",
     "file": "apps/gateway/app/browser_observability.py",
     "handler": "webmail_postal_incidents",
-    "line": 91,
+    "line": 92,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/observability/webmail-postal/architecture",
     "file": "apps/gateway/app/browser_observability.py",
     "handler": "webmail_postal_architecture",
-    "line": 107,
+    "line": 108,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/observability/webmail-postal/traces/{correlation_id}",
     "file": "apps/gateway/app/browser_observability.py",
     "handler": "webmail_postal_trace",
-    "line": 119,
+    "line": 120,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/observability/users",
     "file": "apps/gateway/app/browser_observability.py",
     "handler": "user_suite_observability",
-    "line": 157,
+    "line": 158,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/observability/billing",
     "file": "apps/gateway/app/browser_observability.py",
     "handler": "billing_suite_observability",
-    "line": 176,
+    "line": 177,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/observability/system",
     "file": "apps/gateway/app/browser_observability.py",
     "handler": "admin_system_observability",
-    "line": 199,
+    "line": 200,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/observability/operations-center",
     "file": "apps/gateway/app/browser_observability.py",
     "handler": "operations_center",
-    "line": 219,
+    "line": 220,
     "method": "GET"
   },
   {
