@@ -1935,35 +1935,35 @@
     "declared_path": "/admin",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 158,
+    "line": 160,
     "method": "GET"
   },
   {
     "declared_path": "/admin/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 158,
+    "line": 160,
     "method": "GET"
   },
   {
     "declared_path": "/app",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 166,
+    "line": 168,
     "method": "GET"
   },
   {
     "declared_path": "/app/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 166,
+    "line": 168,
     "method": "GET"
   },
   {
     "declared_path": "/onboarding",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 166,
+    "line": 168,
     "method": "GET"
   },
   {
@@ -2586,147 +2586,147 @@
     "declared_path": "/smtp/credentials/{credential_id}/rotate",
     "file": "apps/gateway/app/provider.py",
     "handler": "smtp_credential_rotate",
-    "line": 1327,
+    "line": 1324,
     "method": "POST"
   },
   {
     "declared_path": "/smtp/credentials/{credential_id}/revoke",
     "file": "apps/gateway/app/provider.py",
     "handler": "smtp_credential_revoke",
-    "line": 1347,
+    "line": 1341,
     "method": "POST"
   },
   {
     "declared_path": "/smtp/preflight",
     "file": "apps/gateway/app/provider.py",
     "handler": "smtp_preflight",
-    "line": 1359,
+    "line": 1353,
     "method": "POST"
   },
   {
     "declared_path": "/domains/{domain_id}/suspend",
     "file": "apps/gateway/app/provider.py",
     "handler": "domain_suspend",
-    "line": 1371,
+    "line": 1365,
     "method": "POST"
   },
   {
     "declared_path": "/domains/{domain_id}/dkim/rotate",
     "file": "apps/gateway/app/provider.py",
     "handler": "dkim_rotate",
-    "line": 1385,
+    "line": 1379,
     "method": "POST"
   },
   {
     "declared_path": "/domains/{domain_id}/dkim/{key_id}/verify",
     "file": "apps/gateway/app/provider.py",
     "handler": "dkim_verify",
-    "line": 1405,
+    "line": 1399,
     "method": "POST"
   },
   {
     "declared_path": "/senders/{sender_id}/suspend",
     "file": "apps/gateway/app/provider.py",
     "handler": "sender_suspend",
-    "line": 1436,
+    "line": 1430,
     "method": "POST"
   },
   {
     "declared_path": "/webhooks/test",
     "file": "apps/gateway/app/provider.py",
     "handler": "webhook_test",
-    "line": 1448,
+    "line": 1442,
     "method": "POST"
   },
   {
     "declared_path": "/inbound/receive",
     "file": "apps/gateway/app/provider.py",
     "handler": "inbound_receive",
-    "line": 1453,
+    "line": 1447,
     "method": "POST"
   },
   {
     "declared_path": "/v1/webhooks/postal-inbound",
     "file": "apps/gateway/app/provider.py",
     "handler": "postal_inbound",
-    "line": 1533,
+    "line": 1527,
     "method": "POST"
   },
   {
     "declared_path": "/messages/{message_id}/tracking/{kind}",
     "file": "apps/gateway/app/provider.py",
     "handler": "create_tracking_token",
-    "line": 1692,
+    "line": 1686,
     "method": "POST"
   },
   {
     "declared_path": "/t/{kind}/{token}",
     "file": "apps/gateway/app/provider.py",
     "handler": "consume_tracking_token",
-    "line": 1714,
+    "line": 1708,
     "method": "GET"
   },
   {
     "declared_path": "/operations/health",
     "file": "apps/gateway/app/provider.py",
     "handler": "operations_health",
-    "line": 1734,
+    "line": 1728,
     "method": "GET"
   },
   {
     "declared_path": "/operations/messages/{message_id}/retry",
     "file": "apps/gateway/app/provider.py",
     "handler": "operation_message_retry",
-    "line": 1743,
+    "line": 1737,
     "method": "POST"
   },
   {
     "declared_path": "/operations/events/{event_id}/retry",
     "file": "apps/gateway/app/provider.py",
     "handler": "operation_event_retry",
-    "line": 1765,
+    "line": 1759,
     "method": "POST"
   },
   {
     "declared_path": "/operations/usage/{usage_event_id}/retry",
     "file": "apps/gateway/app/provider.py",
     "handler": "operation_usage_retry",
-    "line": 1784,
+    "line": 1778,
     "method": "POST"
   },
   {
     "declared_path": "/operations/outbox/reconcile",
     "file": "apps/gateway/app/provider.py",
     "handler": "operation_outbox_reconcile",
-    "line": 1805,
+    "line": 1799,
     "method": "POST"
   },
   {
     "declared_path": "/operations/reconcile",
     "file": "apps/gateway/app/provider.py",
     "handler": "operation_reconcile",
-    "line": 1819,
+    "line": 1813,
     "method": "POST"
   },
   {
     "declared_path": "/healthz",
     "file": "apps/gateway/app/provider.py",
     "handler": "provider_healthz",
-    "line": 1844,
+    "line": 1838,
     "method": "GET"
   },
   {
     "declared_path": "/readyz",
     "file": "apps/gateway/app/provider.py",
     "handler": "provider_readyz",
-    "line": 1849,
+    "line": 1843,
     "method": "GET"
   },
   {
     "declared_path": "/version",
     "file": "apps/gateway/app/provider.py",
     "handler": "provider_version",
-    "line": 1855,
+    "line": 1849,
     "method": "GET"
   },
   {
@@ -3104,7 +3104,7 @@
     "declared_path": "/{response_id}",
     "file": "apps/gateway/app/secret_responses.py",
     "handler": "secret_response_get",
-    "line": 148,
+    "line": 156,
     "method": "GET"
   },
   {
@@ -3279,21 +3279,21 @@
     "declared_path": "/developer/smtp-credentials",
     "file": "apps/gateway/app/tenancy.py",
     "handler": "smtp_credentials",
-    "line": 227,
+    "line": 226,
     "method": "GET"
   },
   {
     "declared_path": "/developer/smtp-credentials/{item_id}/rotate",
     "file": "apps/gateway/app/tenancy.py",
     "handler": "smtp_rotate",
-    "line": 231,
+    "line": 230,
     "method": "POST"
   },
   {
     "declared_path": "/developer/smtp-credentials/{item_id}",
     "file": "apps/gateway/app/tenancy.py",
     "handler": "smtp_revoke",
-    "line": 237,
+    "line": 235,
     "method": "DELETE"
   },
   {
