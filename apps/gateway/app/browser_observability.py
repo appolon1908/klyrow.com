@@ -11,9 +11,10 @@ from sqlalchemy.orm import Session
 
 from .main import EmailOutbox, Message, User, db
 from .provider import ProviderEvent, ProviderInbound, ProviderMessage
+from .platform_owner import platform_owner_role_stability_guard
 from .tenancy_onboarding import browser_context
 
-router = APIRouter(tags=["Browser observability"])
+router = APIRouter(tags=["Browser observability"], dependencies=[Depends(platform_owner_role_stability_guard)])
 
 def _count(session: Session, model, *where) -> int:
     query = select(func.count()).select_from(model)

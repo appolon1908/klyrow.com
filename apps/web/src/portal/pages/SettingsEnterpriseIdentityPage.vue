@@ -25,7 +25,7 @@ const source=computed(()=>page.stale.value?'stale':'live')
 <template><div>
 <PageHeader title="Enterprise identity" eyebrow="Settings" description="Readiness and authority for SSO and SCIM. Identity changes are never written directly to Keycloak from this browser." />
 <LoadingState v-if="page.status.value==='loading'" label="Loading identity capabilities…" />
-<ForbiddenState v-else-if="page.status.value==='forbidden'" reason="management-role" :request-id="page.failure.value?.requestId" :code="page.failure.value?.code" />
+<ForbiddenState v-else-if="page.status.value==='forbidden'" reason="role" :request-id="page.failure.value?.requestId" :code="page.failure.value?.code" />
 <ErrorState v-else-if="page.failure.value" :failure="page.failure.value" @retry="page.reload" />
 <div v-else-if="page.data.value" class="kp-stack">
 <PanelCard title="Authority" eyebrow="Identity boundary" :source="source"><p><strong>{{page.data.value.identity_authority}}</strong> owns human identity. {{page.data.value.browser_session_authority}} owns the browser-session projection.</p><p>Direct Keycloak writes: <StatusBadge :value="page.data.value.direct_keycloak_writes?'enabled':'disabled'" /></p></PanelCard>

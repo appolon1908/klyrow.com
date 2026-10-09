@@ -23,6 +23,9 @@ class Tenants:
         self.reads.append(identity)
         return SimpleNamespace(id=identity, enabled=True)
 
+    def get_bind(self):
+        return SimpleNamespace(dialect=SimpleNamespace(name='sqlite'))
+
 
 def resolve(monkeypatch, response, *, requested_tenant="tenant-a"):
     monkeypatch.setenv("KLYROW_TENANT_RESOLVER_URL", "https://resolver.invalid/resolve")
