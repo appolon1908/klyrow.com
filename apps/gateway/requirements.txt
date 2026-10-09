@@ -53,3 +53,11 @@ protobuf==7.36.1
 requests==2.34.2
 charset-normalizer==3.5.1
 urllib3==2.8.0
+
+# AWS SQS feedback consumer; required for signed, tenant-bound SES event reconciliation.
+boto3==1.43.109
+botocore==1.43.109
+jmespath==1.1.0
+s3transfer==0.19.2
+python-dateutil==2.9.0.post0
+six==1.17.0
