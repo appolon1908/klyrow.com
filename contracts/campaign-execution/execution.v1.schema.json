@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.klyrow.com/campaign-execution/execution.v1.schema.json",
+  "title": "Klyrow MCR campaign execution preview/readback contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "touch",
+    "exposure_idempotency_key",
+    "sender_identity_id",
+    "template_id",
+    "template_version",
+    "schedule",
+    "provider_effects",
+    "mode",
+    "request_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "touch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "lead_id",
+        "campaign_id",
+        "campaign_version",
+        "channel",
+        "touch_index"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "lead_id": {
+          "type": "string",
+          "pattern": "^[0-9]+-L-[0-9]{8}$"
+        },
+        "campaign_id": {
+          "type": "string",
+          "pattern": "^klyrow:[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$"
+        },
+        "campaign_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "channel": {
+          "const": "email"
+        },
+        "touch_index": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
+    },
+    "exposure_idempotency_key": {
+      "type": "string",
+      "pattern": "^mcr1:[0-9a-f]{64}$"
+    },
+    "sender_identity_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "template_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "template_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "not_before",
+        "expires_at"
+      ],
+      "properties": {
+        "not_before": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "provider_effects": {
+      "const": "disabled"
+    },
+    "mode": {
+      "const": "sandbox-preview"
+    },
+    "request_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

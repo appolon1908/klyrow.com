@@ -1635,6 +1635,67 @@
         "title": "SubscriptionQuoteIn",
         "type": "object"
       },
+      "SupportReplyCreate": {
+        "properties": {
+          "body": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "title": "SupportReplyCreate",
+        "type": "object"
+      },
+      "SupportTicketCreate": {
+        "properties": {
+          "body": {
+            "maxLength": 10000,
+            "minLength": 3,
+            "title": "Body",
+            "type": "string"
+          },
+          "category": {
+            "default": "technical",
+            "enum": [
+              "technical",
+              "deliverability",
+              "billing",
+              "account",
+              "abuse",
+              "domain"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "priority": {
+            "default": "NORMAL",
+            "enum": [
+              "LOW",
+              "NORMAL",
+              "HIGH",
+              "URGENT"
+            ],
+            "title": "Priority",
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 200,
+            "minLength": 3,
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject",
+          "body"
+        ],
+        "title": "SupportTicketCreate",
+        "type": "object"
+      },
       "SuspendIn": {
         "properties": {
           "reason": {
@@ -6974,6 +7035,297 @@
         "tags": [
           "Browser email setup"
         ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
+          "csrf_guard"
+        ]
+      }
+    },
+    "/app/api/support/tickets": {
+      "get": {
+        "operationId": "list_support_tickets_app_api_support_tickets_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response List Support Tickets App Api Support Tickets Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "List Support Tickets",
+        "tags": [
+          "Browser support"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      },
+      "post": {
+        "operationId": "create_support_ticket_app_api_support_tickets_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportTicketCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Support Ticket App Api Support Tickets Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Create Support Ticket",
+        "tags": [
+          "Browser support"
+        ],
+        "x-durable-idempotency": true,
+        "x-idempotency-model": "REQUEST_SCOPED_ATOMIC",
+        "x-idempotency-required": true,
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
+          "csrf_guard"
+        ]
+      }
+    },
+    "/app/api/support/tickets/{ticket_id}": {
+      "get": {
+        "operationId": "get_support_ticket_app_api_support_tickets__ticket_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticket_id",
+            "required": true,
+            "schema": {
+              "title": "Ticket Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Support Ticket App Api Support Tickets  Ticket Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserSession": []
+          }
+        ],
+        "summary": "Get Support Ticket",
+        "tags": [
+          "Browser support"
+        ],
+        "x-klyrow-audience": "BROWSER_BFF",
+        "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
+      }
+    },
+    "/app/api/support/tickets/{ticket_id}/messages": {
+      "post": {
+        "operationId": "reply_to_support_ticket_app_api_support_tickets__ticket_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticket_id",
+            "required": true,
+            "schema": {
+              "title": "Ticket Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Klyrow-CSRF",
+            "required": true,
+            "schema": {
+              "default": "",
+              "title": "X-Klyrow-Csrf",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportReplyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reply To Support Ticket App Api Support Tickets  Ticket Id  Messages Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "browserCsrf": [],
+            "browserSession": []
+          }
+        ],
+        "summary": "Reply To Support Ticket",
+        "tags": [
+          "Browser support"
+        ],
+        "x-durable-idempotency": true,
+        "x-idempotency-model": "REQUEST_SCOPED_ATOMIC",
+        "x-idempotency-required": true,
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
         "x-klyrow-enforced-auth-dependencies": [

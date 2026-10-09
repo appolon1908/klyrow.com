@@ -26,6 +26,11 @@ PENDING_EXPIRY = platform_metric(Gauge(
     "Credential response documents still inside their retrieval window",
     ["codestra_business", "application", "service", "environment", "server", "region", "deployment"],
 ))
+CONSUMED_TOTAL = platform_metric(Counter(
+    "klyrow_secret_response_consumed_total",
+    "Credential response documents irreversibly redacted after successful one-time retrieval",
+    ["codestra_business", "application", "service", "environment", "server", "region", "deployment"],
+))
 
 
 def utcnow() -> datetime:
@@ -109,7 +114,10 @@ def read_secret_response(item: SecretResponse, *, current: Optional[datetime] = 
     expires = item.expires_at
     if expires.tzinfo is None:
         expires = expires.replace(tzinfo=timezone.utc)
-    if item.encrypted_payload is None or item.redacted_at is not None or expires <= stamp:
+    if item.encrypted_payload is None or item.redacted_at is not None:
+        detail = "secret_response_consumed" if item.retrieved_at is not None else "secret_response_expired"
+        raise HTTPException(410, detail)
+    if expires <= stamp:
         raise HTTPException(410, "secret_response_expired")
     return unseal(item.encrypted_payload, _binding(item))
 
@@ -161,8 +169,12 @@ def secret_response_get(response_id: str, ctx=Depends(auth), session: Session = 
             item.redacted_at = utcnow()
             session.commit()
         raise
-    item.retrieved_at = utcnow()
+    stamp = utcnow()
+    item.retrieved_at = stamp
+    item.encrypted_payload = None
+    item.redacted_at = stamp
     session.commit()
+    CONSUMED_TOTAL.inc()
     return {
         "id": item.id,
         "resource_type": item.resource_type,
