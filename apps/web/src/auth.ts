@@ -1,4 +1,4 @@
-export const paths = ['login','signup','verify-email','verification-expired','verification-success','forgot-password','reset-sent','reset-password','reset-expired','reset-success','invite','logged-out','service-error','account-disabled'] as const
+export const paths = ['login','signup','verify-email','verification-expired','verification-success','forgot-password','reset-sent','reset-password','reset-expired','reset-success','invite','logged-out','service-error','account-disabled','terms','privacy'] as const
 export type AuthView = typeof paths[number]
 
 export function routeFromLocation(pathname: string, search = ''): AuthView {

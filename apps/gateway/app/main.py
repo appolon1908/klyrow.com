@@ -467,7 +467,7 @@ async def emit_middleware(event_type:str,payload:dict)->bool:
             "operation_id":str(payload.get("operation_id") or payload.get("message_id") or event_id),"payload_hash":source_payload_hash,
             "message_id":str(payload.get("message_id") or ""),"provider_message_id":str(payload.get("provider_message_id") or payload.get("message_id") or ""),
             "stream":str(payload.get("stream") or "transactional"),"recipient_reference":str(payload.get("recipient_reference") or "sha256:"+hashlib.sha256(str(payload.get("recipient") or "").lower().encode()).hexdigest()),
-            "status":str(payload.get("canonical_status") or payload.get("status") or event_type.rsplit(".",1)[-1]),"provider":str(payload.get("provider") or "postal"),
+            "status":str(payload.get("canonical_status") or payload.get("status") or event_type.rsplit(".",1)[-1]),"provider":str(payload.get("provider") or os.getenv("KLYROW_EMAIL_TRANSPORT","postal")),
             "correlation_id":str(payload.get("correlation_id") or event_id),"causation_id":str(payload.get("causation_id") or payload.get("correlation_id") or event_id),
             "attempt":max(1,int(payload.get("attempt") or 1)),"metadata":payload.get("metadata") if isinstance(payload.get("metadata"),dict) else {}}
     else:payload={"event_id":event_id,"source_system":"klyrow","event_type":event_type,"timestamp":datetime.now(timezone.utc).isoformat(),**payload}
@@ -731,16 +731,27 @@ async def email_outbox_loop():
                 if message:set_core_message_status(message,"submitted")
                 provider_payload=json.dumps(payload,separators=(",",":"),sort_keys=True)
                 snapshot=(item.id,item.message_id,provider_payload,item.operation_id,item.correlation_id,item.tenant_id,item.trace_context_json);s.commit()
-            key_file=os.getenv("KLYROW_POSTAL_API_KEY_FILE","")
-            key=Path(key_file).read_text(encoding="utf-8").strip() if key_file else ""
-            if not key:raise RuntimeError("postal credential unavailable")
-            headers={"X-Server-API-Key":key,"Idempotency-Key":"klyrow:"+snapshot[1]}
-            postal_host=os.getenv("KLYROW_POSTAL_API_HOST_HEADER","").strip()
-            if postal_host:headers["Host"]=postal_host
-            with traced("postal submit", stored_carrier(snapshot[6])):
-                headers.update(trace_carrier())
-                async with httpx.AsyncClient(timeout=10,trust_env=False,follow_redirects=False) as client:
-                    response=await client.post(os.environ["KLYROW_POSTAL_API_URL"]+"/api/v1/send/message",headers=headers,json=json.loads(snapshot[2]));response.raise_for_status();provider_id=str(response.json().get("data",{}).get("message_id") or snapshot[1])
+            transport=os.getenv("KLYROW_EMAIL_TRANSPORT","postal")
+            if transport=="ses":
+                from .ses_transport import send_ses_message
+                with traced("ses smtp submit", stored_carrier(snapshot[6])):
+                    provider_id=await send_ses_message(
+                        json.loads(snapshot[2]),
+                        correlation_id=str(snapshot[4] or snapshot[1]),
+                    )
+            elif transport=="postal":
+                key_file=os.getenv("KLYROW_POSTAL_API_KEY_FILE","")
+                key=Path(key_file).read_text(encoding="utf-8").strip() if key_file else ""
+                if not key:raise RuntimeError("postal credential unavailable")
+                headers={"X-Server-API-Key":key,"Idempotency-Key":"klyrow:"+snapshot[1]}
+                postal_host=os.getenv("KLYROW_POSTAL_API_HOST_HEADER","").strip()
+                if postal_host:headers["Host"]=postal_host
+                with traced("postal submit", stored_carrier(snapshot[6])):
+                    headers.update(trace_carrier())
+                    async with httpx.AsyncClient(timeout=10,trust_env=False,follow_redirects=False) as client:
+                        response=await client.post(os.environ["KLYROW_POSTAL_API_URL"]+"/api/v1/send/message",headers=headers,json=json.loads(snapshot[2]));response.raise_for_status();provider_id=str(response.json().get("data",{}).get("message_id") or snapshot[1])
+            else:
+                raise RuntimeError("unknown_email_transport")
             with DB() as s:
                 item=s.get(EmailOutbox,snapshot[0]);message=s.get(Message,snapshot[1])
                 if item:item.state="delivered";item.provider_message_id=provider_id;item.last_error=None;item.updated_at=datetime.now(timezone.utc)
@@ -859,7 +870,7 @@ def capabilities():
         "events":sorted({value for value in SMTP_EVENT_MAP.values()}),
         "external_delivery_enabled":not SAFE_MODE and activation["live_delivery_enabled"],
         "email_activation":activation,
-        "provider":"postal",
+        "provider":os.getenv("KLYROW_EMAIL_TRANSPORT","postal"),
     }
 @app.get("/version")
 def version():
@@ -1004,7 +1015,7 @@ def queue_email_lifecycle_event(s:Session, *, kind:str, tenant_id:str, message_i
         "operation_id":operation_id,"correlation_id":correlation_id,
         "provider_message_id":provider_message_id or message_id,"message_id":message_id,
         "event_type":kind,"occurred_at":occurred_at,"status":kind.rsplit(".",1)[-1],
-        "provider":"postal","attempt":attempt,
+        "provider":os.getenv("KLYROW_EMAIL_TRANSPORT","postal"),"attempt":attempt,
         "recipient_reference":"sha256:"+hashlib.sha256((recipient or "").lower().encode()).hexdigest()}
     payload["payload_hash"]=hashlib.sha256(json.dumps(payload,separators=(",",":"),sort_keys=True).encode()).hexdigest()
     s.add(ProviderEvent(id=event_id,tenant_id=tenant_id,message_id=message_id,kind=kind,
@@ -1356,6 +1367,8 @@ def portal(): return Path(__file__).with_name("portal.html").read_text()
 @app.get("/logged-out",include_in_schema=False)
 @app.get("/service-error",include_in_schema=False)
 @app.get("/account-disabled",include_in_schema=False)
+@app.get("/terms",include_in_schema=False)
+@app.get("/privacy",include_in_schema=False)
 def auth_page():
     index=AUTH_WEB_DIST/"index.html"
     if not index.exists(): raise HTTPException(503,"authentication_ui_not_built")
