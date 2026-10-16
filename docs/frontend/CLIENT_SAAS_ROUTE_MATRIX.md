@@ -71,8 +71,8 @@ authoritative for every call.
 | `/app/settings/retention` | Settings | Retention | tenant | `OWNER/ADMIN` | MISSING | — | No browser API exists yet. Required contract: a retention-policy browser API. |
 | `/app/settings/audit` | Settings | Audit log | tenant | `OWNER/ADMIN` | MISSING | — | No browser API exists yet. Required contract: an audit read browser API. |
 | `/app/settings/integrations` | Settings | Integrations | tenant | `OWNER/ADMIN` | MISSING | — | No browser API exists yet. Required contract: an integration listing/creation browser API. |
-| `/app/support` | Support | Support | tenant | `session` | MISSING | — | No browser API exists yet. Required contract: GET/POST /app/api/support/tickets. |
-| `/app/support/tickets/:id` | Support | Support ticket | tenant | `session` | MISSING | — | No browser API exists yet. Required contract: GET /app/api/support/tickets/{id}. |
+| `/app/support` | Support | Support | tenant | `session` | IMPLEMENTED | `GET /app/api/support/tickets`, `POST /app/api/support/tickets` | Tenant-scoped support tickets use the authenticated browser BFF with CSRF and idempotent creation. Browser ticket creation remains internal and does not trigger email, SMS or external provider dispatch. |
+| `/app/support/tickets/:id` | Support | Support ticket | tenant | `session` | IMPLEMENTED | `GET /app/api/support/tickets/{ticket_id}`, `POST /app/api/support/tickets/{ticket_id}/messages` | Tenant-scoped ticket detail and idempotent customer replies use the authenticated browser BFF; replies do not trigger provider effects. |
 | `/admin/tenants` | Admin | Tenants | platform-admin | `session` | PARTIAL | `GET /app/api/admin/dashboard` | Tenant and user counts come from the admin dashboard API; a tenant listing browser API does not exist. |
 | `/admin/deliverability` | Admin | Platform deliverability | platform-admin | `session` | PARTIAL | `GET /app/api/admin/dashboard`, `GET /app/api/admin/provisioning/postal` | Verified-domain counts and provisioning failures come from existing admin APIs; platform DNS/reputation has no browser API. |
 | `/admin/abuse` | Admin | Abuse | platform-admin | `session` | MISSING | — | No browser API exists yet. Required contract: an abuse review browser API. |
@@ -87,8 +87,8 @@ authoritative for every call.
 ## Totals
 
 - BLOCKED: 4
-- IMPLEMENTED: 23
-- MISSING: 35
+- IMPLEMENTED: 25
+- MISSING: 33
 - PARTIAL: 10
 - Routes: 72
 

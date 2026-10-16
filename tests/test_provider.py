@@ -19,6 +19,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from apps.gateway.app.main import AllowedSender, Base, DB, Domain, InboundRouteConfig, Tenant, app, auth, engine
 from apps.gateway.app.provider import DkimKey, ProviderDomain, ProviderEvent, ProviderInbound, ProviderMessage, ProviderUsageEvent, SandboxCapture, SenderIdentity, SmtpCredential, dispatch_provider_outbox, now, reconcile_provider_outbox_dead_letters, recover_expired_leases
+from apps.gateway.app.secret_responses import SecretResponse
 from apps.gateway.app.smtp_relay import GovernedRelay
 from datetime import timedelta
 from unittest.mock import AsyncMock, patch
@@ -245,8 +246,11 @@ def test_smtp_credential_once_rotation_revocation_and_tenant_isolation():
         sender.status = "ACTIVE"
         session.commit()
         sender_id = sender.id
+    with DB() as session:
+        before_recovery_rows = session.query(SecretResponse).filter_by(resource_type="SMTP_CREDENTIAL").count()
     created = client.post("/v1/internal/email/smtp/credentials", json={"allowed_sender_ids": [sender_id], "allowed_streams": ["TRANSACTIONAL"], "expires_in_days": 30})
     assert created.status_code == 201 and created.json()["secret_display"] == "ONCE"
+    assert "secret_response_id" not in created.json()
     credential = created.json()
     request = {"username": credential["username"], "password": credential["password"], "sender": "support@codestra.co", "recipient": "capture@klyrow-sink.test", "stream": "TRANSACTIONAL"}
     assert client.post("/v1/internal/email/smtp/preflight", json=request).json()["authorized"] is True
@@ -257,7 +261,11 @@ def test_smtp_credential_once_rotation_revocation_and_tenant_isolation():
     assert client.post("/v1/internal/email/smtp/preflight", json=request).status_code == 401
     identity["tenant"] = "tenant-a"
     rotated = client.post(f"/v1/internal/email/smtp/credentials/{credential['credential_id']}/rotate").json()
+    assert rotated["secret_display"] == "ONCE"
+    assert "secret_response_id" not in rotated
     assert rotated["password"] != credential["password"]
+    with DB() as session:
+        assert session.query(SecretResponse).filter_by(resource_type="SMTP_CREDENTIAL").count() == before_recovery_rows
     assert client.post("/v1/internal/email/smtp/preflight", json=request).status_code == 401
     request["password"] = rotated["password"]
     assert client.post("/v1/internal/email/smtp/preflight", json=request).status_code == 200

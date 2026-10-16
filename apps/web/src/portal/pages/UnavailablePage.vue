@@ -60,8 +60,6 @@ const DISCLOSURES: Record<string, string[]> = {
   'settings-retention': ['Retention policy will be read and updated through its browser contract only.'],
   'settings-audit': ['Audit records will be read-only and tenant-scoped.'],
   'settings-integrations': ['Integrations will be listed and created through their browser contract; no credential is ever displayed twice.'],
-  'support': ['Support tickets will be listed and created through their browser contract.'],
-  'support-ticket': ['Ticket detail will be read from its browser contract.'],
   'admin-abuse': ['Abuse review will use current admin APIs only; nothing is fabricated.'],
   'admin-reconciliation': ['Reconciliation state will come from its admin contract; no infrastructure status is fabricated.'],
   'admin-billing': ['No payment provider is active; platform billing views will be read-only.'],

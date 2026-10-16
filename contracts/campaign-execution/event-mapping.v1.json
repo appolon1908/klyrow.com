@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "mapping": {
+    "klyrow.email.accepted": {
+      "normalized_event": "accepted"
+    },
+    "klyrow.email.queued": {
+      "normalized_event": "queued"
+    },
+    "klyrow.email.submitted": {
+      "normalized_event": "dispatched"
+    },
+    "klyrow.email.sent": {
+      "normalized_event": "dispatched"
+    },
+    "klyrow.email.delivered": {
+      "normalized_event": "delivered"
+    },
+    "klyrow.email.deferred": {
+      "normalized_event": "deferred"
+    },
+    "klyrow.email.complained": {
+      "normalized_event": "complaint",
+      "block_address": true,
+      "suppression_scope": "channel",
+      "suppression_reason": "complaint"
+    },
+    "klyrow.email.unsubscribed": {
+      "normalized_event": "unsubscribe",
+      "block_address": true,
+      "suppression_scope": "channel",
+      "suppression_reason": "unsubscribe"
+    },
+    "klyrow.email.opened": {
+      "normalized_event": "open"
+    },
+    "klyrow.email.clicked": {
+      "normalized_event": "click"
+    },
+    "klyrow.email.failed": {
+      "normalized_event": null
+    },
+    "klyrow.email.rejected": {
+      "normalized_event": null
+    },
+    "klyrow.email.cancelled": {
+      "normalized_event": null
+    },
+    "klyrow.email.unknown_outcome": {
+      "normalized_event": null
+    }
+  }
+}

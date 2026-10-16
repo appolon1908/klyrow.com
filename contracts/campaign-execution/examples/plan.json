@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "touch": {
+    "tenant_id": "tenant-a",
+    "lead_id": "100-L-00000001",
+    "campaign_id": "klyrow:campaign-a",
+    "campaign_version": 1,
+    "channel": "email",
+    "touch_index": 1
+  },
+  "exposure_idempotency_key": "mcr1:ffa0fa51fed6f1bf4dcc8604a68d6e67825b58ce33ee19010e3905c4a25cfc6e",
+  "sender_identity_id": "sender-a",
+  "template_id": "template-a",
+  "template_version": 1,
+  "schedule": {
+    "not_before": "2026-09-24T12:00:00Z",
+    "expires_at": "2026-09-24T13:00:00Z"
+  },
+  "provider_effects": "disabled",
+  "mode": "sandbox-preview",
+  "request_hash": "9b093247f9ada787b640dc4ab64a4a38bf16b972efa8a42a12654f18c486e0f1"
+}

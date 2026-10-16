@@ -475,6 +475,18 @@
   },
   {
     "documented": true,
+    "handler": "list_support_tickets",
+    "method": "GET",
+    "path": "/app/api/support/tickets"
+  },
+  {
+    "documented": true,
+    "handler": "get_support_ticket",
+    "method": "GET",
+    "path": "/app/api/support/tickets/{ticket_id}"
+  },
+  {
+    "documented": true,
     "handler": "suppressions",
     "method": "GET",
     "path": "/app/api/suppressions"
@@ -1696,6 +1708,18 @@
     "handler": "browser_sender_create",
     "method": "POST",
     "path": "/app/api/senders"
+  },
+  {
+    "documented": true,
+    "handler": "create_support_ticket",
+    "method": "POST",
+    "path": "/app/api/support/tickets"
+  },
+  {
+    "documented": true,
+    "handler": "reply_to_support_ticket",
+    "method": "POST",
+    "path": "/app/api/support/tickets/{ticket_id}/messages"
   },
   {
     "documented": true,

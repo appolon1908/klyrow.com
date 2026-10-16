@@ -1,0 +1,554 @@
+{
+  "info": {
+    "name": "Klyrow Codestra Fabric Email",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Generated from integrations/codestra-fabric/email-api.openapi.yaml. No secrets embedded."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "bearer_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "API",
+      "item": [
+        {
+          "name": "listEmailDomains",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/domains",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "domains"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: listEmailDomains"
+          }
+        },
+        {
+          "name": "createEmailDomain",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/domains",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "domains"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: createEmailDomain",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "verifyEmailDomain",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/domains/{domain_id}/verify",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "domains",
+                "{domain_id}",
+                "verify"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: verifyEmailDomain",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "listSenderIdentities",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/sender-identities",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "sender-identities"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: listSenderIdentities"
+          }
+        },
+        {
+          "name": "createSenderIdentity",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/sender-identities",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "sender-identities"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: createSenderIdentity",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "listEmailTemplates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "templates"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: listEmailTemplates"
+          }
+        },
+        {
+          "name": "createEmailTemplate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/templates",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "templates"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: createEmailTemplate",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "previewEmailTemplate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/templates/{template_id}/preview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "templates",
+                "{template_id}",
+                "preview"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: previewEmailTemplate",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "submitEmailMessage",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/messages",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "messages"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: submitEmailMessage",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "getEmailMessage",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/messages/{message_id}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "messages",
+                "{message_id}"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: getEmailMessage"
+          }
+        },
+        {
+          "name": "preflightEmailCampaign",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/campaigns/{campaign_id}/preflight",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "campaigns",
+                "{campaign_id}",
+                "preflight"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: preflightEmailCampaign",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "listEmailSuppressions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/suppressions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "suppressions"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: listEmailSuppressions"
+          }
+        },
+        {
+          "name": "createEmailSuppression",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/suppressions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "suppressions"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: createEmailSuppression",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "listEmailEvents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/events",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "events"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: listEmailEvents"
+          }
+        },
+        {
+          "name": "getDeliverabilityAnalytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearer_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/email/analytics/deliverability",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "email",
+                "analytics",
+                "deliverability"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: getDeliverabilityAnalytics"
+          }
+        },
+        {
+          "name": "receivePostalWebhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/v1/webhooks/email/postal",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "webhooks",
+                "email",
+                "postal"
+              ]
+            },
+            "description": "Source: integrations/codestra-fabric/email-api.openapi.yaml\noperationId: receivePostalWebhook",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
