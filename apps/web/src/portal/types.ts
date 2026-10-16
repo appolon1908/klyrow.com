@@ -110,6 +110,136 @@ export interface BillingWalletTransaction { id: string; type: string; status: st
 export interface BillingWallet { balance: number; currency: string; transactions: BillingWalletTransaction[] }
 export interface BillingOverview { subscription: BillingSubscription | null; outstanding_balance: number; currency: string; wallet_balance: number; most_recent_invoice: BillingInvoice | null; recent_payments: BillingPayment[]; capabilities: BillingCapability[] }
 
+export interface AdminAbuseAlert {
+  id: string
+  tenant_id: string
+  tenant_name?: string | null
+  kind: string
+  severity: string
+  state: string
+  metrics: Record<string, unknown>
+  created_at: string
+}
+
+export interface AdminSuspension {
+  id: string
+  tenant_id: string
+  tenant_name?: string | null
+  resource_type: string
+  resource_id: string
+  reason: string
+  created_by: string
+  created_at: string
+  active: boolean
+}
+
+export interface AdminAbuseState {
+  summary: { open_alerts: number; critical_open: number; active_suspensions: number }
+  alerts: AdminAbuseAlert[]
+  suspensions: AdminSuspension[]
+}
+
+export interface AdminReconciliationRun {
+  id: string
+  tenant_id?: string | null
+  kind: string
+  state: string
+  drift_count: number
+  detail_count: number
+  started_at: string
+  completed_at?: string | null
+}
+
+export interface AdminReconciliationList { runs: AdminReconciliationRun[] }
+export interface AdminReconciliationDetail extends AdminReconciliationRun { details: Array<Record<string, unknown>> }
+export interface AdminBillingReconciliation {
+  tenant_id?: string | null
+  status: string
+  issue_count: number
+  issues: Array<{ code: string; tenant_id: string; resource_id?: string | null; details: Record<string, unknown> }>
+  auto_corrected: boolean
+}
+
+export interface AdminBillingConfiguration {
+  valid: boolean
+  error?: string | null
+  enabled: boolean
+  live_charging_enabled: boolean
+  dunning_enabled: boolean
+  refunds_enabled: boolean
+  reconciliation_enabled: boolean
+  providers: Record<string, string>
+}
+
+export interface AdminBillingInvoice {
+  id: string
+  number: string
+  tenant_id: string
+  tenant_name?: string | null
+  status: string
+  total: string
+  currency: string
+  due_at: string
+  created_at: string
+}
+
+export interface AdminBillingOverview {
+  configuration: AdminBillingConfiguration
+  counts: {
+    subscriptions: Record<string, number>
+    invoices: Record<string, number>
+    payments: Record<string, number>
+    refunds: Record<string, number>
+    work_items: Record<string, number>
+  }
+  billing_drift: { status: string; issue_count: number }
+  active_prices: Array<{
+    price_id: string
+    plan_id: string
+    plan_code?: string | null
+    plan_name?: string | null
+    version: number
+    currency: string
+    billing_cycle: string
+    base_amount: string
+    included_units: number
+    overage_amount: string
+    effective_at: string
+  }>
+  recent_invoices: AdminBillingInvoice[]
+}
+
+export interface AdminBillingSubscription {
+  id: string
+  tenant_id: string
+  tenant_name?: string | null
+  status: string
+  plan_code?: string | null
+  plan_name?: string | null
+  billing_cycle?: string | null
+  currency?: string | null
+  period_start: string
+  period_end: string
+  trial_end?: string | null
+  cancel_at_period_end: boolean
+  version: number
+  open_invoice_count: number
+}
+
+export interface AdminAuditEntry {
+  id: string
+  tenant_id: string
+  tenant_name?: string | null
+  actor: string
+  action: string
+  created_at: string
+}
+
+export interface AdminAuditPage {
+  items: AdminAuditEntry[]
+  next_cursor?: string | null
+}
+
 export interface BillingCatalogPlan { code: string; name: string; features: Record<string, unknown>; price_version: number; currency: string; billing_cycle: string; base_amount: number | string; included_units: number; overage_amount: number | string }
 export interface BillingCatalog { items: BillingCatalogPlan[] }
 export interface BillingProviderCapabilities { billing_enabled: boolean; checkout_enabled: boolean; stripe: { available: boolean; environment: string }; live_charging: boolean }
