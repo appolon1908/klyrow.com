@@ -1,0 +1,43 @@
+# Optional, gated SES event ingestion. Disabled without explicit profile & flag.
+services:
+  ses-feedback-consumer:
+    profiles: [ses-feedback]
+    image: '${KLYROW_GATEWAY_IMAGE:?set approved immutable gateway digest}'
+    command: [python3, -m, app.ses_sqs_worker]
+    env_file: '${KLYROW_ENV_FILE:-.env}'
+    environment:
+      KLYROW_ENV: production
+      KLYROW_EMAIL_TRANSPORT: ses
+      KLYROW_SES_FEEDBACK_CONSUMER_ENABLED: '${KLYROW_SES_FEEDBACK_CONSUMER_ENABLED:-false}'
+      KLYROW_SES_SNS_TOPIC_ARN: '${KLYROW_SES_SNS_TOPIC_ARN:-}'
+      KLYROW_SES_SQS_QUEUE_URL: '${KLYROW_SES_SQS_QUEUE_URL:-}'
+      AWS_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: 'true'
+      KLYROW_DATABASE_URL: postgresql+psycopg://klyrow_runtime@postgres:5432/klyrow
+      KLYROW_DATABASE_PASSWORD_FILE: /run/secrets/klyrow_database_runtime_password
+      KLYROW_SESSION_SECRET_FILE: /run/secrets/klyrow_session_secret
+      KLYROW_DURABLE_RESULT_KEYRING_FILE: /run/secrets/klyrow_durable_result_keyring
+      KLYROW_REQUIRED_SCHEMA_VERSION: 2026091302_m07_business_event_runtime.sql
+      KLYROW_REQUIRE_LEAST_PRIVILEGE_DB: 'true'
+      KLYROW_SAFE_MODE: 'true'
+      KLYROW_PRODUCTION_GATE_APPROVED: 'false'
+      LIVE_EMAIL_DELIVERY: 'false'
+      EXTERNAL_EMAIL_DELIVERY: 'false'
+      PRODUCTION_PROVIDER_ROUTING: 'false'
+    secrets:
+      - klyrow_database_runtime_password
+      - klyrow_session_secret
+      - klyrow_durable_result_keyring
+    depends_on:
+      postgres: {condition: service_healthy}
+      gateway-migrate: {condition: service_completed_successfully}
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp:rw,nosuid,noexec,nodev,size=67108864]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [frontend, backend]
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 0.4
+    # No public/inbound ports, outbound signed AWS SQS calls only.
