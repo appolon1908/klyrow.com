@@ -133,7 +133,7 @@ def oidc_config():
     issuer="https://auth.codestra.co/realms/codestra"
     return {"issuer":issuer,"authorization_endpoint":issuer+"/protocol/openid-connect/auth","token_endpoint":issuer+"/protocol/openid-connect/token","client_id":"klyrow-portal","response_type":"code","code_challenge_method":"S256","scopes":["openid","profile","email"],"local_password_login":False}
 @router.post("/admin/oidc-identities",status_code=201)
-def oidc_identity(x:OidcIdentityIn,ctx=Depends(require("platform_admin")),s:Session=Depends(db)):
+def oidc_identity(x:OidcIdentityIn,ctx=Depends(_main_module().require("platform_admin")),s:Session=Depends(db)):
     issuer="https://auth.codestra.co/realms/codestra";user=s.get(_user_model(),x.user_id)
     if not user:raise HTTPException(404,"user_not_found")
     if x.default_tenant_id and not s.get(_tenant_model(),x.default_tenant_id):raise HTTPException(404,"tenant_not_found")

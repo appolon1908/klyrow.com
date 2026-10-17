@@ -1879,14 +1879,14 @@
     "declared_path": "/auth/step-up",
     "file": "apps/gateway/app/platform_owner.py",
     "handler": "platform_owner_step_up",
-    "line": 344,
+    "line": 360,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/security/platform-owner",
     "file": "apps/gateway/app/platform_owner.py",
     "handler": "browser_platform_owner_status",
-    "line": 374,
+    "line": 390,
     "method": "GET"
   },
   {
