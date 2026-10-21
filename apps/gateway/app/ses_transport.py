@@ -11,6 +11,7 @@ from email.message import EmailMessage
 from pathlib import Path
 
 from .delivery_safety import live_email_delivery_enabled
+from .provider_outcome import ProviderSubmissionIndeterminate
 
 SES_HOST = "email-smtp.us-east-1.amazonaws.com"
 SES_PORT = 587
@@ -100,23 +101,58 @@ def _submit_smtp(payload: dict, *, correlation_id: str) -> str:
     if html:
         msg.add_alternative(html, subtype="html")
 
-    with smtplib.SMTP(SES_HOST, SES_PORT, timeout=12) as client:
-        client.ehlo()
-        client.starttls(context=ssl.create_default_context())
-        client.ehlo()
-        client.login(username, password)
-        status, details = client.mail(sender)
-        if status != 250:
-            raise smtplib.SMTPSenderRefused(status, details, sender)
-        status, details = client.rcpt(recipient)
-        if status not in (250, 251):
-            raise smtplib.SMTPRecipientsRefused({recipient: (status, details)})
-        status, details = client.data(msg.as_bytes())
-        if status != 250:
-            raise smtplib.SMTPDataError(status, details)
-    response = details.decode("ascii", "ignore") if isinstance(details, bytes) else str(details)
-    match = re.search(r"\bOk\s+([A-Za-z0-9_-]{10,150})\b", response)
-    return match.group(1) if match else correlation_id
+    provider_id = None
+    submission_error = None
+    try:
+        with smtplib.SMTP(SES_HOST, SES_PORT, timeout=12) as client:
+            client.ehlo()
+            client.starttls(context=ssl.create_default_context())
+            client.ehlo()
+            client.login(username, password)
+            status, details = client.mail(sender)
+            if status != 250:
+                raise smtplib.SMTPSenderRefused(status, details, sender)
+            status, details = client.rcpt(recipient)
+            if status not in (250, 251):
+                raise smtplib.SMTPRecipientsRefused({recipient: (status, details)})
+            try:
+                status, details = client.data(msg.as_bytes())
+            except smtplib.SMTPDataError:
+                # Explicit rejection of DATA before the body was transmitted.
+                raise
+            except OSError:
+                # smtplib disconnects also derive from OSError. Once DATA is
+                # attempted, acceptance cannot be disproved by a lost reply.
+                submission_error = ProviderSubmissionIndeterminate(
+                    "ses_submission_outcome_unknown"
+                )
+                raise submission_error from None
+            if 400 <= status <= 599:
+                raise smtplib.SMTPDataError(status, details)
+            if status != 250:
+                submission_error = ProviderSubmissionIndeterminate(
+                    "ses_submission_reply_unrecognized"
+                )
+                raise submission_error from None
+            response = details.decode("ascii", "ignore") if isinstance(details, bytes) else str(details)
+            match = re.search(r"\bOk\s+([A-Za-z0-9_-]{10,150})\b", response)
+            if not match:
+                # Acceptance is known, but a local correlation ID must never be
+                # invented as the SES ID used by authenticated feedback.
+                submission_error = ProviderSubmissionIndeterminate(
+                    "ses_accepted_provider_id_unavailable"
+                )
+                raise submission_error from None
+            provider_id = match.group(1)
+    except Exception:
+        # QUIT/cleanup is outside the mail acceptance boundary. It must not
+        # replace either a known acceptance or an earlier uncertain outcome.
+        if provider_id is not None:
+            return provider_id
+        if submission_error is not None:
+            raise submission_error from None
+        raise
+    return provider_id
 
 
 async def send_ses_message(payload: dict, *, correlation_id: str) -> str:
