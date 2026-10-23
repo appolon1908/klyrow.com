@@ -667,6 +667,7 @@ async def email_outbox_loop():
         await asyncio.sleep(2)
         if SAFE_MODE:continue
         snapshot=None
+        provider_id=None
         try:
             with DB() as s:
                 stale=datetime.now(timezone.utc)-timedelta(minutes=5)
@@ -759,32 +760,84 @@ async def email_outbox_loop():
                 if item:queue_email_lifecycle_event(s,kind="email.submitted",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=provider_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts))
                 s.commit()
         except Exception as exc:
-            with DB() as s:
-                if snapshot is not None:
-                    item=s.get(EmailOutbox,snapshot[0])
-                    if item:
-                        from .provider_outcome import INDETERMINATE,provider_outcome_is_ambiguous,reconcile_before_retry
-                        if provider_outcome_is_ambiguous(exc) and not reconcile_before_retry(state=INDETERMINATE,provider_message_id=item.provider_message_id,provider_absence_confirmed=False):
-                            item.state=INDETERMINATE;item.last_error=type(exc).__name__;item.updated_at=datetime.now(timezone.utc);item.next_attempt_at=None
-                            message=s.get(Message,item.message_id)
-                            if message:set_core_message_status(message,"indeterminate")
-                            queue_email_lifecycle_event(s,kind="email.unknown_outcome",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=item.provider_message_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts))
-                        else:
-                            failed=item.attempts>=5;item.state="failed" if failed else "retry";item.last_error=type(exc).__name__;item.updated_at=datetime.now(timezone.utc);item.next_attempt_at=None if failed else item.updated_at+timedelta(seconds=min(300,2**max(item.attempts,1)))
-                            message=s.get(Message,item.message_id)
-                            if message and not failed:set_core_message_status(message,"deferred")
-                            if failed:
-                                if message:set_core_message_status(message,"failed")
-                                s.add(Event(id=str(uuid.uuid4()),tenant_id=item.tenant_id,message_id=item.message_id,kind="klyrow.email.failed",payload=json.dumps({"reason":"provider_retry_exhausted"})))
-                                queue_email_lifecycle_event(s,kind="email.failed",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=item.provider_message_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts))
-                        s.commit()
+            # No durable item was acquired if session construction failed.
+            # Do not make error reporting depend on opening a second session.
+            if snapshot is not None:
+                try:
+                    with DB() as s:
+                        item=s.get(EmailOutbox,snapshot[0])
+                        if item:
+                            from .provider_outcome import INDETERMINATE,provider_outcome_is_ambiguous,reconcile_before_retry
+                            if (provider_id is not None or provider_outcome_is_ambiguous(exc)) and not reconcile_before_retry(state=INDETERMINATE,provider_message_id=item.provider_message_id,provider_absence_confirmed=False):
+                                item.state=INDETERMINATE;item.last_error=type(exc).__name__;item.updated_at=datetime.now(timezone.utc);item.next_attempt_at=None
+                                if provider_id is not None:
+                                    item.provider_message_id=provider_id
+                                    item.last_error="provider_accepted_persistence_failed"
+                                message=s.get(Message,item.message_id)
+                                if message:set_core_message_status(message,"indeterminate")
+                                queue_email_lifecycle_event(s,kind="email.unknown_outcome",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=item.provider_message_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts))
+                            else:
+                                failed=item.attempts>=5;item.state="failed" if failed else "retry";item.last_error=type(exc).__name__;item.updated_at=datetime.now(timezone.utc);item.next_attempt_at=None if failed else item.updated_at+timedelta(seconds=min(300,2**max(item.attempts,1)))
+                                message=s.get(Message,item.message_id)
+                                if message and not failed:set_core_message_status(message,"deferred")
+                                if failed:
+                                    if message:set_core_message_status(message,"failed")
+                                    s.add(Event(id=str(uuid.uuid4()),tenant_id=item.tenant_id,message_id=item.message_id,kind="klyrow.email.failed",payload=json.dumps({"reason":"provider_retry_exhausted"})))
+                                    queue_email_lifecycle_event(s,kind="email.failed",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=item.provider_message_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts))
+                            s.commit()
+                except Exception as recovery_exc:
+                    # Preserve a durable SENDING claim for later indeterminate
+                    # reconciliation; do not let an outage kill the coroutine.
+                    print(json.dumps({"level":"warning","system":"klyrow","event":"email_outbox_recovery_write_failed","error":type(recovery_exc).__name__}))
             print(json.dumps({"level":"warning","system":"klyrow","event":"email_outbox_delivery_failed","error":type(exc).__name__}))
+
+_EMBEDDED_WORKER_TASKS = {}
+
+
+async def _supervise_embedded_worker(name, worker):
+    """Keep an embedded loop owned and restart unexpected exits with backoff.
+
+    This is supervision, not proof of successful deliveries or DB heartbeats.
+    Never log exception messages, recipients, payloads, or credentials.
+    """
+    retry_delay = 2
+    while True:
+        try:
+            await worker()
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            print(json.dumps({"level":"error","system":"klyrow","event":"embedded_worker_failed","worker":name,"error":type(exc).__name__}))
+        else:
+            print(json.dumps({"level":"error","system":"klyrow","event":"embedded_worker_returned","worker":name}))
+        await asyncio.sleep(retry_delay)
+        retry_delay = min(retry_delay * 2, 30)
+
+
+def _start_embedded_worker(name, worker):
+    existing = _EMBEDDED_WORKER_TASKS.get(name)
+    if existing is not None and not existing.done():
+        return
+    _EMBEDDED_WORKER_TASKS[name] = asyncio.create_task(
+        _supervise_embedded_worker(name, worker), name="klyrow:" + name
+    )
+
+
+@app.on_event("shutdown")
+async def stop_embedded_workers():
+    tasks = tuple(_EMBEDDED_WORKER_TASKS.values())
+    for task in tasks:
+        task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    _EMBEDDED_WORKER_TASKS.clear()
+
 
 @app.on_event("startup")
 async def start_postal_retry_worker():
     if os.getenv("KLYROW_EMBEDDED_WORKERS","true").lower()=="true":
-        asyncio.create_task(postal_retry_loop())
-        asyncio.create_task(email_outbox_loop())
+        _start_embedded_worker("postal_retry", postal_retry_loop)
+        _start_embedded_worker("email_outbox", email_outbox_loop)
 
 def bounded_metric_path(request:Request)->str:
     """Return the reviewed route template, never a raw URL or identifier."""
@@ -1396,7 +1449,8 @@ from .media_assets import router as media_assets_router
 app.include_router(media_assets_router)
 from .payment_attempts import router as payment_attempts_router
 app.include_router(payment_attempts_router)
-from .tenancy import router as tenancy_router
+from .tenancy import register_admin_routes, router as tenancy_router
+register_admin_routes(require)
 app.include_router(tenancy_router)
 from .messaging import router as messaging_router
 app.include_router(messaging_router)
@@ -1440,4 +1494,5 @@ def reconcile_provider_registry_on_startup():
 
 @app.on_event("startup")
 async def start_provider_worker():
-    if os.getenv("KLYROW_EMBEDDED_WORKERS","true").lower()=="true":asyncio.create_task(provider_worker_loop())
+    if os.getenv("KLYROW_EMBEDDED_WORKERS","true").lower()=="true":
+        _start_embedded_worker("provider", provider_worker_loop)
