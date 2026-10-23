@@ -48,8 +48,11 @@ type StoredMessage = {
 }
 
 function summary(item: StoredMessage) {
-  const { text, html, attachments, cc, bcc, references, message_id, in_reply_to, reply_to_message_id, ...base } = item
-  return { ...base, has_attachments: attachments.length > 0 }
+  const base: Partial<StoredMessage> = { ...item }
+  for (const key of ['text', 'html', 'attachments', 'cc', 'bcc', 'references', 'message_id', 'in_reply_to', 'reply_to_message_id'] as const) {
+    delete base[key]
+  }
+  return { ...base, has_attachments: item.attachments.length > 0 }
 }
 
 async function stubWebmail(page: Page) {
