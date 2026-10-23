@@ -33,6 +33,12 @@ def test_web_runtime_does_not_retain_nondeterministic_package_log():
     assert "*.apk binary" in attributes
     assert "apk upgrade" not in dockerfile
     assert (
+        "FROM nginxinc/nginx-unprivileged:1.30.6-alpine3.24@"
+        "sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03"
+    ) in dockerfile
+    assert "nginx/1.30.6" in dockerfile
+    assert "1.30.4" not in dockerfile
+    assert (
         "apk add --no-cache --no-network "
         "./libexpat-2.9.0-r0.apk ./libuuid-2.42.3-r1.apk "
         "./libx11-1.8.14-r0.apk ./pcre2-10.49-r0.apk ./tiff-4.7.2-r0.apk"

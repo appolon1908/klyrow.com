@@ -467,7 +467,7 @@ async def emit_middleware(event_type:str,payload:dict)->bool:
             "operation_id":str(payload.get("operation_id") or payload.get("message_id") or event_id),"payload_hash":source_payload_hash,
             "message_id":str(payload.get("message_id") or ""),"provider_message_id":str(payload.get("provider_message_id") or payload.get("message_id") or ""),
             "stream":str(payload.get("stream") or "transactional"),"recipient_reference":str(payload.get("recipient_reference") or "sha256:"+hashlib.sha256(str(payload.get("recipient") or "").lower().encode()).hexdigest()),
-            "status":str(payload.get("canonical_status") or payload.get("status") or event_type.rsplit(".",1)[-1]),"provider":str(payload.get("provider") or "postal"),
+            "status":str(payload.get("canonical_status") or payload.get("status") or event_type.rsplit(".",1)[-1]),"provider":str(payload.get("provider") or os.getenv("KLYROW_EMAIL_TRANSPORT","postal")),
             "correlation_id":str(payload.get("correlation_id") or event_id),"causation_id":str(payload.get("causation_id") or payload.get("correlation_id") or event_id),
             "attempt":max(1,int(payload.get("attempt") or 1)),"metadata":payload.get("metadata") if isinstance(payload.get("metadata"),dict) else {}}
     else:payload={"event_id":event_id,"source_system":"klyrow","event_type":event_type,"timestamp":datetime.now(timezone.utc).isoformat(),**payload}
@@ -667,6 +667,7 @@ async def email_outbox_loop():
         await asyncio.sleep(2)
         if SAFE_MODE:continue
         snapshot=None
+        provider_id=None
         try:
             with DB() as s:
                 stale=datetime.now(timezone.utc)-timedelta(minutes=5)
@@ -731,16 +732,27 @@ async def email_outbox_loop():
                 if message:set_core_message_status(message,"submitted")
                 provider_payload=json.dumps(payload,separators=(",",":"),sort_keys=True)
                 snapshot=(item.id,item.message_id,provider_payload,item.operation_id,item.correlation_id,item.tenant_id,item.trace_context_json);s.commit()
-            key_file=os.getenv("KLYROW_POSTAL_API_KEY_FILE","")
-            key=Path(key_file).read_text(encoding="utf-8").strip() if key_file else ""
-            if not key:raise RuntimeError("postal credential unavailable")
-            headers={"X-Server-API-Key":key,"Idempotency-Key":"klyrow:"+snapshot[1]}
-            postal_host=os.getenv("KLYROW_POSTAL_API_HOST_HEADER","").strip()
-            if postal_host:headers["Host"]=postal_host
-            with traced("postal submit", stored_carrier(snapshot[6])):
-                headers.update(trace_carrier())
-                async with httpx.AsyncClient(timeout=10,trust_env=False,follow_redirects=False) as client:
-                    response=await client.post(os.environ["KLYROW_POSTAL_API_URL"]+"/api/v1/send/message",headers=headers,json=json.loads(snapshot[2]));response.raise_for_status();provider_id=str(response.json().get("data",{}).get("message_id") or snapshot[1])
+            transport=os.getenv("KLYROW_EMAIL_TRANSPORT","postal")
+            if transport=="ses":
+                from .ses_transport import send_ses_message
+                with traced("ses smtp submit", stored_carrier(snapshot[6])):
+                    provider_id=await send_ses_message(
+                        json.loads(snapshot[2]),
+                        correlation_id=str(snapshot[4] or snapshot[1]),
+                    )
+            elif transport=="postal":
+                key_file=os.getenv("KLYROW_POSTAL_API_KEY_FILE","")
+                key=Path(key_file).read_text(encoding="utf-8").strip() if key_file else ""
+                if not key:raise RuntimeError("postal credential unavailable")
+                headers={"X-Server-API-Key":key,"Idempotency-Key":"klyrow:"+snapshot[1]}
+                postal_host=os.getenv("KLYROW_POSTAL_API_HOST_HEADER","").strip()
+                if postal_host:headers["Host"]=postal_host
+                with traced("postal submit", stored_carrier(snapshot[6])):
+                    headers.update(trace_carrier())
+                    async with httpx.AsyncClient(timeout=10,trust_env=False,follow_redirects=False) as client:
+                        response=await client.post(os.environ["KLYROW_POSTAL_API_URL"]+"/api/v1/send/message",headers=headers,json=json.loads(snapshot[2]));response.raise_for_status();provider_id=str(response.json().get("data",{}).get("message_id") or snapshot[1])
+            else:
+                raise RuntimeError("unknown_email_transport")
             with DB() as s:
                 item=s.get(EmailOutbox,snapshot[0]);message=s.get(Message,snapshot[1])
                 if item:item.state="delivered";item.provider_message_id=provider_id;item.last_error=None;item.updated_at=datetime.now(timezone.utc)
@@ -748,32 +760,84 @@ async def email_outbox_loop():
                 if item:queue_email_lifecycle_event(s,kind="email.submitted",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=provider_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts))
                 s.commit()
         except Exception as exc:
-            with DB() as s:
-                if snapshot is not None:
-                    item=s.get(EmailOutbox,snapshot[0])
-                    if item:
-                        from .provider_outcome import INDETERMINATE,provider_outcome_is_ambiguous,reconcile_before_retry
-                        if provider_outcome_is_ambiguous(exc) and not reconcile_before_retry(state=INDETERMINATE,provider_message_id=item.provider_message_id,provider_absence_confirmed=False):
-                            item.state=INDETERMINATE;item.last_error=type(exc).__name__;item.updated_at=datetime.now(timezone.utc);item.next_attempt_at=None
-                            message=s.get(Message,item.message_id)
-                            if message:set_core_message_status(message,"indeterminate")
-                            queue_email_lifecycle_event(s,kind="email.unknown_outcome",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=item.provider_message_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts))
-                        else:
-                            failed=item.attempts>=5;item.state="failed" if failed else "retry";item.last_error=type(exc).__name__;item.updated_at=datetime.now(timezone.utc);item.next_attempt_at=None if failed else item.updated_at+timedelta(seconds=min(300,2**max(item.attempts,1)))
-                            message=s.get(Message,item.message_id)
-                            if message and not failed:set_core_message_status(message,"deferred")
-                            if failed:
-                                if message:set_core_message_status(message,"failed")
-                                s.add(Event(id=str(uuid.uuid4()),tenant_id=item.tenant_id,message_id=item.message_id,kind="klyrow.email.failed",payload=json.dumps({"reason":"provider_retry_exhausted"})))
-                                queue_email_lifecycle_event(s,kind="email.failed",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=item.provider_message_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts))
-                        s.commit()
+            # No durable item was acquired if session construction failed.
+            # Do not make error reporting depend on opening a second session.
+            if snapshot is not None:
+                try:
+                    with DB() as s:
+                        item=s.get(EmailOutbox,snapshot[0])
+                        if item:
+                            from .provider_outcome import INDETERMINATE,provider_outcome_is_ambiguous,reconcile_before_retry
+                            if (provider_id is not None or provider_outcome_is_ambiguous(exc)) and not reconcile_before_retry(state=INDETERMINATE,provider_message_id=item.provider_message_id,provider_absence_confirmed=False):
+                                item.state=INDETERMINATE;item.last_error=type(exc).__name__;item.updated_at=datetime.now(timezone.utc);item.next_attempt_at=None
+                                if provider_id is not None:
+                                    item.provider_message_id=provider_id
+                                    item.last_error="provider_accepted_persistence_failed"
+                                message=s.get(Message,item.message_id)
+                                if message:set_core_message_status(message,"indeterminate")
+                                queue_email_lifecycle_event(s,kind="email.unknown_outcome",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=item.provider_message_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts))
+                            else:
+                                failed=item.attempts>=5;item.state="failed" if failed else "retry";item.last_error=type(exc).__name__;item.updated_at=datetime.now(timezone.utc);item.next_attempt_at=None if failed else item.updated_at+timedelta(seconds=min(300,2**max(item.attempts,1)))
+                                message=s.get(Message,item.message_id)
+                                if message and not failed:set_core_message_status(message,"deferred")
+                                if failed:
+                                    if message:set_core_message_status(message,"failed")
+                                    s.add(Event(id=str(uuid.uuid4()),tenant_id=item.tenant_id,message_id=item.message_id,kind="klyrow.email.failed",payload=json.dumps({"reason":"provider_retry_exhausted"})))
+                                    queue_email_lifecycle_event(s,kind="email.failed",tenant_id=item.tenant_id,message_id=item.message_id,operation_id=item.operation_id or item.message_id,correlation_id=item.correlation_id or item.message_id,provider_message_id=item.provider_message_id,recipient=message.recipient if message else None,attempt=max(1,item.attempts))
+                            s.commit()
+                except Exception as recovery_exc:
+                    # Preserve a durable SENDING claim for later indeterminate
+                    # reconciliation; do not let an outage kill the coroutine.
+                    print(json.dumps({"level":"warning","system":"klyrow","event":"email_outbox_recovery_write_failed","error":type(recovery_exc).__name__}))
             print(json.dumps({"level":"warning","system":"klyrow","event":"email_outbox_delivery_failed","error":type(exc).__name__}))
+
+_EMBEDDED_WORKER_TASKS = {}
+
+
+async def _supervise_embedded_worker(name, worker):
+    """Keep an embedded loop owned and restart unexpected exits with backoff.
+
+    This is supervision, not proof of successful deliveries or DB heartbeats.
+    Never log exception messages, recipients, payloads, or credentials.
+    """
+    retry_delay = 2
+    while True:
+        try:
+            await worker()
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            print(json.dumps({"level":"error","system":"klyrow","event":"embedded_worker_failed","worker":name,"error":type(exc).__name__}))
+        else:
+            print(json.dumps({"level":"error","system":"klyrow","event":"embedded_worker_returned","worker":name}))
+        await asyncio.sleep(retry_delay)
+        retry_delay = min(retry_delay * 2, 30)
+
+
+def _start_embedded_worker(name, worker):
+    existing = _EMBEDDED_WORKER_TASKS.get(name)
+    if existing is not None and not existing.done():
+        return
+    _EMBEDDED_WORKER_TASKS[name] = asyncio.create_task(
+        _supervise_embedded_worker(name, worker), name="klyrow:" + name
+    )
+
+
+@app.on_event("shutdown")
+async def stop_embedded_workers():
+    tasks = tuple(_EMBEDDED_WORKER_TASKS.values())
+    for task in tasks:
+        task.cancel()
+    if tasks:
+        await asyncio.gather(*tasks, return_exceptions=True)
+    _EMBEDDED_WORKER_TASKS.clear()
+
 
 @app.on_event("startup")
 async def start_postal_retry_worker():
     if os.getenv("KLYROW_EMBEDDED_WORKERS","true").lower()=="true":
-        asyncio.create_task(postal_retry_loop())
-        asyncio.create_task(email_outbox_loop())
+        _start_embedded_worker("postal_retry", postal_retry_loop)
+        _start_embedded_worker("email_outbox", email_outbox_loop)
 
 def bounded_metric_path(request:Request)->str:
     """Return the reviewed route template, never a raw URL or identifier."""
@@ -859,7 +923,7 @@ def capabilities():
         "events":sorted({value for value in SMTP_EVENT_MAP.values()}),
         "external_delivery_enabled":not SAFE_MODE and activation["live_delivery_enabled"],
         "email_activation":activation,
-        "provider":"postal",
+        "provider":os.getenv("KLYROW_EMAIL_TRANSPORT","postal"),
     }
 @app.get("/version")
 def version():
@@ -1004,7 +1068,7 @@ def queue_email_lifecycle_event(s:Session, *, kind:str, tenant_id:str, message_i
         "operation_id":operation_id,"correlation_id":correlation_id,
         "provider_message_id":provider_message_id or message_id,"message_id":message_id,
         "event_type":kind,"occurred_at":occurred_at,"status":kind.rsplit(".",1)[-1],
-        "provider":"postal","attempt":attempt,
+        "provider":os.getenv("KLYROW_EMAIL_TRANSPORT","postal"),"attempt":attempt,
         "recipient_reference":"sha256:"+hashlib.sha256((recipient or "").lower().encode()).hexdigest()}
     payload["payload_hash"]=hashlib.sha256(json.dumps(payload,separators=(",",":"),sort_keys=True).encode()).hexdigest()
     s.add(ProviderEvent(id=event_id,tenant_id=tenant_id,message_id=message_id,kind=kind,
@@ -1430,4 +1494,5 @@ def reconcile_provider_registry_on_startup():
 
 @app.on_event("startup")
 async def start_provider_worker():
-    if os.getenv("KLYROW_EMBEDDED_WORKERS","true").lower()=="true":asyncio.create_task(provider_worker_loop())
+    if os.getenv("KLYROW_EMBEDDED_WORKERS","true").lower()=="true":
+        _start_embedded_worker("provider", provider_worker_loop)
