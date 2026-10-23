@@ -94,7 +94,7 @@ def test_postal_runtime_is_patched_from_immutable_os_and_gem_inputs():
     gemfile = (ROOT / "docker/postal-security/Gemfile").read_text(encoding="utf-8")
     lock = (ROOT / "docker/postal-security/Gemfile.lock").read_text(encoding="utf-8")
     assert sources.count("snapshot.debian.org/") == 3
-    assert sources.count("20260908T120000Z") == 3
+    assert sources.count("20261022T120000Z") == 3
     assert "rm -f /etc/apt/sources.list.d/*" in dockerfile
     assert "apt-get dist-upgrade -y" in dockerfile
     assert "libssh2-1)\" = '1.10.0-3+deb12u1'" in dockerfile
@@ -119,6 +119,8 @@ def test_postal_runtime_is_patched_from_immutable_os_and_gem_inputs():
     assert 'gem "zlib", "= 3.2.3"' in gemfile
     assert dockerfile.count("resolv-0.6.2") >= 7
     assert '"resolv"=>"0.7.2"' in dockerfile
+    assert "crass-1.0.6.gemspec" in dockerfile
+    assert '"crass"=>"1.0.7"' in dockerfile
     assert "CHECKSUMS" in lock
     assert "rails (7.2.3.2) sha256=" in lock
     assert "resolv (0.7.2) sha256=" in lock
