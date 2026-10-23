@@ -107,6 +107,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/metrics` | INTERNAL | METRICS_BEARER_ON_PRIVATE_ROUTE | true | `metrics` |
 | GET | `/onboarding` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `product_app_ui` |
 | GET | `/portal` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `portal` |
+| GET | `/privacy` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `auth_page` |
 | GET | `/readiness` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `readiness_alias` |
 | GET | `/readyz` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `provider_readyz` |
 | GET | `/readyz` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `readyz` |
@@ -117,6 +118,7 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/service-error` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `auth_page` |
 | GET | `/signup` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `auth_page` |
 | GET | `/t/{kind}/{token}` | TRACKING | SIGNED_SINGLE_USE_PATH_TOKEN | true | `consume_tracking_token` |
+| GET | `/terms` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `auth_page` |
 | GET | `/v1/admin/delivery/activation` | ADMIN | EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA | true | `delivery_activation` |
 | GET | `/v1/admin/operations` | ADMIN | EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA | true | `admin_operations` |
 | GET | `/v1/admin/security/platform-owner` | ADMIN | EXACT_PLATFORM_OWNER_OIDC_WITH_VERIFIED_EMAIL_AND_FRESH_MFA | true | `platform_owner_status` |

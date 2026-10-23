@@ -5,7 +5,7 @@ import { maskEmail, passwordScore, routeFromLocation, serverError } from '../aut
 
 describe('auth helpers', () => {
   it('routes every supported authentication state', () => {
-    for (const path of ['login','signup','verify-email','verification-expired','verification-success','forgot-password','reset-sent','reset-password','reset-expired','reset-success','invite','service-error','account-disabled']) expect(routeFromLocation(`/${path}`)).toBe(path)
+    for (const path of ['login','signup','verify-email','verification-expired','verification-success','forgot-password','reset-sent','reset-password','reset-expired','reset-success','invite','service-error','account-disabled','terms','privacy']) expect(routeFromLocation(`/${path}`)).toBe(path)
     expect(routeFromLocation('/login','?logged_out=1')).toBe('logged-out')
   })
   it('maps errors without exposing server details', () => {
@@ -15,6 +15,10 @@ describe('auth helpers', () => {
 })
 
 describe('authentication UI', () => {
+  it('renders legal pages with navigable content', () => {
+    history.replaceState({}, '', '/terms'); render(App); expect(screen.getByRole('heading',{name:'Terms of Service'})).toBeTruthy(); expect(screen.getByText('Authorized use')).toBeTruthy()
+  })
+
   it('validates login fields and restores focus to the first error', async () => {
     history.replaceState({}, '', '/login'); render(App); await fireEvent.click(screen.getByRole('button',{name:'Sign in'})); expect(document.activeElement).toBe(screen.getByLabelText('Email address')); expect(screen.getAllByText('This field is required.').length).toBeGreaterThan(0)
   })

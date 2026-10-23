@@ -37,3 +37,12 @@ test('one-time invitation URL hydrates the validation capability', async ({page}
   await expect(page.getByRole('heading',{name:'Join your Klyrow team'})).toBeVisible()
   await expect(page.getByLabel('Invitation code')).toHaveValue(invitationCode)
 })
+
+test('legal links resolve and remain responsive', async ({page}) => {
+  for (const [path, heading] of [['/terms','Terms of Service'], ['/privacy','Privacy Policy']] as const) {
+    await page.goto(path)
+    await expect(page).toHaveURL(new RegExp(path + '$'))
+    await expect(page.getByRole('heading',{name:heading})).toBeVisible()
+    await expect(page.locator('body')).not.toHaveCSS('overflow-x','scroll')
+  }
+})
