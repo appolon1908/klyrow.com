@@ -8,7 +8,7 @@ RUN pnpm install --frozen-lockfile
 COPY apps/web/ ./
 RUN pnpm build
 
-FROM nginxinc/nginx-unprivileged:1.30.4-alpine3.24@sha256:45ce1e2e699234253d1def7baa96218a5d00b498d1ba0cbb1a17b6bdf73d1351
+FROM nginxinc/nginx-unprivileged:1.30.6-alpine3.24@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03
 ARG SOURCE_COMMIT_SHA
 RUN test "$(printf '%s' "$SOURCE_COMMIT_SHA" | wc -c)" -eq 40 \
     && case "$SOURCE_COMMIT_SHA" in *[!0-9a-f]*) exit 1 ;; *) : ;; esac
@@ -39,7 +39,7 @@ RUN cd /opt/klyrow/vendor \
     && apk info --exists pcre2=10.49-r0 \
     && apk info --exists tiff=4.7.2-r0 \
     && rm -f /var/log/apk.log \
-    && nginx -v 2>&1 | grep -q 'nginx/1.30.4'
+    && nginx -v 2>&1 | grep -q 'nginx/1.30.6'
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /build/dist /usr/share/nginx/html
 RUN printf '{"source_sha":"%s"}\n' "$SOURCE_COMMIT_SHA" > /usr/share/nginx/html/version.json \
