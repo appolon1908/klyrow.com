@@ -132,14 +132,17 @@ def organization(x:OrgIn,ctx=Depends(auth),s:Session=Depends(db)):
 def oidc_config():
     issuer="https://auth.codestra.co/realms/codestra"
     return {"issuer":issuer,"authorization_endpoint":issuer+"/protocol/openid-connect/auth","token_endpoint":issuer+"/protocol/openid-connect/token","client_id":"klyrow-portal","response_type":"code","code_challenge_method":"S256","scopes":["openid","profile","email"],"local_password_login":False}
-@router.post("/admin/oidc-identities",status_code=201)
-def oidc_identity(x:OidcIdentityIn,ctx=Depends(require("platform_admin")),s:Session=Depends(db)):
-    issuer="https://auth.codestra.co/realms/codestra";user=s.get(_user_model(),x.user_id)
-    if not user:raise HTTPException(404,"user_not_found")
-    if x.default_tenant_id and not s.get(_tenant_model(),x.default_tenant_id):raise HTTPException(404,"tenant_not_found")
-    existing=s.scalar(select(OidcIdentity).where(OidcIdentity.issuer==issuer,OidcIdentity.subject==x.subject))
-    if existing:raise HTTPException(409,"oidc_identity_exists")
-    item=OidcIdentity(id=str(uuid.uuid4()),issuer=issuer,subject=x.subject,user_id=user.id,default_tenant_id=x.default_tenant_id,identity_type=x.identity_type);s.add(item);audit(s,ctx,"oidc_identity.created");s.commit();return {"id":item.id,"issuer":item.issuer,"subject":item.subject,"identity_type":item.identity_type}
+def register_admin_routes(core_require):
+    """Bind privileged routes after the core authenticator is initialized."""
+    @router.post("/admin/oidc-identities",status_code=201)
+    def oidc_identity(x:OidcIdentityIn,ctx=Depends(core_require("platform_admin")),s:Session=Depends(db)):
+        issuer="https://auth.codestra.co/realms/codestra";user=s.get(_user_model(),x.user_id)
+        if not user:raise HTTPException(404,"user_not_found")
+        if x.default_tenant_id and not s.get(_tenant_model(),x.default_tenant_id):raise HTTPException(404,"tenant_not_found")
+        existing=s.scalar(select(OidcIdentity).where(OidcIdentity.issuer==issuer,OidcIdentity.subject==x.subject))
+        if existing:raise HTTPException(409,"oidc_identity_exists")
+        item=OidcIdentity(id=str(uuid.uuid4()),issuer=issuer,subject=x.subject,user_id=user.id,default_tenant_id=x.default_tenant_id,identity_type=x.identity_type);s.add(item);audit(s,ctx,"oidc_identity.created");s.commit();return {"id":item.id,"issuer":item.issuer,"subject":item.subject,"identity_type":item.identity_type}
+
 @router.get("/organizations")
 def organizations(ctx=Depends(auth),s:Session=Depends(db)):
     ids=select(TenantMember.tenant_id).where(TenantMember.user_id==ctx["sub"],TenantMember.active==True);return s.scalars(select(Organization).where(Organization.tenant_id.in_(ids))).all()

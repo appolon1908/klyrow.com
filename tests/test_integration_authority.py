@@ -24,7 +24,7 @@ class Tenants:
         return SimpleNamespace(id=identity, enabled=True)
 
     def get_bind(self):
-        return SimpleNamespace(dialect=SimpleNamespace(name='sqlite'))
+        return SimpleNamespace(dialect=SimpleNamespace(name="sqlite"))
 
 
 def resolve(monkeypatch, response, *, requested_tenant="tenant-a"):

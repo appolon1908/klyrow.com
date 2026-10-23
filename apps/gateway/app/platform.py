@@ -26,6 +26,7 @@ from .platform_owner import (
     install_platform_owner_guard,
     router as platform_owner_router,
 )
+from .browser_observability import router as browser_observability_router
 from .postal_callback_attribution import (
     install_postal_callback_extension,
     router as postal_callback_router,
@@ -107,6 +108,7 @@ if not getattr(app.state, "klyrow_browser_api_routes_registered", False):
         webmail_router,
     ):
         app.router.routes.extend(platform_router.routes)
+    app.include_router(browser_observability_router)
     app.state.klyrow_browser_api_routes_registered = True
 else:
     auth_bff._identity_context = resolve_identity_context_with_provisioning
