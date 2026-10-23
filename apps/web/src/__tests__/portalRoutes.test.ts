@@ -19,7 +19,8 @@ const REQUIRED_TENANT_ROUTES = [
   '/app/support', '/app/support/tickets/:id',
 ]
 const REQUIRED_ADMIN_ROUTES = [
-  '/admin/tenants', '/admin/deliverability', '/admin/abuse', '/admin/queues', '/admin/reconciliation', '/admin/billing', '/admin/system', '/admin/audit',
+  '/admin/tenants', '/admin/deliverability', '/admin/abuse', '/admin/queues', '/admin/reconciliation', '/admin/billing',
+  '/admin/operations', '/admin/observability', '/admin/system', '/admin/audit',
 ]
 
 describe('portal route table', () => {

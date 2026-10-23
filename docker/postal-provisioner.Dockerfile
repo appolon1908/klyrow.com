@@ -45,6 +45,11 @@ RUN export SOURCE_DATE_EPOCH \
         /usr/local/lib/ruby/gems/3.4.0/cache/net-imap-0.5.8.gem \
         /usr/local/lib/ruby/gems/3.4.0/specifications/net-imap-0.5.8.gemspec \
         /usr/local/bundle/cache/resolv-0.6.2.gem \
+    && rm -rf /usr/local/bundle/gems/crass-1.0.6 \
+        /opt/postal/app/vendor/bundle/ruby/3.4.0/gems/crass-1.0.6 \
+    && rm -f /usr/local/bundle/cache/crass-1.0.6.gem \
+        /usr/local/bundle/specifications/crass-1.0.6.gemspec \
+        /opt/postal/app/vendor/bundle/ruby/3.4.0/specifications/crass-1.0.6.gemspec \
     && rm -rf /usr/lib/node_modules/npm /usr/lib/node_modules/corepack \
     && rm -f /usr/bin/npm /usr/bin/npx /usr/bin/corepack \
     && rm -f \
@@ -56,7 +61,7 @@ RUN export SOURCE_DATE_EPOCH \
         \( -name gem_make.out -o -name mkmf.log \) -delete \
     && find /opt/postal/app/vendor/bundle -type d -exec chmod 0755 {} + \
     && rm -rf /root/.bundle/cache \
-    && bundle exec ruby -e 'expected={"rails"=>"7.2.3.2","jwt"=>"2.10.3","puma"=>"7.2.1","resolv"=>"0.7.2","zlib"=>"3.2.3"}; expected.each{|name,version| abort("unexpected #{name}") unless Gem.loaded_specs[name]&.version&.to_s==version}'
+    && bundle exec ruby -e 'expected={"rails"=>"7.2.3.2","jwt"=>"2.10.3","puma"=>"7.2.1","resolv"=>"0.7.2","zlib"=>"3.2.3","crass"=>"1.0.7"}; expected.each{|name,version| abort("unexpected #{name}") unless Gem.loaded_specs[name]&.version&.to_s==version}'
 RUN mkdir -p /opt/klyrow
 COPY apps/postal-provisioner/provisioner.rb /opt/klyrow/provisioner.rb
 WORKDIR /opt/postal/app
