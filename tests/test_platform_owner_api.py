@@ -153,8 +153,12 @@ def test_every_admin_api_depends_on_core_authenticator():
     from fastapi.routing import APIRoute
     from apps.gateway.app.openapi_authority import _api_route_contexts
 
+    from apps.gateway.app import tenancy
+
+    trusted_authenticators = {main.auth, tenancy.auth}
+
     def depends_on_auth(dependency):
-        return dependency.call is main.auth or any(
+        return dependency.call in trusted_authenticators or any(
             depends_on_auth(child) for child in dependency.dependencies
         )
 

@@ -19,7 +19,8 @@ const REQUIRED_TENANT_ROUTES = [
   '/app/support', '/app/support/tickets/:id',
 ]
 const REQUIRED_ADMIN_ROUTES = [
-  '/admin/tenants', '/admin/deliverability', '/admin/abuse', '/admin/queues', '/admin/reconciliation', '/admin/billing', '/admin/system', '/admin/audit',
+  '/admin/tenants', '/admin/deliverability', '/admin/abuse', '/admin/queues', '/admin/reconciliation', '/admin/billing',
+  '/admin/operations', '/admin/observability', '/admin/system', '/admin/audit',
 ]
 
 describe('portal route table', () => {
@@ -43,6 +44,16 @@ describe('portal route table', () => {
       if (route.audience === 'platform-admin') expect(route.group).toBe('Admin')
       else expect(route.group).not.toBe('Admin')
       for (const api of route.apis) expect(api).toMatch(/^(GET|POST|PUT|PATCH|DELETE) \/(app\/api|auth)\//)
+    }
+  })
+
+  it('marks the completed admin operations surfaces as real browser-backed pages', () => {
+    for (const name of ['admin-abuse', 'admin-reconciliation', 'admin-billing', 'admin-audit']) {
+      const route = portalRoutes.find(item => item.name === name)
+      expect(route, name).toBeTruthy()
+      expect(route?.availability, name).toBe('implemented')
+      expect(route?.apis.length, name).toBeGreaterThan(0)
+      expect(route?.apis.every(api => api.startsWith('GET /app/api/admin/') || api.startsWith('POST /app/api/admin/'))).toBe(true)
     }
   })
 

@@ -20,11 +20,13 @@ from .invitation_flow import (
 )
 from .browser_email_setup import router as browser_email_setup_router
 from .browser_profiles_suppressions import router as browser_profiles_suppressions_router
+from .browser_admin_ops import router as browser_admin_ops_router
 from .support_center import router as support_center_router
 from .platform_owner import (
     install_platform_owner_guard,
     router as platform_owner_router,
 )
+from .browser_observability import router as browser_observability_router
 from .postal_callback_attribution import (
     install_postal_callback_extension,
     router as postal_callback_router,
@@ -100,11 +102,13 @@ if not getattr(app.state, "klyrow_browser_api_routes_registered", False):
         invitation_flow_router,
         browser_email_setup_router,
         browser_profiles_suppressions_router,
+        browser_admin_ops_router,
         support_center_router,
         postal_provisioning_router,
         webmail_router,
     ):
         app.router.routes.extend(platform_router.routes)
+    app.include_router(browser_observability_router)
     app.state.klyrow_browser_api_routes_registered = True
 else:
     auth_bff._identity_context = resolve_identity_context_with_provisioning
