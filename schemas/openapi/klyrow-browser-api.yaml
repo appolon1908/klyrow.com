@@ -1322,7 +1322,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/catalog": {
@@ -1353,7 +1355,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/credit-notes": {
@@ -1384,7 +1388,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/credit-notes/{credit_note_id}/document": {
@@ -1436,7 +1442,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/entitlements": {
@@ -1467,7 +1475,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/invoices": {
@@ -1549,7 +1559,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/invoices/{invoice_id}": {
@@ -1601,7 +1613,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/invoices/{invoice_id}/checkout": {
@@ -1679,6 +1693,7 @@
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
         "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
           "csrf_guard"
         ]
       }
@@ -1732,7 +1747,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/overview": {
@@ -1763,7 +1780,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/payment-attempts/{payment_attempt_id}": {
@@ -1815,7 +1834,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/payment-methods": {
@@ -1849,7 +1870,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/payments": {
@@ -1915,7 +1938,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/payments/{payment_id}/receipt": {
@@ -1967,7 +1992,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/refunds": {
@@ -2033,7 +2060,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/subscription": {
@@ -2064,7 +2093,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/subscription/cancel": {
@@ -2129,6 +2160,7 @@
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
         "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
           "csrf_guard"
         ]
       }
@@ -2195,6 +2227,7 @@
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
         "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
           "csrf_guard"
         ]
       }
@@ -2261,6 +2294,7 @@
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
         "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
           "csrf_guard"
         ]
       }
@@ -2327,6 +2361,7 @@
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
         "x-klyrow-enforced-auth-dependencies": [
+          "browser_context",
           "csrf_guard"
         ]
       }
@@ -2457,7 +2492,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/usage/monthly": {
@@ -2586,7 +2623,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/billing/wallet": {
@@ -2617,7 +2656,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/context": {
@@ -3984,7 +4025,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/media/uploads": {
@@ -4065,7 +4108,9 @@
         "x-idempotency-required": false,
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/media/uploads/{upload_reference}": {
@@ -4124,7 +4169,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/media/{asset_id}": {
@@ -4195,7 +4242,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       },
       "get": {
         "operationId": "media_get_app_api_media__asset_id__get",
@@ -4241,7 +4290,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/media/{asset_id}/archive": {
@@ -4310,7 +4361,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/media/{asset_id}/complete": {
@@ -4379,7 +4432,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/media/{asset_id}/events": {
@@ -4427,7 +4482,9 @@
         ],
         "x-klyrow-audience": "BROWSER_BFF",
         "x-klyrow-auth-model": "BROWSER_SESSION_COOKIE",
-        "x-klyrow-enforced-auth-dependencies": []
+        "x-klyrow-enforced-auth-dependencies": [
+          "browser_context"
+        ]
       }
     },
     "/app/api/messages": {
