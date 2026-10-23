@@ -29,17 +29,28 @@ def test_python_dependency_closure_is_exactly_pinned():
 def test_web_runtime_does_not_retain_nondeterministic_package_log():
     dockerfile = (ROOT / "apps/web/Dockerfile").read_text(encoding="utf-8")
     checksums = (ROOT / "apps/web/vendor/SHA256SUMS").read_text(encoding="utf-8")
+    attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+    assert "*.apk binary" in attributes
     assert "apk upgrade" not in dockerfile
-    assert "apk add --no-cache --no-network ./libexpat-2.8.4-r0.apk" in dockerfile
-    assert "apk verify --keys-dir /etc/apk/keys libexpat-2.8.4-r0.apk" in dockerfile
+    assert (
+        "apk add --no-cache --no-network "
+        "./libexpat-2.9.0-r0.apk ./libuuid-2.42.3-r1.apk "
+        "./libx11-1.8.14-r0.apk ./pcre2-10.49-r0.apk ./tiff-4.7.2-r0.apk"
+    ) in dockerfile
     assert "sha256sum -c SHA256SUMS" in dockerfile
     assert "--repository" not in dockerfile
     assert "dl-cdn.alpinelinux.org" not in dockerfile
     assert checksums == (
-        "34fa41e3994d9a844f50a7c01cb40bb2e272fa7f506b96e92a2b4a20b23a81bc  "
-        "libexpat-2.8.4-r0.apk\n"
+        "32b127f31e0a919110a18a7f0bb3780d8fb66ba4d8d61b2d301d633f0e319d0e  "
+        "libexpat-2.9.0-r0.apk\n"
         "8306e5bb577696c9069fe1dfd9e1dcc39d2d481c6a1b0e707fd03c3e21aa6aa2  "
         "libuuid-2.42.3-r1.apk\n"
+        "016efc189c6d566061ffe206ed0780e32686c1a8c832a3917d35d2c66d61a40f  "
+        "libx11-1.8.14-r0.apk\n"
+        "2919897914820f42a17a8d7d37df310d2dfad1c82ebe5f539cc5c765f916752a  "
+        "pcre2-10.49-r0.apk\n"
+        "757ce87ebe4923a6be9869d026e250958ca09696529c464781e8a91d2b81670b  "
+        "tiff-4.7.2-r0.apk\n"
     )
     for entry in checksums.splitlines():
         digest, package = entry.split()
@@ -48,7 +59,14 @@ def test_web_runtime_does_not_retain_nondeterministic_package_log():
         ).hexdigest() == digest
         assert f"apk verify --keys-dir /etc/apk/keys {package}" in dockerfile
         assert f"./{package}" in dockerfile
-    assert 'apk info --exists libuuid=2.42.3-r1' in dockerfile
+    for package in (
+        "libexpat=2.9.0-r0",
+        "libuuid=2.42.3-r1",
+        "libx11=1.8.14-r0",
+        "pcre2=10.49-r0",
+        "tiff=4.7.2-r0",
+    ):
+        assert f"apk info --exists {package}" in dockerfile
     assert "rm -f /var/log/apk.log" in dockerfile
 
 
@@ -76,7 +94,7 @@ def test_postal_runtime_is_patched_from_immutable_os_and_gem_inputs():
     gemfile = (ROOT / "docker/postal-security/Gemfile").read_text(encoding="utf-8")
     lock = (ROOT / "docker/postal-security/Gemfile.lock").read_text(encoding="utf-8")
     assert sources.count("snapshot.debian.org/") == 3
-    assert sources.count("20260908T120000Z") == 3
+    assert sources.count("20261022T120000Z") == 3
     assert "rm -f /etc/apt/sources.list.d/*" in dockerfile
     assert "apt-get dist-upgrade -y" in dockerfile
     assert "libssh2-1)\" = '1.10.0-3+deb12u1'" in dockerfile
@@ -101,6 +119,8 @@ def test_postal_runtime_is_patched_from_immutable_os_and_gem_inputs():
     assert 'gem "zlib", "= 3.2.3"' in gemfile
     assert dockerfile.count("resolv-0.6.2") >= 7
     assert '"resolv"=>"0.7.2"' in dockerfile
+    assert "crass-1.0.6.gemspec" in dockerfile
+    assert '"crass"=>"1.0.7"' in dockerfile
     assert "CHECKSUMS" in lock
     assert "rails (7.2.3.2) sha256=" in lock
     assert "resolv (0.7.2) sha256=" in lock
