@@ -58,7 +58,8 @@ describe('navigation visibility', () => {
     const proven = visibleNavigation(owner, 'proven')
     expect(proven.at(-1)?.group).toBe('Admin')
     expect(proven.at(-1)?.items.map(item => item.path)).toEqual([
-      '/admin/tenants', '/admin/deliverability', '/admin/abuse', '/admin/queues', '/admin/reconciliation', '/admin/billing', '/admin/system', '/admin/audit',
+      '/admin/tenants', '/admin/deliverability', '/admin/abuse', '/admin/queues', '/admin/reconciliation', '/admin/billing',
+      '/admin/operations', '/admin/observability', '/admin/system', '/admin/audit',
     ])
     expect(visibleNavigation({ authenticated: false }, 'proven')).toEqual([])
   })
