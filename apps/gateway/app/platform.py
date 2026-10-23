@@ -20,6 +20,7 @@ from .invitation_flow import (
 )
 from .browser_email_setup import router as browser_email_setup_router
 from .browser_profiles_suppressions import router as browser_profiles_suppressions_router
+from .browser_admin_ops import router as browser_admin_ops_router
 from .support_center import router as support_center_router
 from .platform_owner import (
     install_platform_owner_guard,
@@ -100,6 +101,7 @@ if not getattr(app.state, "klyrow_browser_api_routes_registered", False):
         invitation_flow_router,
         browser_email_setup_router,
         browser_profiles_suppressions_router,
+        browser_admin_ops_router,
         support_center_router,
         postal_provisioning_router,
         webmail_router,

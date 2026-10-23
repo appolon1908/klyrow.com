@@ -1,7 +1,7 @@
 # klyrow.com — Architecture Charts
 
-> Repository: `appolon1908/klyrow.com`  
-> Baseline branch: `main`  
+> Repository: `appolon1908/klyrow.com`
+> Baseline branch: `main`
 > Repository-local visual architecture. Keep these diagrams aligned with code, contracts, data ownership and deployment.
 
 ## 1. System context
