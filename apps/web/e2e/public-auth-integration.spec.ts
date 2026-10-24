@@ -20,7 +20,8 @@ test('all public account flows are interactive and the favicon resolves', async 
 
   await page.getByLabel('Language').selectOption('es')
   await expect(page.locator('html')).toHaveAttribute('lang', 'es')
-  await page.getByLabel('Language').selectOption('en')
+  await page.getByLabel('Idioma').selectOption('en')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 
   await page.getByRole('link', {name: 'Forgot password?'}).click()
   await expect(page).toHaveURL(/\/forgot-password/)
