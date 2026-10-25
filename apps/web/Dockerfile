@@ -19,6 +19,7 @@ LABEL org.opencontainers.image.source="https://github.com/appolon1908-hue/klyrow
 # Install the independently checksum-pinned Alpine packages from the source tree;
 # neither a moving repository index nor network access participates in this layer.
 USER root
+COPY apps/web/vendor/brotli-libs-1.2.1-r0.apk /opt/klyrow/vendor/brotli-libs-1.2.1-r0.apk
 COPY apps/web/vendor/libexpat-2.9.0-r0.apk /opt/klyrow/vendor/libexpat-2.9.0-r0.apk
 COPY apps/web/vendor/libuuid-2.42.3-r1.apk /opt/klyrow/vendor/libuuid-2.42.3-r1.apk
 COPY apps/web/vendor/libx11-1.8.14-r0.apk /opt/klyrow/vendor/libx11-1.8.14-r0.apk
@@ -27,12 +28,14 @@ COPY apps/web/vendor/tiff-4.7.2-r0.apk /opt/klyrow/vendor/tiff-4.7.2-r0.apk
 COPY apps/web/vendor/SHA256SUMS /opt/klyrow/vendor/SHA256SUMS
 RUN cd /opt/klyrow/vendor \
     && sha256sum -c SHA256SUMS \
+    && apk verify --keys-dir /etc/apk/keys brotli-libs-1.2.1-r0.apk \
     && apk verify --keys-dir /etc/apk/keys libexpat-2.9.0-r0.apk \
     && apk verify --keys-dir /etc/apk/keys libuuid-2.42.3-r1.apk \
     && apk verify --keys-dir /etc/apk/keys libx11-1.8.14-r0.apk \
     && apk verify --keys-dir /etc/apk/keys pcre2-10.49-r0.apk \
     && apk verify --keys-dir /etc/apk/keys tiff-4.7.2-r0.apk \
-    && apk add --no-cache --no-network ./libexpat-2.9.0-r0.apk ./libuuid-2.42.3-r1.apk ./libx11-1.8.14-r0.apk ./pcre2-10.49-r0.apk ./tiff-4.7.2-r0.apk \
+    && apk add --no-cache --no-network ./brotli-libs-1.2.1-r0.apk ./libexpat-2.9.0-r0.apk ./libuuid-2.42.3-r1.apk ./libx11-1.8.14-r0.apk ./pcre2-10.49-r0.apk ./tiff-4.7.2-r0.apk \
+    && apk info --exists brotli-libs=1.2.1-r0 \
     && apk info --exists libexpat=2.9.0-r0 \
     && apk info --exists libuuid=2.42.3-r1 \
     && apk info --exists libx11=1.8.14-r0 \
