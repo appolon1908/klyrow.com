@@ -33,7 +33,7 @@ def test_web_runtime_does_not_retain_nondeterministic_package_log():
     assert "*.apk binary" in attributes
     assert "apk upgrade" not in dockerfile
     assert (
-        "apk add --no-cache --no-network "
+        "apk add --no-cache --no-network ./brotli-libs-1.2.1-r0.apk "
         "./libexpat-2.9.0-r0.apk ./libuuid-2.42.3-r1.apk "
         "./libx11-1.8.14-r0.apk ./pcre2-10.49-r0.apk ./tiff-4.7.2-r0.apk"
     ) in dockerfile
@@ -51,6 +51,8 @@ def test_web_runtime_does_not_retain_nondeterministic_package_log():
         "pcre2-10.49-r0.apk\n"
         "757ce87ebe4923a6be9869d026e250958ca09696529c464781e8a91d2b81670b  "
         "tiff-4.7.2-r0.apk\n"
+        "62a7e37e43bbfc1f8525a00ad2125fd5897135dc93b849733884cb78ffd8e26c  "
+        "brotli-libs-1.2.1-r0.apk\n"
     )
     for entry in checksums.splitlines():
         digest, package = entry.split()
@@ -60,6 +62,7 @@ def test_web_runtime_does_not_retain_nondeterministic_package_log():
         assert f"apk verify --keys-dir /etc/apk/keys {package}" in dockerfile
         assert f"./{package}" in dockerfile
     for package in (
+        "brotli-libs=1.2.1-r0",
         "libexpat=2.9.0-r0",
         "libuuid=2.42.3-r1",
         "libx11=1.8.14-r0",
