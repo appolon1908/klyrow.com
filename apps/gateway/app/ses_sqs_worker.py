@@ -46,6 +46,11 @@ def process_batch(sqs, *, topic_arn: str, queue_url: str, messages: list) -> dic
             counts["invalid"] += 1
             # Never log raw SNS, SES addresses, or arbitrary attacker-controlled text.
             continue
+        except Exception:
+            # Certificate/network outages retain this record without preventing
+            # independent records in the batch from being reconciled.
+            counts["failed"] += 1
+            continue
         try:
             outcome = reconcile_feedback(verified)
             if outcome not in ("ack", "duplicate"):
@@ -65,11 +70,18 @@ def run():
     import boto3
     client = boto3.client("sqs", region_name=REGION_NAME)
     while True:
-        results = client.receive_message(
-            QueueUrl=queue, MaxNumberOfMessages=10, WaitTimeSeconds=15,
-            MessageSystemAttributeNames=["ApproximateReceiveCount"],
-        )
-        records = results.get("Messages", [])
+        try:
+            results = client.receive_message(
+                QueueUrl=queue, MaxNumberOfMessages=10, WaitTimeSeconds=15,
+                MessageSystemAttributeNames=["ApproximateReceiveCount"],
+            )
+            if not isinstance(results, dict) or not isinstance(results.get("Messages", []), list):
+                raise ValueError("ses_feedback_poll_shape_invalid")
+            records = results.get("Messages", [])
+        except Exception:
+            print(json.dumps({"component": "klyrow-ses-feedback", "poll": "failed"}), flush=True)
+            time.sleep(5)
+            continue
         summary = process_batch(client, topic_arn=topic, queue_url=queue, messages=records)
         if records:
             # Safe bounded counters only. Do not expose email recipients or message bodies.

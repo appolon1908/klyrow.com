@@ -1,6 +1,9 @@
 """SQS acknowledgement controls: never delete unverified or unmatched events."""
 import json
+import sys
+from types import SimpleNamespace
 import pytest
+import requests
 
 from apps.gateway.app import ses_sqs_worker as worker
 from apps.gateway.app.ses_feedback import SESFeedback, SESFeedbackDenied
@@ -72,3 +75,44 @@ def test_missing_receipt_never_deleted(monkeypatch):
     sqs=SQS()
     x=worker.process_batch(sqs,topic_arn=TOPIC,queue_url=QUEUE,messages=[{"Body":"synthetic"}])
     assert not sqs.deleted and x["invalid"]==1
+
+
+def test_certificate_outage_retains_record_and_continues_batch(monkeypatch):
+    sqs = SQS()
+
+    def verify(body, **kwargs):
+        if body == "unavailable":
+            raise requests.ConnectionError("certificate service unavailable")
+        return feedback()
+
+    monkeypatch.setattr(worker, "verified_ses_event", verify)
+    monkeypatch.setattr(worker, "reconcile_feedback", lambda *a, **kw: "ack")
+    counts = worker.process_batch(sqs, topic_arn=TOPIC, queue_url=QUEUE, messages=[
+        {"Body": "unavailable", "ReceiptHandle": "retain"},
+        {"Body": "valid", "ReceiptHandle": "acknowledge"},
+    ])
+    assert counts["failed"] == 1 and counts["ack"] == 1
+    assert sqs.deleted == [{"QueueUrl": QUEUE, "ReceiptHandle": "acknowledge"}]
+
+
+@pytest.mark.parametrize("first_result", [OSError("private outage details"), None, {"Messages": None}])
+def test_poll_failure_retries_without_deleting_or_leaking_details(monkeypatch, capsys, first_result):
+    sqs = SQS()
+    results = iter([first_result, {}, KeyboardInterrupt()])
+
+    def receive(**kwargs):
+        result = next(results)
+        if isinstance(result, BaseException):
+            raise result
+        return result
+
+    sqs.receive_message = receive
+    monkeypatch.setattr(worker, "checked_configuration", lambda: (TOPIC, QUEUE))
+    monkeypatch.setitem(sys.modules, "boto3", SimpleNamespace(client=lambda *a, **kw: sqs))
+    pauses = []
+    monkeypatch.setattr(worker.time, "sleep", pauses.append)
+    with pytest.raises(KeyboardInterrupt):
+        worker.run()
+    assert len(pauses) == 1 and 0 < pauses[0] <= 60
+    assert not sqs.deleted
+    assert "private outage details" not in capsys.readouterr().out

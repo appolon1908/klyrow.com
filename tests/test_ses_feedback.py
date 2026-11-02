@@ -55,9 +55,11 @@ def signed_body(signer, *, event="Delivery", subject=False, changes=None, envelo
     }
     if subject:envelope["Subject"]="SES Event"
     if envelope_changes:envelope_changes(envelope)
-    signed = "".join(k+"\n"+str(envelope[k])+"\n" for k in (
-        "Message","MessageId","Subject","Type","Timestamp","TopicArn"
-    ) if k in envelope).encode()
+    # AWS's Notification string-to-sign sorts the selected field names.
+    # Keep this signer independent of the verifier's CANONICAL_FIELDS tuple.
+    signed_fields = {"Message", "MessageId", "Subject", "Type", "Timestamp", "TopicArn"}
+    signed = "".join(k+"\n"+str(envelope[k])+"\n"
+                     for k in sorted(signed_fields & envelope.keys())).encode()
     signature = private.sign(signed,padding.PKCS1v15(),hashes.SHA256() if version=="2" else hashes.SHA1())
     envelope["Signature"]=base64.b64encode(signature).decode()
     return json.dumps(envelope)
@@ -187,6 +189,22 @@ def test_late_send_never_overwrites_delivery():
     assert reconcile_feedback(_event("delivered"),session_factory=factory)=="ack"
     assert reconcile_feedback(_event("provider_accepted",sns_id="99887766-5544-4eea-aaaa-111122223333"),session_factory=factory)=="ack"
     with factory() as s:assert s.get(Message,"local-message").status=="delivered"
+
+
+@pytest.mark.parametrize("first,later", [
+    ("complained", "delivered"), ("bounced", "delivered"), ("failed", "delivered"),
+    ("complained", "bounced"), ("complained", "failed"), ("bounced", "failed"),
+])
+def test_late_event_preserves_stronger_terminal_outcome(first, later):
+    from apps.gateway.app.main import Message, Suppression
+    factory = _session_db()
+    _seed_db(factory)
+    assert reconcile_feedback(_event(first), session_factory=factory) == "ack"
+    assert reconcile_feedback(_event(later, sns_id="late-terminal-event-12345"), session_factory=factory) == "ack"
+    with factory() as session:
+        assert session.get(Message, "local-message").status == first
+        if first in {"bounced", "complained"}:
+            assert session.query(Suppression).one().reason == first
 
 
 def test_duplicate_provider_id_across_tenants_fail_closed():

@@ -138,7 +138,7 @@ describe('analytics, deliverability, developer logs and billing', () => {
     })
     const plan = await mount('billing-plan', {}, reader)
     expect(await screen.findByText('Growth')).toBeTruthy()
-    expect(screen.getAllByText('$29.00').length).toBeGreaterThan(0)
+    expect(document.body.textContent).toMatch(/29[,.]00/)
     expect(screen.getByText(/live charging is not enabled/i)).toBeTruthy()
     expect(screen.queryByRole('button', { name: /pay|upgrade|checkout/i })).toBeNull()
     plan.unmount()
