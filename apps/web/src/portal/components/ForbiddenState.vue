@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import RequestIdentifiers from './RequestIdentifiers.vue'
 
-withDefaults(defineProps<{ reason?: 'capability' | 'role' | 'platform-admin' | 'server'; requestId?: string; code?: string }>(), { reason: 'capability', requestId: '', code: '' })
+withDefaults(defineProps<{ reason?: 'capability' | 'role' | 'management-role' | 'platform-admin' | 'server'; requestId?: string; code?: string }>(), { reason: 'capability', requestId: '', code: '' })
 const messages = {
   capability: 'Your current organization access does not include the capability this page needs.',
   role: 'This page needs an owner or admin role in the current organization.',
+  'management-role': 'This settings page requires an authorized management role in the current organization.',
   'platform-admin': 'This area is restricted to verified platform administrators.',
   server: 'The server declined this request for your current session.',
 }

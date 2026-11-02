@@ -1385,7 +1385,8 @@ from .media_assets import router as media_assets_router
 app.include_router(media_assets_router)
 from .payment_attempts import router as payment_attempts_router
 app.include_router(payment_attempts_router)
-from .tenancy import router as tenancy_router
+from .tenancy import register_admin_routes, router as tenancy_router
+register_admin_routes(require)
 app.include_router(tenancy_router)
 from .messaging import router as messaging_router
 app.include_router(messaging_router)
