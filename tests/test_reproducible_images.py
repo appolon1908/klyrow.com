@@ -108,6 +108,22 @@ def test_postal_runtime_is_patched_from_immutable_os_and_gem_inputs():
     assert "rm -f /etc/apt/sources.list.d/*" in dockerfile
     assert "apt-get dist-upgrade -y" in dockerfile
     assert "libssh2-1)\" = '1.10.0-3+deb12u1'" in dockerfile
+    assert "20261102T000000Z" in dockerfile
+    assert "--only-upgrade" in dockerfile
+    for package, version in (
+        ("libbrotli1", "1.0.9-2+deb12u1"),
+        ("libssl-dev", "3.0.22-1~deb12u2"),
+        ("libssl3", "3.0.22-1~deb12u2"),
+        ("openssl", "3.0.22-1~deb12u2"),
+    ):
+        assert f"{package}={version}" in dockerfile
+        assert f"{package})\" = '{version}'" in dockerfile
+    assert 'gem "rack", "= 3.2.8"' in gemfile
+    assert "rack (3.2.8) sha256=" in lock
+    assert '"rack"=>"3.2.8"' in dockerfile
+    assert "/usr/local/bundle/gems/rack-3.2.6" in dockerfile
+    assert "/usr/local/bundle/cache/rack-3.2.6.gem" in dockerfile
+    assert "/usr/local/bundle/specifications/rack-3.2.6.gemspec" in dockerfile
     assert "setcap -r /usr/local/bin/ruby" in dockerfile
     assert 'test -z "$(getcap /usr/local/bin/ruby)"' in dockerfile
     os_patch_layer = dockerfile.split(
