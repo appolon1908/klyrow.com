@@ -6,9 +6,18 @@ import httpx
 INDETERMINATE = "INDETERMINATE"
 
 
-def provider_outcome_is_ambiguous(exc: Exception) -> bool:
-    """Return true when Postal may have accepted a request before failure."""
+class ProviderSubmissionIndeterminate(RuntimeError):
+    """Transport crossed its submission boundary without a durable outcome.
 
+    Messages must be constant safe codes, never raw provider replies or content.
+    """
+
+
+def provider_outcome_is_ambiguous(exc: Exception) -> bool:
+    """Return true when the selected provider may already have accepted work."""
+
+    if isinstance(exc, ProviderSubmissionIndeterminate):
+        return True
     if isinstance(exc, httpx.HTTPStatusError):
         return exc.response.status_code >= 500
     return isinstance(exc, (httpx.TimeoutException, httpx.NetworkError, httpx.RemoteProtocolError))

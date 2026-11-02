@@ -31,6 +31,13 @@ for file in database-owner-password database-runtime-password session-secret res
   mode="$(stat -c %a "$path")"
   [[ "$mode" = 400 || "$mode" = 440 || "$mode" = 600 || "$mode" = 640 ]] || fail "unsafe mode $mode on $file"
 done
+for file in ses-smtp-username ses-smtp-password; do
+  path="$KLYROW_STAGING_SECRET_DIR/$file"
+  [[ -f "$path" && ! -L "$path" ]] || fail "missing regular SES secret file: $file"
+  [[ "$(stat -c %u "$path")" = 10001 ]] || fail "service-owned secret required (uid 10001): $file"
+  mode="$(stat -c %a "$path")"
+  [[ "$mode" = 400 || "$mode" = 600 ]] || fail "unsafe mode $mode on $file"
+done
 docker compose --env-file "$ENV_FILE" -f "$ROOT/deploy/staging/compose.yml" config --quiet
 docker compose --env-file "$ENV_FILE" -f "$ROOT/deploy/staging/compose.yml" config | grep -Eq 'published: "?(80|443)"?$' || fail "edge ports missing"
 if docker compose --env-file "$ENV_FILE" -f "$ROOT/deploy/staging/compose.yml" config | grep -Eq 'published: "?(3000|3100|3200|7700|9090|9093|9100|12345)"?$'; then
