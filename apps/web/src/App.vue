@@ -17,11 +17,45 @@ const strength = computed(() => score.value < 3 ? t('weak') : score.value < 5 ? 
 const requestedReturnTo = new URLSearchParams(location.search).get('return_to')
 const returnTo = computed(() => safeReturnPath(requestedReturnTo, view.value === 'signup' ? '/onboarding' : '/app'))
 const initiation = computed(() => `${view.value === 'signup' ? '/auth/signup' : '/auth/login'}?return_to=${encodeURIComponent(returnTo.value)}`)
+const isLegal = computed(() => view.value === 'terms' || view.value === 'privacy')
+const legalSections = computed(() => {
+  const english = {
+    terms: [
+      ['Authorized use', 'Use Klyrow only for lawful, authorized email and workspace operations. Do not use the service to send abusive, deceptive, unsolicited, or prohibited content.'],
+      ['Accounts and security', 'Keep access to your workspace secure and use only accounts, domains, senders, and credentials you are authorized to control. Klyrow identity is brokered through the approved authentication system.'],
+      ['Sending controls', 'Consent, suppression, domain verification, quotas, and provider safety gates may restrict sending. Features can remain disabled until operational checks are satisfied.'],
+      ['Service operation', 'Klyrow may update or temporarily limit features to protect customers, infrastructure, deliverability, and security.']
+    ],
+    privacy: [
+      ['Data processed', 'Klyrow processes account and workspace information, configuration data, email-operation metadata, delivery events, and security/audit records needed to operate the service.'],
+      ['How data is used', 'Data is used to provide workspace features, authenticate users, route authorized operations, troubleshoot delivery, enforce safety controls, and maintain auditability.'],
+      ['Service providers', 'Infrastructure and delivery providers receive only the information required for the services they perform, subject to the configured Klyrow integration and provider controls.'],
+      ['Security and retention', 'Klyrow applies access controls, audit records, least-privilege service roles, and retention controls appropriate to operational and security requirements.']
+    ]
+  }
+  const spanish = {
+    terms: [
+      ['Uso autorizado', 'Usa Klyrow únicamente para operaciones legales y autorizadas de correo y espacios de trabajo. No uses el servicio para contenido abusivo, engañoso, no solicitado o prohibido.'],
+      ['Cuentas y seguridad', 'Mantén seguro el acceso a tu espacio y utiliza solo cuentas, dominios, remitentes y credenciales que estés autorizado a controlar.'],
+      ['Controles de envío', 'El consentimiento, las supresiones, la verificación de dominios, las cuotas y las compuertas de seguridad pueden limitar los envíos.'],
+      ['Operación del servicio', 'Klyrow puede actualizar o limitar temporalmente funciones para proteger a los clientes, la infraestructura, la entregabilidad y la seguridad.']
+    ],
+    privacy: [
+      ['Datos procesados', 'Klyrow procesa información de cuenta y espacio de trabajo, configuración, metadatos de operaciones de correo, eventos de entrega y registros de seguridad y auditoría necesarios para operar el servicio.'],
+      ['Uso de los datos', 'Los datos se usan para ofrecer funciones, autenticar usuarios, enrutar operaciones autorizadas, resolver problemas de entrega y aplicar controles de seguridad.'],
+      ['Proveedores de servicio', 'Los proveedores de infraestructura y entrega reciben únicamente la información necesaria para prestar los servicios configurados.'],
+      ['Seguridad y retención', 'Klyrow aplica controles de acceso, auditoría, roles de mínimo privilegio y controles de retención según las necesidades operativas y de seguridad.']
+    ]
+  }
+  const copy = locale.value === 'es' ? spanish : english
+  return view.value === 'terms' ? copy.terms : copy.privacy
+})
 
 const content: Partial<Record<AuthView, [MessageKey, MessageKey]>> = {
   'verify-email':['verifyTitle','verifyBody'], 'verification-expired':['expiredVerifyTitle','expiredVerifyBody'], 'verification-success':['verifiedTitle','verifiedBody'],
   'forgot-password':['forgotTitle','forgotBody'], 'reset-sent':['sentTitle','sentBody'], 'reset-password':['resetTitle','resetBody'], 'reset-expired':['resetExpiredTitle','resetExpiredBody'],
-  'reset-success':['resetSuccessTitle','resetSuccessBody'], invite:['inviteTitle','inviteBody'], 'logged-out':['loggedOutTitle','loggedOutBody'], 'service-error':['serviceTitle','serviceBody'], 'account-disabled':['disabledTitle','disabledBody']
+  'reset-success':['resetSuccessTitle','resetSuccessBody'], invite:['inviteTitle','inviteBody'], 'logged-out':['loggedOutTitle','loggedOutBody'], 'service-error':['serviceTitle','serviceBody'], 'account-disabled':['disabledTitle','disabledBody'],
+  terms:['termsPageTitle','termsPageBody'], privacy:['privacyPageTitle','privacyPageBody']
 }
 const title = computed(() => view.value === 'login' ? t('loginTitle') : view.value === 'signup' ? t('signupTitle') : t(content[view.value]![0]))
 const body = computed(() => {
@@ -113,7 +147,7 @@ onMounted(() => { document.documentElement.lang = locale.value; addEventListener
     <main id="auth-main" class="auth-main">
       <header class="mobile-header"><a class="brand" href="/login"><span class="brand-mark" aria-hidden="true">K</span><span>Klyrow</span></a><p>{{ t('value') }}</p></header>
       <div class="language"><label for="language">{{ t('language') }}</label><select id="language" :value="locale" @change="setLocale(($event.target as HTMLSelectElement).value as Locale)"><option value="en">{{ t('english') }}</option><option value="es">{{ t('spanish') }}</option></select></div>
-      <section class="auth-card" :aria-busy="busy">
+      <section class="auth-card" :class="{ 'legal-card': isLegal }" :aria-busy="busy">
         <div class="state-icon" aria-hidden="true" v-if="view !== 'login' && view !== 'signup'">{{ ['verification-success','reset-success','logged-out'].includes(view) ? '✓' : ['service-error','account-disabled'].includes(view) ? '!' : '✦' }}</div>
         <h1 ref="heading" tabindex="-1">{{ title }}</h1><p class="intro">{{ body }}</p>
         <p v-if="formError" class="alert error" role="alert"><strong>{{ t('errorIcon') }}</strong> {{ formError }}</p>
@@ -137,6 +171,13 @@ onMounted(() => { document.documentElement.lang = locale.value; addEventListener
         <form v-else-if="view === 'forgot-password'" novalidate @submit.prevent="submit('forgot')"><div class="field"><label for="recovery-email">{{ t('email') }}</label><input id="recovery-email" v-model="email" type="email" autocomplete="email" :aria-invalid="!!errors.email" aria-describedby="recovery-error"><p id="recovery-error" class="field-error">{{ errors.email }}</p></div><button class="button primary" :disabled="busy" type="submit"><span v-if="busy" class="spinner" aria-hidden="true"></span>{{ busy ? t('loading') : t('sendReset') }}</button></form>
         <form v-else-if="view === 'reset-password'" novalidate @submit.prevent="submit('reset')"><p class="hint">{{ t('security') }}</p><button class="button primary" :disabled="busy" type="submit"><span v-if="busy" class="spinner" aria-hidden="true"></span>{{ busy ? t('loading') : t('updatePassword') }}</button></form>
         <form v-else-if="view === 'invite'" novalidate @submit.prevent="submit('invite')"><div class="field"><label for="invite">{{ t('inviteCode') }}</label><input id="invite" v-model="invite" autocomplete="off" :aria-invalid="!!errors.invite" aria-describedby="invite-error"><p id="invite-error" class="field-error">{{ errors.invite }}</p></div><button class="button primary" :disabled="busy" type="submit"><span v-if="busy" class="spinner" aria-hidden="true"></span>{{ busy ? t('loading') : t('validateInvite') }}</button></form>
+        <div v-else-if="isLegal" class="legal-copy">
+          <section v-for="section in legalSections" :key="section[0]">
+            <h2>{{ section[0] }}</h2>
+            <p>{{ section[1] }}</p>
+          </section>
+          <a class="button secondary" href="/login" @click.prevent="go('login')">{{ t('returnLogin') }}</a>
+        </div>
         <div v-else class="state-actions">
           <button v-if="view === 'verify-email' || view === 'verification-expired'" class="button primary" :disabled="busy" @click="resend">{{ busy ? t('loading') : t('resend') }}</button>
           <a v-if="view === 'verify-email'" class="button secondary" href="/signup" @click.prevent="go('signup')">{{ t('different') }}</a>

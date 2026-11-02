@@ -606,6 +606,12 @@
     "path": "/portal"
   },
   {
+    "documented": false,
+    "handler": "auth_page",
+    "method": "GET",
+    "path": "/privacy"
+  },
+  {
     "documented": true,
     "handler": "readiness_alias",
     "method": "GET",
@@ -664,6 +670,12 @@
     "handler": "consume_tracking_token",
     "method": "GET",
     "path": "/t/{kind}/{token}"
+  },
+  {
+    "documented": false,
+    "handler": "auth_page",
+    "method": "GET",
+    "path": "/terms"
   },
   {
     "documented": true,
