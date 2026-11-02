@@ -26,7 +26,7 @@ TOPIC_SUFFIX = ":codestra-klyrow-ses-events"
 REGION = "us-east-1"
 CONFIGURATION_SET = "codestra-klyrow-transactional"
 SOURCE_DOMAINS = frozenset({"codestra.agency", "klyrow.com"})
-CANONICAL_FIELDS = ("Message", "MessageId", "Subject", "Type", "Timestamp", "TopicArn")
+CANONICAL_FIELDS = ("Message", "MessageId", "Subject", "Timestamp", "TopicArn", "Type")
 SIMPLE_TYPES = {
     "Send": "provider_accepted",
     "Delivery": "delivered",
@@ -36,7 +36,8 @@ SIMPLE_TYPES = {
     "Rendering Failure": "failed",
 }
 SOFT_STATUSES = frozenset({"provider_accepted", "deferred"})
-TERMINAL_STATUSES = frozenset({"delivered", "bounced", "complained", "failed"})
+TERMINAL_PRIORITY = {"delivered": 0, "failed": 1, "bounced": 2, "complained": 3}
+TERMINAL_STATUSES = frozenset(TERMINAL_PRIORITY)
 
 
 class SESFeedbackDenied(ValueError):
@@ -201,7 +202,7 @@ def reconcile_feedback(event: SESFeedback, *, session_factory=None) -> str:
 
     Return 'ack' or 'duplicate' only after commit. 'unmatched' remains in SQS.
     """
-    from .main import Audit, DB, EmailOutbox, Event, Message, Replay, Suppression, set_core_message_status
+    from .main import Audit, DB, EmailOutbox, Event, Message, Replay, Suppression, bind_tenant_rls, set_core_message_status
     from .webmail import update_outbound_status
     factory = session_factory or DB
     replay_id = "ses-sns:" + hashlib.sha256(event.sns_message_id.encode()).hexdigest()
@@ -225,9 +226,16 @@ def reconcile_feedback(event: SESFeedback, *, session_factory=None) -> str:
             or message.recipient.lower() != event.recipient
         ):
             return "unmatched"
-        # Do not regress a delivered/bounced/complained record from a late Send/delay.
+        # Only the trusted, matched outbox supplies the transaction's tenant.
+        # Runtime PostgreSQL roles cannot see webmail projections without it.
+        bind_tenant_rls(session, outbox.tenant_id)
+        # SNS delivery can be reordered. A delayed success/soft event must not
+        # erase a failure, permanent bounce or complaint already reconciled.
         status = event.status
-        if message.status in TERMINAL_STATUSES and status in SOFT_STATUSES:
+        if message.status in TERMINAL_STATUSES and (
+            status in SOFT_STATUSES
+            or TERMINAL_PRIORITY.get(status, -1) < TERMINAL_PRIORITY[message.status]
+        ):
             status = message.status
         set_core_message_status(message, status)
         if status in TERMINAL_STATUSES:

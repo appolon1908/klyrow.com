@@ -7,7 +7,10 @@ import re
 import smtplib
 import ssl
 import stat
+from email.header import Header
+from email.headerregistry import HeaderRegistry
 from email.message import EmailMessage
+from email.policy import SMTP
 from pathlib import Path
 
 from .delivery_safety import live_email_delivery_enabled
@@ -19,6 +22,28 @@ SES_REGION = "us-east-1"
 SES_CONFIG_SET = "codestra-klyrow-transactional"
 SIMULATOR_RECIPIENT = "success@simulator.amazonses.com"
 ALLOWED_DOMAINS = frozenset({"codestra.agency", "klyrow.com"})
+
+
+class _GovernedReplyHeader:
+    """Keep msg-id tokens literal instead of interpreting RFC 2047 words."""
+
+    max_count = 1
+
+    @classmethod
+    def parse(cls, value, kwds):
+        kwds["decoded"] = value
+        kwds["parse_tree"] = None
+
+    def fold(self, *, policy):
+        value = Header(str(self), charset="us-ascii", header_name=self.name,
+                       maxlinelen=998).encode(linesep=policy.linesep)
+        return self.name + ": " + value + policy.linesep
+
+
+_reply_header_factory = HeaderRegistry()
+for _header_name in ("Message-ID", "In-Reply-To", "References"):
+    _reply_header_factory.map_to_type(_header_name, _GovernedReplyHeader)
+_smtp_policy = SMTP.clone(header_factory=_reply_header_factory)
 
 
 def _secret_file(key: str) -> str:
@@ -89,17 +114,33 @@ def _submit_smtp(payload: dict, *, correlation_id: str) -> str:
     if not plain and not html:
         raise RuntimeError("ses_body_required")
 
+    headers = payload.get("headers", {})
+    if not isinstance(headers, dict) or not set(headers) <= {"Message-ID", "In-Reply-To", "References"}:
+        raise RuntimeError("ses_headers_invalid")
+    if any(not isinstance(value, str) or not value or len(value) > 4096
+           or not value.isascii() or "\r" in value or "\n" in value
+           or any(len(token) > 997 for token in value.split())
+           for value in headers.values()):
+        raise RuntimeError("ses_headers_invalid")
+
     username = _secret_file("KLYROW_SES_SMTP_USERNAME_FILE")
     password = _secret_file("KLYROW_SES_SMTP_PASSWORD_FILE")
-    msg = EmailMessage()
+    msg = EmailMessage(policy=_smtp_policy)
     msg["From"] = sender
     msg["To"] = recipient
     msg["Subject"] = subject
+    for name, value in headers.items():
+        msg[name] = value
     msg["X-SES-CONFIGURATION-SET"] = SES_CONFIG_SET
     msg["X-SES-MESSAGE-TAGS"] = "application=klyrow,environment=" + ("staging" if canary_only == "true" else "production")
     msg.set_content(plain or "HTML content available.")
     if html:
         msg.add_alternative(html, subtype="html")
+    # Reply headers fold only between tokens. Refuse unrepresentable lines
+    # before opening SMTP; body transfer encoding retains normal MIME limits.
+    wire_message = msg.as_bytes()
+    if any(len(line) > 998 for line in wire_message.split(b"\r\n")):
+        raise RuntimeError("ses_headers_invalid")
 
     provider_id = None
     submission_error = None
@@ -116,7 +157,7 @@ def _submit_smtp(payload: dict, *, correlation_id: str) -> str:
             if status not in (250, 251):
                 raise smtplib.SMTPRecipientsRefused({recipient: (status, details)})
             try:
-                status, details = client.data(msg.as_bytes())
+                status, details = client.data(wire_message)
             except smtplib.SMTPDataError:
                 # Explicit rejection of DATA before the body was transmitted.
                 raise
