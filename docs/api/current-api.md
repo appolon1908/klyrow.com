@@ -30,6 +30,10 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/admin` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `platform_admin_ui` |
 | GET | `/admin/{path:path}` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `platform_admin_ui` |
 | GET | `/app` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `product_app_ui` |
+| GET | `/app/api/admin/abuse` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_admin_abuse` |
+| GET | `/app/api/admin/audit` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_admin_audit` |
+| GET | `/app/api/admin/billing/overview` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_admin_billing_overview` |
+| GET | `/app/api/admin/billing/subscriptions` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_admin_billing_subscriptions` |
 | GET | `/app/api/admin/dashboard` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `platform_dashboard` |
 | GET | `/app/api/admin/observability/billing` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `billing_suite_observability` |
 | GET | `/app/api/admin/observability/operations-center` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `operations_center` |
@@ -41,6 +45,9 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/admin/observability/webmail-postal/slo` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `webmail_postal_slo` |
 | GET | `/app/api/admin/observability/webmail-postal/traces/{correlation_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `webmail_postal_trace` |
 | GET | `/app/api/admin/provisioning/postal` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `admin_provisioning` |
+| GET | `/app/api/admin/reconciliation` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_admin_reconciliation` |
+| GET | `/app/api/admin/reconciliation/billing` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_admin_billing_reconciliation` |
+| GET | `/app/api/admin/reconciliation/{run_id}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_admin_reconciliation_detail` |
 | GET | `/app/api/admin/security/platform-owner` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_platform_owner_status` |
 | GET | `/app/api/billing/capabilities` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `capabilities` |
 | GET | `/app/api/billing/catalog` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `catalog` |
@@ -256,7 +263,13 @@ This inventories the composed platform, including hidden compatibility and brows
 | PATCH | `/v1/organizations/{organization_id}/members/{member_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `organization_member_patch` |
 | PATCH | `/v1/team/members/{user_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `role_change` |
 | PATCH | `/v1/templates/{template_id}` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `template_patch` |
+| POST | `/app/api/admin/abuse/alerts/{alert_id}/state` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_admin_abuse_alert_state` |
+| POST | `/app/api/admin/abuse/evaluate` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_admin_abuse_evaluate` |
+| POST | `/app/api/admin/abuse/suspensions` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_admin_abuse_suspend` |
+| POST | `/app/api/admin/abuse/suspensions/{item_id}/release` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_admin_abuse_release` |
+| POST | `/app/api/admin/billing/dunning` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_admin_billing_dunning` |
 | POST | `/app/api/admin/provisioning/postal/{tenant_id}/retry` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `admin_retry_provisioning` |
+| POST | `/app/api/admin/reconciliation` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `browser_admin_reconciliation_run` |
 | POST | `/app/api/billing/invoices/{invoice_id}/checkout` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `checkout_invoice` |
 | POST | `/app/api/billing/subscription/cancel` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `cancel_subscription` |
 | POST | `/app/api/billing/subscription/change` | BROWSER_BFF | BROWSER_SESSION_COOKIE_AND_REQUIRED_CSRF_HEADER | true | `change_subscription` |
