@@ -34,6 +34,7 @@ def test_web_runtime_does_not_retain_nondeterministic_package_log():
     assert "apk upgrade" not in dockerfile
     assert (
         "apk add --no-cache --no-network "
+        "./brotli-libs-1.2.1-r0.apk ./curl-8.23.0-r0.apk ./libcurl-8.23.0-r0.apk "
         "./libexpat-2.9.0-r0.apk ./libuuid-2.42.3-r1.apk "
         "./libx11-1.8.14-r0.apk ./pcre2-10.49-r0.apk ./tiff-4.7.2-r0.apk"
     ) in dockerfile
@@ -41,6 +42,12 @@ def test_web_runtime_does_not_retain_nondeterministic_package_log():
     assert "--repository" not in dockerfile
     assert "dl-cdn.alpinelinux.org" not in dockerfile
     assert checksums == (
+        "62a7e37e43bbfc1f8525a00ad2125fd5897135dc93b849733884cb78ffd8e26c  "
+        "brotli-libs-1.2.1-r0.apk\n"
+        "531ae298451a4c1c44f563fc3b2eedc2c1d7e0a26a33bdfc0efe6faaff6a5942  "
+        "curl-8.23.0-r0.apk\n"
+        "1f70ca404818805a6465b615bbfe84ef861488a963d7e630108ebd7fbaa51665  "
+        "libcurl-8.23.0-r0.apk\n"
         "32b127f31e0a919110a18a7f0bb3780d8fb66ba4d8d61b2d301d633f0e319d0e  "
         "libexpat-2.9.0-r0.apk\n"
         "8306e5bb577696c9069fe1dfd9e1dcc39d2d481c6a1b0e707fd03c3e21aa6aa2  "
@@ -60,6 +67,9 @@ def test_web_runtime_does_not_retain_nondeterministic_package_log():
         assert f"apk verify --keys-dir /etc/apk/keys {package}" in dockerfile
         assert f"./{package}" in dockerfile
     for package in (
+        "brotli-libs=1.2.1-r0",
+        "curl=8.23.0-r0",
+        "libcurl=8.23.0-r0",
         "libexpat=2.9.0-r0",
         "libuuid=2.42.3-r1",
         "libx11=1.8.14-r0",
