@@ -45,7 +45,8 @@ services:
       KLYROW_ENV: production
       KLYROW_IDENTITY_PROFILE: staging
       KLYROW_LOCAL_AUTH_ENABLED: "false"
-      KLYROW_REQUIRED_SCHEMA_VERSION: "2026091001_customer_data_lifecycle.sql"
+      KLYROW_EMBEDDED_WORKERS: "false"
+      KLYROW_REQUIRED_SCHEMA_VERSION: "2026091302_m07_business_event_runtime.sql"
       KLYROW_PUBLIC_URL: https://${KLYROW_STAGING_HOST:?required}
       KLYROW_OIDC_CLIENT_ID: ${KLYROW_OIDC_CLIENT_ID:?required}
       KLYROW_OIDC_AUDIENCE: ${KLYROW_OIDC_AUDIENCE:?required}
@@ -78,6 +79,56 @@ services:
       search: {condition: service_healthy}
     healthcheck:
       test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+
+  mail-worker:
+    <<: *runtime
+    image: ${KLYROW_GATEWAY_IMAGE:?immutable gateway digest required}
+    environment:
+      KLYROW_ENV: production
+      KLYROW_IDENTITY_PROFILE: staging
+      KLYROW_LOCAL_AUTH_ENABLED: "false"
+      KLYROW_WORKER_ROLE: mail
+      KLYROW_WORKER_HEALTH_PORT: "8080"
+      KLYROW_EMAIL_TRANSPORT: ses
+      KLYROW_SES_REGION: us-east-1
+      KLYROW_SES_CONFIGURATION_SET: codestra-klyrow-transactional
+      KLYROW_SES_CANARY_ONLY: "true"
+      KLYROW_SES_LIVE_APPROVED: "false"
+      KLYROW_PRODUCTION_GATE_APPROVED: "false"
+      KLYROW_SAFE_MODE: "true"
+      LIVE_EMAIL_DELIVERY: "false"
+      EXTERNAL_EMAIL_DELIVERY: "false"
+      PRODUCTION_PROVIDER_ROUTING: "false"
+      MARKETING_DELIVERY: "false"
+      KLYROW_BULK_DELIVERY_ENABLED: "false"
+      KLYROW_CAMPAIGN_DELIVERY_ENABLED: "false"
+      KLYROW_CAMPAIGN_EXECUTION_MODE: CAMPAIGN_EXECUTION_DISABLED
+      KLYROW_DATABASE_URL: postgresql+psycopg://klyrow_runtime@postgres:5432/klyrow
+      KLYROW_DATABASE_PASSWORD_FILE: /run/secrets/database_password
+      KLYROW_SESSION_SECRET_FILE: /run/secrets/session_secret
+      KLYROW_DURABLE_RESULT_KEYRING_FILE: /run/secrets/result_keyring
+      KLYROW_METRICS_TOKEN_FILE: /run/secrets/metrics_token
+      KLYROW_MIDDLEWARE_API_KEY_FILE: /run/secrets/middleware_token
+      KLYROW_WEBHOOK_SECRET_FILE: /run/secrets/webhook_secret
+      KLYROW_PROVIDER_CREDENTIAL_KEY_FILE: /run/secrets/provider_credential_key
+      KLYROW_SERVER_A_CA_FILE: /run/secrets/middleware_ca
+      KLYROW_SERVER_A_CLIENT_CERT_FILE: /run/secrets/middleware_cert
+      KLYROW_SERVER_A_CLIENT_KEY_FILE: /run/secrets/middleware_key
+      KLYROW_EMAIL_EVENT_URL: ${KLYROW_EMAIL_EVENT_URL:?required}
+      KLYROW_SES_SMTP_USERNAME_FILE: /run/secrets/klyrow_ses_smtp_username
+      KLYROW_SES_SMTP_PASSWORD_FILE: /run/secrets/klyrow_ses_smtp_password
+      KLYROW_REQUIRED_SCHEMA_VERSION: "2026091302_m07_business_event_runtime.sql"
+    command: [python, -m, app.service_worker]
+    secrets: [database_password, session_secret, result_keyring, metrics_token, middleware_token, webhook_secret, provider_credential_key, middleware_ca, middleware_cert, middleware_key, klyrow_ses_smtp_username, klyrow_ses_smtp_password]
+    depends_on:
+      postgres: {condition: service_healthy}
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/')"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -197,3 +248,5 @@ secrets:
   middleware_ca: {file: "${KLYROW_STAGING_SECRET_DIR}/middleware-ca.pem"}
   middleware_cert: {file: "${KLYROW_STAGING_SECRET_DIR}/middleware-client.pem"}
   middleware_key: {file: "${KLYROW_STAGING_SECRET_DIR}/middleware-client-key.pem"}
+  klyrow_ses_smtp_username: {file: "${KLYROW_STAGING_SECRET_DIR}/ses-smtp-username"}
+  klyrow_ses_smtp_password: {file: "${KLYROW_STAGING_SECRET_DIR}/ses-smtp-password"}

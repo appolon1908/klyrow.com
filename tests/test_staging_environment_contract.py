@@ -48,6 +48,50 @@ def test_staging_is_fail_closed_for_external_delivery():
     assert env["KLYROW_PROVIDER_CREDENTIAL_KEY_FILE"] == "/run/secrets/provider_credential_key"
 
 
+def test_staging_has_dedicated_fail_closed_ses_mail_worker():
+    compose = yaml.safe_load((STAGING / "compose.yml").read_text())
+    worker = compose["services"]["mail-worker"]
+    gateway = compose["services"]["gateway"]
+    env = worker["environment"]
+
+    assert worker["image"] == "${KLYROW_GATEWAY_IMAGE:?immutable gateway digest required}"
+    assert worker["command"] == ["python", "-m", "app.service_worker"]
+    assert "ports" not in worker
+    assert gateway["environment"]["KLYROW_EMBEDDED_WORKERS"] == "false"
+    assert env["KLYROW_WORKER_ROLE"] == "mail"
+    expected_schema = "2026091302_m07_business_event_runtime.sql"
+    assert gateway["environment"]["KLYROW_REQUIRED_SCHEMA_VERSION"] == expected_schema
+    assert env["KLYROW_REQUIRED_SCHEMA_VERSION"] == expected_schema
+    assert env["KLYROW_EMAIL_TRANSPORT"] == "ses"
+    assert env["KLYROW_SES_REGION"] == "us-east-1"
+    assert env["KLYROW_SES_CONFIGURATION_SET"] == "codestra-klyrow-transactional"
+    assert env["KLYROW_SES_CANARY_ONLY"] == "true"
+    assert env["KLYROW_SES_LIVE_APPROVED"] == "false"
+    assert env["KLYROW_SAFE_MODE"] == "true"
+    assert env["KLYROW_PRODUCTION_GATE_APPROVED"] == "false"
+    assert env["LIVE_EMAIL_DELIVERY"] == "false"
+    assert env["EXTERNAL_EMAIL_DELIVERY"] == "false"
+    assert env["PRODUCTION_PROVIDER_ROUTING"] == "false"
+    assert env["KLYROW_SES_SMTP_USERNAME_FILE"] == "/run/secrets/klyrow_ses_smtp_username"
+    assert env["KLYROW_SES_SMTP_PASSWORD_FILE"] == "/run/secrets/klyrow_ses_smtp_password"
+    assert "klyrow_ses_smtp_username" in worker["secrets"]
+    assert "klyrow_ses_smtp_password" in worker["secrets"]
+    assert compose["secrets"]["klyrow_ses_smtp_username"]["file"].endswith("/ses-smtp-username")
+    assert compose["secrets"]["klyrow_ses_smtp_password"]["file"].endswith("/ses-smtp-password")
+
+    preflight = (ROOT / "scripts" / "staging-preflight").read_text()
+    assert "ses-smtp-username" in preflight
+    assert "ses-smtp-password" in preflight
+
+
+def test_staging_ses_credentials_are_service_readable_and_private():
+    preflight = (ROOT / "scripts" / "staging-preflight").read_text()
+    assert "for file in ses-smtp-username ses-smtp-password; do" in preflight
+    assert '[[ "$(stat -c %u "$path")" = 10001 ]]' in preflight
+    assert 'service-owned secret required' in preflight
+    assert '[[ "$mode" = 400 || "$mode" = 600 ]]' in preflight
+
+
 def test_keycloak_client_requires_pkce_and_disables_password_grant():
     realm = json.loads((STAGING / "keycloak" / "klyrow-staging-client.json").read_text())
     client = next(item for item in realm["clients"] if item["clientId"] == "klyrow-staging-portal")
