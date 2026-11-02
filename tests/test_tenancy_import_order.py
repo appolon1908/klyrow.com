@@ -8,7 +8,7 @@ import sys
 import pytest
 
 
-@pytest.mark.parametrize("first_module", ["tenancy", "auth_bff", "platform_owner"])
+@pytest.mark.parametrize("first_module", ["tenancy", "auth_bff", "platform_owner", "browser_observability"])
 def test_early_tenancy_import_preserves_core_admin_authentication(first_module):
     code = f"""
 import importlib
@@ -31,6 +31,11 @@ response = TestClient(app).post('/v1/admin/oidc-identities', json={{
     'subject': 'untrusted-subject', 'user_id': 'untrusted-user',
     'identity_type': 'KLYROW_ONLY',
 }})
+assert response.status_code == 401, response.text
+observability_path = "/app/api/admin/observability/webmail-postal"
+assert len([route for route in _api_route_contexts(app)
+            if route.path == observability_path]) == 1
+response = TestClient(app).get(observability_path)
 assert response.status_code == 401, response.text
 """
     env = {
