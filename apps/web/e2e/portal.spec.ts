@@ -163,7 +163,7 @@ test('10. billing pages expose authoritative plan and usage without live payment
   await expect(page.getByText('Growth').first()).toBeVisible()
   await expect(page.getByText(/live charging is not enabled/i)).toBeVisible()
   await page.goto('/app/billing/usage')
-  await expect(page.getByRole('heading', { name: 'Usage' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Usage', exact: true, level: 1 })).toBeVisible()
   await expect(page.getByRole('table', { name: 'Billing usage history' })).toContainText('12')
   await expect(page.getByText('988')).toBeVisible()
 })
