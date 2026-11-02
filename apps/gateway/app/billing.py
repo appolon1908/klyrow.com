@@ -307,9 +307,15 @@ def credit_note(invoice_id:str,x:CreditNoteIn,ctx=Depends(auth),s:Session=Depend
 
 @router.post("/admin/billing/dunning")
 def dunning(x:DunningIn,ctx=Depends(require("platform_admin")),s:Session=Depends(db)):
+    return _run_dunning(x,ctx,s)
+
+def _run_dunning(x:DunningIn,ctx:dict,s:Session,*,tenant_id:str|None=None):
     changed=[];current=now()
-    for inv in s.scalars(select(Invoice).where(Invoice.status.in_(("OPEN","PAST_DUE")),Invoice.due_at<current).with_for_update()).all():
-        due_at=inv.due_at if inv.due_at.tzinfo else inv.due_at.replace(tzinfo=timezone.utc);overdue=(current-due_at).days;sub=s.get(BillingSubscription,inv.subscription_id)
+    query=select(Invoice).where(Invoice.status.in_(("OPEN","PAST_DUE")),Invoice.due_at<current)
+    if tenant_id is not None:query=query.where(Invoice.tenant_id==tenant_id)
+    for inv in s.scalars(query.with_for_update()).all():
+        due_at=inv.due_at if inv.due_at.tzinfo else inv.due_at.replace(tzinfo=timezone.utc);overdue=(current-due_at).days
+        sub=s.scalar(select(BillingSubscription).where(BillingSubscription.id==inv.subscription_id,BillingSubscription.tenant_id==inv.tenant_id))
         inv.status="PAST_DUE"
         target="SUSPENDED" if overdue>=x.suspend_days else "GRACE_PERIOD" if overdue>=x.grace_days else "PAST_DUE"
         if sub and sub.status not in {"CANCELLED","CLOSED"}:sub.status=target;sub.version+=1

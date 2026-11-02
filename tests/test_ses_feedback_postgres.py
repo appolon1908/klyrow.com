@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 @pytest.mark.skipif(not os.getenv("KLYROW_CONTRACT_POSTGRES_URL"), reason="Requires disposable PostgreSQL")
 def test_ses_feedback_updates_only_matched_webmail_under_runtime_rls():
     from apps.gateway.app import main
+    from apps.gateway.app.provider import ProviderEvent
     from apps.gateway.app.ses_feedback import SESFeedback, reconcile_feedback
     from apps.gateway.app.webmail_models import WebmailMailbox, WebmailMessage
 
@@ -31,7 +32,7 @@ def test_ses_feedback_updates_only_matched_webmail_under_runtime_rls():
         # Only the actual models reached by reconciliation and webmail lookup.
         main.Base.metadata.create_all(owner, tables=[model.__table__ for model in (
             main.Tenant, main.Message, main.EmailOutbox, main.Replay, main.Event,
-            main.Audit, main.Suppression, WebmailMailbox, WebmailMessage,
+            main.Audit, main.Suppression, WebmailMailbox, WebmailMessage, ProviderEvent,
         )])
         with Session(owner) as session:
             for tenant in ("tenant-a", "tenant-b"):
@@ -94,6 +95,10 @@ def test_ses_feedback_updates_only_matched_webmail_under_runtime_rls():
             assert session.get(WebmailMessage, "webmail-tenant-b").delivery_status == "SUBMITTED"
             assert session.query(main.Event).count() == 1
             assert session.query(main.Replay).count() == 1
+            callback = session.query(ProviderEvent).one()
+            assert (callback.tenant_id, callback.kind, callback.state) == (
+                "tenant-a", "email.delivered", "PENDING",
+            )
         assert reconcile_feedback(feedback, session_factory=factory) == "duplicate"
         with runtime.connect() as connection:
             assert connection.execute(text("SELECT count(*) FROM webmail_messages")).scalar_one() == 0

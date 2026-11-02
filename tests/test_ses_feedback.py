@@ -230,3 +230,92 @@ def test_malformed_event_content_denied(signer,event,change):
     body=signed_body(signer,event=event,changes=change)
     with pytest.raises(SESFeedbackDenied):
         verified_ses_event(body,topic_arn=TOPIC,certificate_loader=lambda _:signer[1])
+
+
+@pytest.mark.parametrize("status", ["delivered", "bounced", "complained", "failed", "deferred"])
+def test_feedback_persists_correlated_callback_before_ack(status, monkeypatch):
+    from apps.gateway.app.main import EmailOutbox
+    from apps.gateway.app.provider import ProviderEvent
+    monkeypatch.setenv("KLYROW_EMAIL_TRANSPORT", "ses")
+    factory = _session_db()
+    _seed_db(factory)
+    with factory() as session:
+        outbox = session.get(EmailOutbox, "outbox")
+        outbox.operation_id = "middleware-operation"
+        outbox.correlation_id = "middleware-correlation"
+        outbox.attempts = 3
+        session.commit()
+    assert reconcile_feedback(_event(status), session_factory=factory) == "ack"
+    assert reconcile_feedback(_event(status), session_factory=factory) == "duplicate"
+    with factory() as session:
+        callback = session.query(ProviderEvent).one()
+        payload = json.loads(callback.payload_json)
+        assert (callback.tenant_id, callback.message_id, callback.kind, callback.state) == (
+            "tenant-a", "local-message", "email." + status, "PENDING",
+        )
+        assert payload["operation_id"] == "middleware-operation"
+        assert payload["correlation_id"] == "middleware-correlation"
+        assert payload["provider_message_id"] == SEND_ID
+        assert payload["attempt"] == 3
+        assert payload["provider"] == "ses"
+        assert "recipient@example.net" not in callback.payload_json
+
+
+@pytest.mark.parametrize("first,later", [
+    ("delivered", "provider_accepted"), ("delivered", "deferred"),
+    ("delivered", "delivered"), ("bounced", "delivered"),
+    ("complained", "bounced"), ("failed", "delivered"),
+])
+def test_ignored_feedback_does_not_duplicate_outcomes(first, later):
+    from apps.gateway.app.main import Event, Message, Replay
+    from apps.gateway.app.provider import ProviderEvent
+    factory = _session_db()
+    _seed_db(factory)
+    assert reconcile_feedback(_event(first), session_factory=factory) == "ack"
+    ignored = _event(later, sns_id="distinct-delayed-notification-12345")
+    assert reconcile_feedback(ignored, session_factory=factory) == "ack"
+    assert reconcile_feedback(ignored, session_factory=factory) == "duplicate"
+    with factory() as session:
+        assert session.get(Message, "local-message").status == first
+        assert session.query(Event).one().kind == "klyrow.email." + first
+        assert session.query(ProviderEvent).one().kind == "email." + first
+        assert session.query(Replay).count() == 2
+
+
+def test_stronger_terminal_feedback_still_emits_its_own_outcome():
+    from apps.gateway.app.main import Event, Message
+    from apps.gateway.app.provider import ProviderEvent
+    factory = _session_db()
+    _seed_db(factory)
+    for status in ("delivered", "bounced", "complained"):
+        assert reconcile_feedback(_event(status, sns_id="outcome-" + status), session_factory=factory) == "ack"
+    with factory() as session:
+        assert session.get(Message, "local-message").status == "complained"
+        assert {row.kind for row in session.query(Event)} == {
+            "klyrow.email.delivered", "klyrow.email.bounced", "klyrow.email.complained",
+        }
+        assert {row.kind for row in session.query(ProviderEvent)} == {
+            "email.delivered", "email.bounced", "email.complained",
+        }
+
+
+def test_callback_failure_rolls_back_feedback_and_replay(monkeypatch):
+    from apps.gateway.app import main
+    from apps.gateway.app.provider import ProviderEvent
+    factory = _session_db()
+    _seed_db(factory)
+    queue_callback = main.queue_email_lifecycle_event
+
+    def fail_after_queue(*args, **kwargs):
+        queue_callback(*args, **kwargs)
+        raise RuntimeError("synthetic callback persistence failure")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(main, "queue_email_lifecycle_event", fail_after_queue)
+        with pytest.raises(RuntimeError, match="synthetic callback persistence failure"):
+            reconcile_feedback(_event("bounced"), session_factory=factory)
+    with factory() as session:
+        assert session.get(main.Message, "local-message").status == "provider_accepted"
+        for model in (main.Event, main.Replay, main.Suppression, ProviderEvent):
+            assert session.query(model).count() == 0
+    assert reconcile_feedback(_event("bounced"), session_factory=factory) == "ack"

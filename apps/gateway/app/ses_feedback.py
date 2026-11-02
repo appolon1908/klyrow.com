@@ -9,6 +9,7 @@ import base64
 import hashlib
 import json
 import re
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlsplit
@@ -202,7 +203,7 @@ def reconcile_feedback(event: SESFeedback, *, session_factory=None) -> str:
 
     Return 'ack' or 'duplicate' only after commit. 'unmatched' remains in SQS.
     """
-    from .main import Audit, DB, EmailOutbox, Event, Message, Replay, Suppression, bind_tenant_rls, set_core_message_status
+    from .main import Audit, DB, EmailOutbox, Event, Message, Replay, Suppression, bind_tenant_rls, queue_email_lifecycle_event, set_core_message_status
     from .webmail import update_outbound_status
     factory = session_factory or DB
     replay_id = "ses-sns:" + hashlib.sha256(event.sns_message_id.encode()).hexdigest()
@@ -237,23 +238,33 @@ def reconcile_feedback(event: SESFeedback, *, session_factory=None) -> str:
             or TERMINAL_PRIORITY.get(status, -1) < TERMINAL_PRIORITY[message.status]
         ):
             status = message.status
-        set_core_message_status(message, status)
-        if status in TERMINAL_STATUSES:
-            outbox.state = "delivered" if status == "delivered" else "failed"
-        outbox.updated_at = datetime.now(timezone.utc)
-        if status in {"bounced", "complained"}:
-            existing = session.scalar(select(Suppression).where(Suppression.tenant_id == outbox.tenant_id, Suppression.email == event.recipient))
-            if existing is None:
-                import uuid
-                session.add(Suppression(id=str(uuid.uuid4()), tenant_id=outbox.tenant_id, email=event.recipient, reason=status))
-            else:
-                existing.reason = status
-        payload = json.dumps({"provider":"ses", "status":status, "event_type":event.event_type, "provider_id_hash":hashlib.sha256(event.provider_message_id.encode()).hexdigest()},separators=(",",":"))
-        session.add(Event(id=event_id, tenant_id=outbox.tenant_id, message_id=outbox.message_id, kind="klyrow.email."+status, payload=payload))
-        import uuid
-        session.add(Audit(id=str(uuid.uuid4()), tenant_id=outbox.tenant_id, actor="provider:ses", action="email.status."+status))
+        # Different SNS IDs can describe the same or an older outcome. Keep a
+        # replay receipt for each, but count and publish only real transitions.
+        if status != message.status:
+            set_core_message_status(message, status)
+            if status in TERMINAL_STATUSES:
+                outbox.state = "delivered" if status == "delivered" else "failed"
+            outbox.updated_at = datetime.now(timezone.utc)
+            if status in {"bounced", "complained"}:
+                existing = session.scalar(select(Suppression).where(Suppression.tenant_id == outbox.tenant_id, Suppression.email == event.recipient))
+                if existing is None:
+                    session.add(Suppression(id=str(uuid.uuid4()), tenant_id=outbox.tenant_id, email=event.recipient, reason=status))
+                else:
+                    existing.reason = status
+            payload = json.dumps({"provider":"ses", "status":status, "event_type":event.event_type, "provider_id_hash":hashlib.sha256(event.provider_message_id.encode()).hexdigest()},separators=(",",":"))
+            session.add(Event(id=event_id, tenant_id=outbox.tenant_id, message_id=outbox.message_id, kind="klyrow.email."+status, payload=payload))
+            session.add(Audit(id=str(uuid.uuid4()), tenant_id=outbox.tenant_id, actor="provider:ses", action="email.status."+status))
+            if status in TERMINAL_STATUSES or status == "deferred":
+                queue_email_lifecycle_event(
+                    session, kind="email." + status, tenant_id=outbox.tenant_id,
+                    message_id=outbox.message_id,
+                    operation_id=outbox.operation_id or outbox.message_id,
+                    correlation_id=outbox.correlation_id or outbox.message_id,
+                    provider_message_id=event.provider_message_id,
+                    recipient=event.recipient, attempt=max(1, outbox.attempts or 1),
+                )
+            update_outbound_status(session, outbox.tenant_id, outbox.message_id, status)
         session.add(Replay(id=replay_id))
-        update_outbound_status(session, outbox.tenant_id, outbox.message_id, status)
         try:
             session.commit()
         except IntegrityError:
