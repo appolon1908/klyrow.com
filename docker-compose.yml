@@ -78,10 +78,17 @@ services:
     environment:
       KLYROW_ENV: production
       KLYROW_WORKER_ROLE: mail
+      KLYROW_EMAIL_TRANSPORT: ses
+      KLYROW_SES_REGION: us-east-1
+      KLYROW_SES_CONFIGURATION_SET: codestra-klyrow-transactional
+      KLYROW_SES_CANARY_ONLY: "true"
+      KLYROW_SES_LIVE_APPROVED: "false"
       KLYROW_DATABASE_URL: postgresql+psycopg://klyrow_runtime@postgres:5432/klyrow
       KLYROW_DATABASE_PASSWORD_FILE: /run/secrets/klyrow_database_runtime_password
       KLYROW_SESSION_SECRET_FILE: /run/secrets/klyrow_session_secret
       KLYROW_POSTAL_API_KEY_FILE: /run/secrets/klyrow_postal_api_key
+      KLYROW_SES_SMTP_USERNAME_FILE: /run/secrets/klyrow_ses_smtp_username
+      KLYROW_SES_SMTP_PASSWORD_FILE: /run/secrets/klyrow_ses_smtp_password
       KLYROW_MIDDLEWARE_API_KEY_FILE: /run/secrets/klyrow_middleware_api_key
       KLYROW_WEBHOOK_SECRET_FILE: /run/secrets/klyrow_webhook_secret
       KLYROW_POSTAL_API_HOST_HEADER: ${KLYROW_POSTAL_API_HOST_HEADER:-app.klyrow.com}
@@ -102,7 +109,14 @@ services:
       EXTERNAL_EMAIL_DELIVERY: "false"
       PRODUCTION_PROVIDER_ROUTING: "false"
     command: ["python", "-m", "app.service_worker"]
-    secrets: [klyrow_session_secret, klyrow_postal_api_key, klyrow_middleware_api_key, klyrow_webhook_secret, klyrow_database_runtime_password]
+    secrets:
+      - klyrow_session_secret
+      - klyrow_postal_api_key
+      - klyrow_ses_smtp_username
+      - klyrow_ses_smtp_password
+      - klyrow_middleware_api_key
+      - klyrow_webhook_secret
+      - klyrow_database_runtime_password
     volumes:
       - /etc/codestra/mtls/server-a-event-client:/run/codestra-mtls/server-a:ro
     depends_on:
@@ -475,6 +489,10 @@ secrets:
     file: '${KLYROW_SESSION_SECRET_FILE:?set the root-owned session secret path}'
   klyrow_postal_api_key:
     file: '${KLYROW_POSTAL_API_KEY_FILE:?set the root-owned Postal API key path}'
+  klyrow_ses_smtp_username:
+    file: '${KLYROW_SES_SMTP_USERNAME_SOURCE_FILE:-/etc/klyrow/secrets/ses-smtp-username}'
+  klyrow_ses_smtp_password:
+    file: '${KLYROW_SES_SMTP_PASSWORD_SOURCE_FILE:-/etc/klyrow/secrets/ses-smtp-password}'
   klyrow_metrics_token:
     file: '${KLYROW_METRICS_TOKEN_FILE:?set the root-owned metrics token path}'
   klyrow_middleware_api_key:

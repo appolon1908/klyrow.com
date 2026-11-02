@@ -18,6 +18,18 @@ RUN rm -f /etc/apt/sources.list.d/* \
         -o Acquire::Check-Valid-Until=false update \
     && DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y \
     && test "$(dpkg-query --show --showformat='${Version}' libssh2-1)" = '1.10.0-3+deb12u1' \
+    && printf '%s\n' 'deb [check-valid-until=no] https://snapshot.debian.org/archive/debian-security/20261102T000000Z bookworm-security main' > /etc/apt/sources.list.d/postal-security.list \
+    && DEBIAN_FRONTEND=noninteractive apt-get \
+        -o Acquire::Check-Valid-Until=false update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --only-upgrade \
+        libbrotli1=1.0.9-2+deb12u1 \
+        libssl-dev=3.0.22-1~deb12u2 \
+        libssl3=3.0.22-1~deb12u2 \
+        openssl=3.0.22-1~deb12u2 \
+    && test "$(dpkg-query --show --showformat='${Version}' libbrotli1)" = '1.0.9-2+deb12u1' \
+    && test "$(dpkg-query --show --showformat='${Version}' libssl-dev)" = '3.0.22-1~deb12u2' \
+    && test "$(dpkg-query --show --showformat='${Version}' libssl3)" = '3.0.22-1~deb12u2' \
+    && test "$(dpkg-query --show --showformat='${Version}' openssl)" = '3.0.22-1~deb12u2' \
     && setcap -r /usr/local/bin/ruby \
     && test -z "$(getcap /usr/local/bin/ruby)" \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* \
@@ -50,6 +62,9 @@ RUN export SOURCE_DATE_EPOCH \
     && rm -f /usr/local/bundle/cache/crass-1.0.6.gem \
         /usr/local/bundle/specifications/crass-1.0.6.gemspec \
         /opt/postal/app/vendor/bundle/ruby/3.4.0/specifications/crass-1.0.6.gemspec \
+    && rm -rf /usr/local/bundle/gems/rack-3.2.6 \
+    && rm -f /usr/local/bundle/cache/rack-3.2.6.gem \
+        /usr/local/bundle/specifications/rack-3.2.6.gemspec \
     && rm -rf /usr/lib/node_modules/npm /usr/lib/node_modules/corepack \
     && rm -f /usr/bin/npm /usr/bin/npx /usr/bin/corepack \
     && rm -f \
@@ -61,7 +76,7 @@ RUN export SOURCE_DATE_EPOCH \
         \( -name gem_make.out -o -name mkmf.log \) -delete \
     && find /opt/postal/app/vendor/bundle -type d -exec chmod 0755 {} + \
     && rm -rf /root/.bundle/cache \
-    && bundle exec ruby -e 'expected={"rails"=>"7.2.3.2","jwt"=>"2.10.3","puma"=>"7.2.1","resolv"=>"0.7.2","zlib"=>"3.2.3","crass"=>"1.0.7"}; expected.each{|name,version| abort("unexpected #{name}") unless Gem.loaded_specs[name]&.version&.to_s==version}'
+    && bundle exec ruby -e 'expected={"rails"=>"7.2.3.2","rack"=>"3.2.8","jwt"=>"2.10.3","puma"=>"7.2.1","resolv"=>"0.7.2","zlib"=>"3.2.3","crass"=>"1.0.7"}; expected.each{|name,version| abort("unexpected #{name}") unless Gem.loaded_specs[name]&.version&.to_s==version}'
 RUN mkdir -p /opt/klyrow
 COPY apps/postal-provisioner/provisioner.rb /opt/klyrow/provisioner.rb
 WORKDIR /opt/postal/app

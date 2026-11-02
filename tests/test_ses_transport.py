@@ -1,6 +1,8 @@
 """No-network tests for Klyrow's opt-in SES transport."""
 import asyncio
 import smtplib
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 
 import pytest
@@ -30,6 +32,129 @@ def allow_simulator(monkeypatch, tmp_path):
     monkeypatch.setenv("KLYROW_SES_SMTP_USERNAME_FILE", str(username))
     monkeypatch.setenv("KLYROW_SES_SMTP_PASSWORD_FILE", str(password))
     return username, password
+
+
+@pytest.fixture
+def smtp_messages(monkeypatch):
+    messages = []
+
+    class FakeSMTP:
+        def __init__(self, *args, **kwargs):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            pass
+        def ehlo(self):
+            pass
+        def starttls(self, context):
+            pass
+        def login(self, username, password):
+            pass
+        def mail(self, sender):
+            return 250, b"Ok"
+        def rcpt(self, recipient):
+            return 250, b"Ok"
+        def data(self, body):
+            messages.append(body)
+            return 250, b"Ok synthetic-provider-id-123456"
+
+    monkeypatch.setattr(smtplib, "SMTP", FakeSMTP)
+    return messages
+
+
+def test_smtp_data_uses_crlf_for_multipart_message(monkeypatch, tmp_path, smtp_messages):
+    allow_simulator(monkeypatch, tmp_path)
+    data = payload()
+    data.update(plain_body="First line\nSecond line\r\nThird line",
+                html_body="<p>First line</p>\n<p>Second line</p>")
+    ses_transport._submit_smtp(data, correlation_id="synthetic")
+    wire = smtp_messages[0]
+    assert b"\r\n\r\n" in wire
+    assert b"\n" not in wire.replace(b"\r\n", b"")
+    assert b"\r" not in wire.replace(b"\r\n", b"")
+    message = BytesParser(policy=policy.default).parsebytes(wire)
+    assert message.is_multipart()
+    assert "Second line" in message.get_body(preferencelist=("plain",)).get_content()
+
+
+def test_smtp_preserves_governed_reply_headers(monkeypatch, tmp_path, smtp_messages):
+    allow_simulator(monkeypatch, tmp_path)
+    data = payload()
+    data["headers"] = {
+        "Message-ID": "<reply@klyrow.com>",
+        "In-Reply-To": "<parent@example.com>",
+        "References": "<first@example.com> <parent@example.com>",
+    }
+    ses_transport._submit_smtp(data, correlation_id="synthetic")
+    message = BytesParser(policy=policy.default).parsebytes(smtp_messages[0])
+    for name, value in data["headers"].items():
+        assert str(message[name]) == value
+    assert message["X-SES-CONFIGURATION-SET"] == "codestra-klyrow-transactional"
+
+
+@pytest.mark.parametrize("parent", [
+    "<" + "a" * 64 + "@example.com>",
+    "<" + "a" * 983 + "@example.com>",
+    "<abc=?utf-8?q?def?=@example.com>",
+])
+def test_long_reply_ids_remain_literal_on_wire(monkeypatch, tmp_path, smtp_messages, parent):
+    allow_simulator(monkeypatch, tmp_path)
+    references = [f"<{index}{'b' * 70}@example.com>" for index in range(30)]
+    data = payload()
+    data["headers"] = {"Message-ID": parent, "In-Reply-To": parent,
+                       "References": " ".join(references)}
+    ses_transport._submit_smtp(data, correlation_id="synthetic")
+    wire = smtp_messages[0]
+    raw_headers = wire.split(b"\r\n\r\n", 1)[0]
+    assert raw_headers.count(parent.encode("ascii")) == 2
+    for reference in references:
+        assert reference.encode("ascii") in raw_headers
+    assert max(map(len, wire.split(b"\r\n"))) <= 998
+    assert b"\n" not in wire.replace(b"\r\n", b"")
+
+
+@pytest.mark.parametrize("name", ["Message-ID", "In-Reply-To", "References"])
+@pytest.mark.parametrize("value", ["<caf\u00e9@example.com>", "<" + "x" * 998 + "@example.com>"])
+def test_unrepresentable_reply_ids_rejected_before_network(monkeypatch, tmp_path, name, value):
+    allow_simulator(monkeypatch, tmp_path)
+
+    def unexpected_connection(*args, **kwargs):
+        pytest.fail("unrepresentable reply ID reached the SMTP connection")
+
+    monkeypatch.setattr(smtplib, "SMTP", unexpected_connection)
+    data = payload()
+    data["headers"] = {name: value}
+    with pytest.raises(RuntimeError, match="ses_headers_invalid"):
+        ses_transport._submit_smtp(data, correlation_id="synthetic")
+
+
+@pytest.mark.parametrize("headers", [
+    {"X-SES-CONFIGURATION-SET": "other"},
+    {"X-SES-MESSAGE-TAGS": "environment=production"},
+    {"From": "attacker@example.com"},
+    {"To": "customer@example.com"},
+    {"References": "<parent@example.com>\r\nBcc: attacker@example.com"},
+    {"In-Reply-To": "bad\nheader"},
+    {"Message-ID": ""},
+    {"References": "x" * 4097},
+    {"References": "<one@example.com>" + " " * 1000 + "<two@example.com>"},
+    {"References": None},
+    {"References": 123},
+    None,
+    [],
+])
+def test_invalid_reply_headers_rejected_before_network(monkeypatch, tmp_path, headers):
+    allow_simulator(monkeypatch, tmp_path)
+
+    def unexpected_connection(*args, **kwargs):
+        pytest.fail("invalid headers reached the SMTP connection")
+
+    monkeypatch.setattr(smtplib, "SMTP", unexpected_connection)
+    data = payload()
+    data["headers"] = headers
+    with pytest.raises(RuntimeError, match="ses_headers_invalid"):
+        ses_transport._submit_smtp(data, correlation_id="synthetic")
 
 
 @pytest.mark.parametrize("blocked", [

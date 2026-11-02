@@ -4,16 +4,26 @@ AWS region: us-east-1. The SES source domains initially authorized for
 the Klyrow transport are klyrow.com and codestra.agency.
 
 The existing Klyrow outbox keeps Postal as its default transport. SES is
-explicitly opt-in through KLYROW_EMAIL_TRANSPORT=ses. Its mandatory settings:
+explicitly opt-in through KLYROW_EMAIL_TRANSPORT=ses. The dedicated mail
+worker declares the approved transport and configuration set directly so it
+does not depend on a domain-level SES default. Its mandatory runtime settings:
+
+KLYROW_EMAIL_TRANSPORT=ses
 KLYROW_SES_REGION=us-east-1
 KLYROW_SES_CONFIGURATION_SET=codestra-klyrow-transactional
 KLYROW_SES_CANARY_ONLY=true
-KLYROW_SES_SMTP_USERNAME_FILE=/run/secrets/klyrow-ses-user
-KLYROW_SES_SMTP_PASSWORD_FILE=/run/secrets/klyrow-ses-password
+KLYROW_SES_LIVE_APPROVED=false
+KLYROW_SES_SMTP_USERNAME_FILE=/run/secrets/klyrow_ses_smtp_username
+KLYROW_SES_SMTP_PASSWORD_FILE=/run/secrets/klyrow_ses_smtp_password
 
-Secrets must be regular absolute-path files owned by the service identity,
-0400 or 0600, not symlinks, never embedded in Git, logs, or Docker environment
-literals. All five Klyrow delivery switches continue to apply.
+Secrets must be regular absolute-path files owned by the deployed Klyrow
+service identity (UID/GID 10001 in the protected image), mode 0400 or 0600,
+not symlinks, and never embedded in Git, logs, or Docker environment literals.
+A root-owned mode-0400 source is intentionally unreadable to the non-root
+worker. On the host, provide service-owned files through
+KLYROW_SES_SMTP_USERNAME_SOURCE_FILE and
+KLYROW_SES_SMTP_PASSWORD_SOURCE_FILE. All five Klyrow delivery switches
+continue to apply.
 
 Canary-only mode permits only one simulated transactional recipient,
 success@simulator.amazonses.com. This uses SES SMTP on port 587 with
