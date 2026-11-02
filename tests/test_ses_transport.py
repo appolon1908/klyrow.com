@@ -93,6 +93,42 @@ def test_smtp_preserves_governed_reply_headers(monkeypatch, tmp_path, smtp_messa
     assert message["X-SES-CONFIGURATION-SET"] == "codestra-klyrow-transactional"
 
 
+@pytest.mark.parametrize("parent", [
+    "<" + "a" * 64 + "@example.com>",
+    "<" + "a" * 983 + "@example.com>",
+    "<abc=?utf-8?q?def?=@example.com>",
+])
+def test_long_reply_ids_remain_literal_on_wire(monkeypatch, tmp_path, smtp_messages, parent):
+    allow_simulator(monkeypatch, tmp_path)
+    references = [f"<{index}{'b' * 70}@example.com>" for index in range(30)]
+    data = payload()
+    data["headers"] = {"Message-ID": parent, "In-Reply-To": parent,
+                       "References": " ".join(references)}
+    ses_transport._submit_smtp(data, correlation_id="synthetic")
+    wire = smtp_messages[0]
+    raw_headers = wire.split(b"\r\n\r\n", 1)[0]
+    assert raw_headers.count(parent.encode("ascii")) == 2
+    for reference in references:
+        assert reference.encode("ascii") in raw_headers
+    assert max(map(len, wire.split(b"\r\n"))) <= 998
+    assert b"\n" not in wire.replace(b"\r\n", b"")
+
+
+@pytest.mark.parametrize("name", ["Message-ID", "In-Reply-To", "References"])
+@pytest.mark.parametrize("value", ["<caf\u00e9@example.com>", "<" + "x" * 998 + "@example.com>"])
+def test_unrepresentable_reply_ids_rejected_before_network(monkeypatch, tmp_path, name, value):
+    allow_simulator(monkeypatch, tmp_path)
+
+    def unexpected_connection(*args, **kwargs):
+        pytest.fail("unrepresentable reply ID reached the SMTP connection")
+
+    monkeypatch.setattr(smtplib, "SMTP", unexpected_connection)
+    data = payload()
+    data["headers"] = {name: value}
+    with pytest.raises(RuntimeError, match="ses_headers_invalid"):
+        ses_transport._submit_smtp(data, correlation_id="synthetic")
+
+
 @pytest.mark.parametrize("headers", [
     {"X-SES-CONFIGURATION-SET": "other"},
     {"X-SES-MESSAGE-TAGS": "environment=production"},
@@ -102,6 +138,7 @@ def test_smtp_preserves_governed_reply_headers(monkeypatch, tmp_path, smtp_messa
     {"In-Reply-To": "bad\nheader"},
     {"Message-ID": ""},
     {"References": "x" * 4097},
+    {"References": "<one@example.com>" + " " * 1000 + "<two@example.com>"},
     {"References": None},
     {"References": 123},
     None,

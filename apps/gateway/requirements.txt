@@ -9,7 +9,7 @@ httpx==0.28.1
 prometheus-client==0.22.1
 python-multipart==0.0.32
 email-validator==2.2.0
-dnspython==2.7.0
+dnspython==2.9.0
 cryptography==50.0.0
 aiosmtpd==1.4.6
 
