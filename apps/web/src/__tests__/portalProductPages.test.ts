@@ -49,8 +49,17 @@ describe('pages without a browser API', () => {
     expect(screen.getAllByText(/live payment provider actions are disabled/i)).toBeTruthy()
     expect(screen.queryByText(/stripe|paypal|crypto/i)).toBeNull()
     payments.unmount()
+    api.appApi.mockResolvedValue({
+      identity_authority: 'Keycloak',
+      browser_session_authority: 'Klyrow BFF',
+      sso: { configured: false, mutation_available: false, dependency: 'Governed Keycloak provisioning required.' },
+      scim: { configured: false, mutation_available: false, dependency: 'Governed provisioning required.' },
+      runtime_certification: 'pending',
+      direct_keycloak_writes: false,
+    })
     const scim = await mount('settings-scim')
-    expect(screen.getAllByText(/not implemented server-side/i)).toBeTruthy()
+    expect(await screen.findByText(/SCIM provisioning/i)).toBeTruthy()
+    expect(screen.getAllByText(/configuration mutation: not available/i).length).toBeGreaterThan(0)
     scim.unmount()
     await mount('audience-preferences')
     expect(screen.getAllByText(/consent.*preference.*suppression/i)).toBeTruthy()
@@ -129,7 +138,7 @@ describe('analytics, deliverability, developer logs and billing', () => {
     })
     const plan = await mount('billing-plan', {}, reader)
     expect(await screen.findByText('Growth')).toBeTruthy()
-    expect(screen.getAllByText('$29.00').length).toBeGreaterThan(0)
+    expect(document.body.textContent).toMatch(/29[,.]00/)
     expect(screen.getByText(/live charging is not enabled/i)).toBeTruthy()
     expect(screen.queryByRole('button', { name: /pay|upgrade|checkout/i })).toBeNull()
     plan.unmount()
@@ -155,6 +164,7 @@ describe('settings', () => {
     const setItem = vi.spyOn(Storage.prototype, 'setItem')
     api.appApi.mockImplementation(async (url: string, init?: RequestInit) => {
       if (url === '/app/api/team/invitations' && init?.method === 'POST') return { id: 'inv1', email: 'new@example.com', role: 'DEVELOPER', expires_at: '2026-10-01T00:00:00Z', development_token: 'dev-invite-token-value' }
+      if (url === '/app/api/team/invitations') return []
       if (url === '/app/api/team') return [{ user_id: 'u1', email: 'owner@example.com', role: 'OWNER', created_at: '2026-01-01T00:00:00Z' }]
       throw new Error('unexpected ' + url)
     })

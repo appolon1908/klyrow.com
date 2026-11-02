@@ -1385,7 +1385,8 @@ from .media_assets import router as media_assets_router
 app.include_router(media_assets_router)
 from .payment_attempts import router as payment_attempts_router
 app.include_router(payment_attempts_router)
-from .tenancy import router as tenancy_router
+from .tenancy import register_admin_routes, router as tenancy_router
+register_admin_routes(require)
 app.include_router(tenancy_router)
 from .messaging import router as messaging_router
 app.include_router(messaging_router)
@@ -1413,8 +1414,6 @@ from . import durable_jobs as _durable_jobs
 from . import journey_storage as _journey_storage
 from .secret_responses import router as secret_responses_router
 app.include_router(secret_responses_router)
-from .browser_observability import router as browser_observability_router
-app.include_router(browser_observability_router)
 from . import webmail_models as _webmail_models
 from .provider import provider_worker_loop, reconcile_legacy_registry, router as provider_router, status_router as provider_status_router
 app.include_router(provider_router)

@@ -41,6 +41,7 @@ async function stubWorkspace(page: Page, options: { session?: typeof session; ad
   await page.route('**/app/api/billing/usage/monthly*', route => route.fulfill({ json: { granularity: 'month', unit: 'accepted_message', window_start: '2026-01-01T00:00:00Z', window_end: '2026-10-01T00:00:00Z', items: [{ period_start: '2026-09-01', quantity: 12 }], next_cursor: null } }))
   await page.route('**/app/api/billing/invoices*', route => route.fulfill({ json: { items: [], limit: 25, offset: 0, has_more: false } }))
   await page.route('**/app/api/billing/payment-methods', route => route.fulfill({ json: [] }))
+  await page.route('**/app/api/identity/capabilities', route => route.fulfill({ json: { identity_authority: 'Keycloak', browser_session_authority: 'Klyrow', sso: { configured: false, mutation_available: false, dependency: 'governed Keycloak/Middleware provisioning contract' }, scim: { configured: false, mutation_available: false, dependency: 'governed Keycloak/Middleware provisioning contract' }, runtime_certification: 'blocked', direct_keycloak_writes: false } }))
 }
 
 test('1. signed-out user is redirected from the overview to sign-in with a safe return destination', async ({ page }) => {
@@ -123,7 +124,7 @@ test('8. one-time credential display never persists and the API keys page expose
   await page.goto('/app/settings/team')
   await page.getByRole('button', { name: 'Invite member' }).click()
   await page.getByLabel('Email address').fill('new@example.com')
-  await page.getByLabel('Role').selectOption('DEVELOPER')
+  await page.getByLabel('Role', { exact: true }).selectOption('DEVELOPER')
   await page.getByRole('button', { name: 'Send invitation' }).click()
   await expect(page.getByRole('region', { name: 'Development invitation token' }).getByText(/shown once/i)).toBeVisible()
   await expect(page.getByText('one-time-invitation-token')).toHaveCount(0)
@@ -138,12 +139,14 @@ test('8. one-time credential display never persists and the API keys page expose
   await expect(page.getByRole('main').locator('form, input, select, textarea')).toHaveCount(0)
 })
 
-test('9. SSO and SCIM pages show honest unavailable states', async ({ page }) => {
+test('9. SSO and SCIM pages expose read-only readiness without mutation controls', async ({ page }) => {
   await stubWorkspace(page)
   for (const path of ['/app/settings/sso', '/app/settings/scim']) {
     await page.goto(path)
-    await expect(page.getByText('not available in this release')).toBeVisible()
-    await expect(page.getByText('not implemented server-side').first()).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Enterprise identity' })).toBeVisible()
+    await expect(page.getByText(/configuration mutation: not available/i).first()).toBeVisible()
+    await expect(page.getByText(/governed Keycloak\/Middleware provisioning contract/i).first()).toBeVisible()
+    await expect(page.getByText(/Direct Keycloak writes:/)).toBeVisible()
     await expect(page.getByRole('button', { name: /enable|configure|save/i })).toHaveCount(0)
   }
 })
