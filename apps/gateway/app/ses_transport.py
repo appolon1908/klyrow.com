@@ -8,6 +8,7 @@ import smtplib
 import ssl
 import stat
 from email.message import EmailMessage
+from email.policy import SMTP
 from pathlib import Path
 
 from .delivery_safety import live_email_delivery_enabled
@@ -89,17 +90,27 @@ def _submit_smtp(payload: dict, *, correlation_id: str) -> str:
     if not plain and not html:
         raise RuntimeError("ses_body_required")
 
+    headers = payload.get("headers", {})
+    if not isinstance(headers, dict) or not set(headers) <= {"Message-ID", "In-Reply-To", "References"}:
+        raise RuntimeError("ses_headers_invalid")
+    if any(not isinstance(value, str) or not value or len(value) > 4096
+           or "\r" in value or "\n" in value for value in headers.values()):
+        raise RuntimeError("ses_headers_invalid")
+
     username = _secret_file("KLYROW_SES_SMTP_USERNAME_FILE")
     password = _secret_file("KLYROW_SES_SMTP_PASSWORD_FILE")
-    msg = EmailMessage()
+    msg = EmailMessage(policy=SMTP)
     msg["From"] = sender
     msg["To"] = recipient
     msg["Subject"] = subject
+    for name, value in headers.items():
+        msg[name] = value
     msg["X-SES-CONFIGURATION-SET"] = SES_CONFIG_SET
     msg["X-SES-MESSAGE-TAGS"] = "application=klyrow,environment=" + ("staging" if canary_only == "true" else "production")
     msg.set_content(plain or "HTML content available.")
     if html:
         msg.add_alternative(html, subtype="html")
+    wire_message = msg.as_bytes()
 
     provider_id = None
     submission_error = None
@@ -116,7 +127,7 @@ def _submit_smtp(payload: dict, *, correlation_id: str) -> str:
             if status not in (250, 251):
                 raise smtplib.SMTPRecipientsRefused({recipient: (status, details)})
             try:
-                status, details = client.data(msg.as_bytes())
+                status, details = client.data(wire_message)
             except smtplib.SMTPDataError:
                 # Explicit rejection of DATA before the body was transmitted.
                 raise
