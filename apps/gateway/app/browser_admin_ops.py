@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import json
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Optional
@@ -25,7 +26,7 @@ from .billing import (
     Invoice,
     Payment,
     Refund,
-    dunning as run_dunning,
+    _run_dunning as run_dunning,
 )
 from .billing_config import BillingConfigError, load_billing_settings
 from .billing_reconciliation import reconcile_billing
@@ -38,7 +39,7 @@ from .delivery_controls import (
     release_resource,
     suspend_resource,
 )
-from .main import Audit, Tenant, User, audit, db
+from .main import Audit, Tenant, User, audit, bind_tenant_rls, db
 from .operations import ReconciliationRun, reconcile as run_platform_reconciliation
 
 router = APIRouter(tags=["Browser platform administration"])
@@ -279,6 +280,42 @@ def _tenant_name(session: Session, tenant_id: str | None) -> str | None:
     return tenant.name if tenant else None
 
 
+@contextmanager
+def _platform_billing_scopes(
+    ctx: dict, request_session: Session, tenant_id: str | None = None,
+    *, candidate_tenant_ids: set[str] | None = None,
+):
+    """Authorized tenant scopes on a private, atomic runtime transaction.
+
+    Never broaden the request's tenant binding or require a role that bypasses
+    RLS. Tenant identities come from the database after authorization. The outer
+    transaction owns commit: canonical helpers may commit their scoped Session
+    without partially committing a platform operation.
+    """
+    _require_platform_admin(ctx, request_session)
+    query = select(Tenant.id).order_by(Tenant.id)
+    if tenant_id is not None:
+        query = query.where(Tenant.id == tenant_id)
+    if candidate_tenant_ids is not None:
+        query = query.where(Tenant.id.in_(candidate_tenant_ids))
+    tenant_ids = request_session.scalars(query).all()
+    with request_session.get_bind().engine.begin() as connection:
+        def scopes():
+            for trusted_tenant_id in tenant_ids:
+                with Session(
+                    bind=connection, expire_on_commit=False,
+                    join_transaction_mode="rollback_only",
+                ) as scoped:
+                    bind_tenant_rls(scoped, trusted_tenant_id)
+                    yield trusted_tenant_id, scoped
+
+        iterator = scopes()
+        try:
+            yield iterator
+        finally:
+            iterator.close()
+
+
 def _safe_json_object(raw: str | None) -> dict[str, Any]:
     try:
         value = json.loads(raw or "{}")
@@ -295,8 +332,11 @@ def _safe_json_list(raw: str | None) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
-def _count_by(session: Session, model, field) -> dict[str, int]:
-    rows = session.execute(select(field, func.count()).select_from(model).group_by(field)).all()
+def _count_by(session: Session, model, field, tenant_id: str) -> dict[str, int]:
+    rows = session.execute(
+        select(field, func.count()).select_from(model)
+        .where(model.tenant_id == tenant_id).group_by(field)
+    ).all()
     return {str(key or "UNKNOWN"): int(count or 0) for key, count in rows}
 
 
@@ -504,7 +544,10 @@ def browser_admin_billing_reconciliation(
     session: Session = Depends(db),
 ):
     _require_platform_admin(ctx, session)
-    issues = reconcile_billing(session, tenant_id=tenant_id)
+    issues = []
+    with _platform_billing_scopes(ctx, session, tenant_id) as scopes:
+        for trusted_tenant_id, scoped in scopes:
+            issues.extend(reconcile_billing(scoped, tenant_id=trusted_tenant_id))
     return {
         "tenant_id": tenant_id,
         "status": "PASS" if not issues else "DRIFT",
@@ -543,10 +586,27 @@ def browser_admin_billing_overview(
     session: Session = Depends(db),
 ):
     _require_platform_admin(ctx, session)
-    drift = reconcile_billing(session)
-    recent_invoices = session.scalars(
-        select(Invoice).order_by(Invoice.created_at.desc(), Invoice.id.desc()).limit(25)
-    ).all()
+    drift = []
+    recent_invoices = []
+    counts = {key: {} for key in ("subscriptions", "invoices", "payments", "refunds", "work_items")}
+    with _platform_billing_scopes(ctx, session) as scopes:
+        for tenant_id, scoped in scopes:
+            drift.extend(reconcile_billing(scoped, tenant_id=tenant_id))
+            recent_invoices.extend(scoped.scalars(
+                select(Invoice).where(Invoice.tenant_id == tenant_id)
+                .order_by(Invoice.created_at.desc(), Invoice.id.desc()).limit(25)
+            ).all())
+            for key, model, field in (
+                ("subscriptions", BillingSubscription, BillingSubscription.status),
+                ("invoices", Invoice, Invoice.status),
+                ("payments", Payment, Payment.status),
+                ("refunds", Refund, Refund.status),
+                ("work_items", BillingWorkItem, BillingWorkItem.state),
+            ):
+                for state, count in _count_by(scoped, model, field, tenant_id).items():
+                    counts[key][state] = counts[key].get(state, 0) + count
+    recent_invoices.sort(key=lambda item: (item.created_at, item.id), reverse=True)
+    recent_invoices = recent_invoices[:25]
     prices = session.scalars(
         select(BillingPrice)
         .where(BillingPrice.retired_at == None)
@@ -556,15 +616,7 @@ def browser_admin_billing_overview(
     plans = {item.id: item for item in session.scalars(select(BillingPlan)).all()}
     return {
         "configuration": _billing_configuration(),
-        "counts": {
-            "subscriptions": _count_by(
-                session, BillingSubscription, BillingSubscription.status
-            ),
-            "invoices": _count_by(session, Invoice, Invoice.status),
-            "payments": _count_by(session, Payment, Payment.status),
-            "refunds": _count_by(session, Refund, Refund.status),
-            "work_items": _count_by(session, BillingWorkItem, BillingWorkItem.state),
-        },
+        "counts": counts,
         "billing_drift": {
             "status": "PASS" if not drift else "DRIFT",
             "issue_count": len(drift),
@@ -619,16 +671,22 @@ def browser_admin_billing_subscriptions(
     rows = session.scalars(
         query.order_by(BillingSubscription.period_end.asc(), BillingSubscription.id.asc()).limit(limit)
     ).all()
+    open_invoice_counts = {}
+    with _platform_billing_scopes(
+        ctx, session, tenant_id, candidate_tenant_ids={item.tenant_id for item in rows},
+    ) as scopes:
+        for trusted_tenant_id, scoped in scopes:
+            open_invoice_counts[trusted_tenant_id] = scoped.scalar(
+                select(func.count()).select_from(Invoice).where(
+                    Invoice.tenant_id == trusted_tenant_id,
+                    Invoice.status.in_(("OPEN", "PAST_DUE", "PARTIALLY_PAID")),
+                )
+            ) or 0
     result = []
     for item in rows:
         plan = session.get(BillingPlan, item.plan_id)
         price = session.get(BillingPrice, item.price_id)
-        open_invoices = session.scalar(
-            select(func.count()).select_from(Invoice).where(
-                Invoice.tenant_id == item.tenant_id,
-                Invoice.status.in_(("OPEN", "PAST_DUE", "PARTIALLY_PAID")),
-            )
-        ) or 0
+        open_invoices = open_invoice_counts.get(item.tenant_id, 0)
         result.append(
             {
                 "id": item.id,
@@ -666,14 +724,15 @@ def browser_admin_billing_dunning(
         raise HTTPException(503, "billing_configuration_invalid") from None
     if not settings.enabled or not settings.dunning_enabled:
         raise HTTPException(503, "billing_dunning_disabled")
-    return run_dunning(
-        DunningIn(
-            grace_days=payload.grace_days,
-            suspend_days=payload.suspend_days,
-        ),
-        ctx=ctx,
-        s=session,
-    )
+    items = []
+    with _platform_billing_scopes(ctx, session) as scopes:
+        for tenant_id, scoped in scopes:
+            result = run_dunning(
+                DunningIn(grace_days=payload.grace_days, suspend_days=payload.suspend_days),
+                ctx={**ctx, "tenant": tenant_id}, s=scoped, tenant_id=tenant_id,
+            )
+            items.extend(result["items"])
+    return {"processed": len(items), "items": items, "login_disabled": False}
 
 
 def _encode_audit_cursor(item: Audit) -> str:
