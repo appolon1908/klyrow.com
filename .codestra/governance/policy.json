@@ -1,9 +1,15 @@
 {
-  "schema_version": "codestra.governance.v3",
+  "schema_version": "github.native-governance.v1",
   "family": "klyrow",
   "product": "klyrow.com",
   "repository": "appolon1908/klyrow.com",
-  "required_status": "codestra-control-plane",
+  "source_authority": "github_actions_and_repository_protections",
+  "merge_requirements": {
+    "required_checks": "effective_repository_protections",
+    "independent_review": true,
+    "signed_commits": true,
+    "resolved_review_threads": true
+  },
   "promotion_chain": [
     "subsection",
     "section",

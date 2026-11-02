@@ -1,12 +1,13 @@
 version: 1
 product: "Klyrow"
 authority:
+  source: github_actions_and_repository_protections
   development_branch: development
   testing_branch: testing
   staging_branch: staging
   production_branch: production
-  governance_branch: workstation/governance-control-plane
-  ci_runner_label: codestra-klyrow
+  merge_rules: effective_repository_protections
+  source_integrity_runner: ubuntu-24.04
 promotion:
   chain: [development, testing, staging, production]
   require_exact_sha: true
