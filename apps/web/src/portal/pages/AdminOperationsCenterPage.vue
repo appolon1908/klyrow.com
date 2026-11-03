@@ -37,8 +37,10 @@ const label = (v:string) => v === 'critical' ? 'Critical' : v === 'attention' ? 
 
 <template>
   <div>
-    <PageHeader title="Operations Center" eyebrow="Platform administration"
-      description="Unified operational view across Users, Email, Billing and Middleware. Every cross-system action remains governed by Caddy → Kong → Middleware.">
+    <PageHeader
+      title="Operations Center" eyebrow="Platform administration"
+      description="Unified operational view across Users, Email, Billing and Middleware. Every cross-system action remains governed by Caddy → Kong → Middleware."
+    >
       <a class="kp-button" href="/admin/observability">Email detail</a>
       <button class="kp-button" type="button" :disabled="page.status.value === 'loading'" @click="page.reload">Refresh</button>
     </PageHeader>
