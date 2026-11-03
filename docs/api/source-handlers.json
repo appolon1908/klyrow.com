@@ -1267,143 +1267,115 @@
     "method": "GET"
   },
   {
-    "declared_path": "/portal",
-    "file": "apps/gateway/app/main.py",
-    "handler": "portal",
-    "line": 3985,
-    "method": "GET"
-  },
-  {
     "declared_path": "/account-disabled",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/forgot-password",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/invite",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/logged-out",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/login",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/privacy",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/reset-expired",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/reset-password",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/reset-sent",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/reset-success",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/service-error",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/signup",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/terms",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/verification-expired",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/verification-success",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
+    "line": 4000,
     "method": "GET"
   },
   {
     "declared_path": "/verify-email",
     "file": "apps/gateway/app/main.py",
     "handler": "auth_page",
-    "line": 4005,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/assets/portal.js",
-    "file": "apps/gateway/app/main.py",
-    "handler": "portal_js",
-    "line": 4013,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/admin",
-    "file": "apps/gateway/app/main.py",
-    "handler": "admin_portal",
-    "line": 4018,
-    "method": "GET"
-  },
-  {
-    "declared_path": "/assets/admin.js",
-    "file": "apps/gateway/app/main.py",
-    "handler": "admin_js",
-    "line": 4023,
+    "line": 4000,
     "method": "GET"
   },
   {
@@ -1942,35 +1914,35 @@
     "declared_path": "/admin",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 170,
+    "line": 168,
     "method": "GET"
   },
   {
     "declared_path": "/admin/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "platform_admin_ui",
-    "line": 170,
+    "line": 168,
     "method": "GET"
   },
   {
     "declared_path": "/app",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 178,
+    "line": 176,
     "method": "GET"
   },
   {
     "declared_path": "/app/{path:path}",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 178,
+    "line": 176,
     "method": "GET"
   },
   {
     "declared_path": "/onboarding",
     "file": "apps/gateway/app/platform.py",
     "handler": "product_app_ui",
-    "line": 178,
+    "line": 176,
     "method": "GET"
   },
   {
