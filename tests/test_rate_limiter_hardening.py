@@ -82,7 +82,12 @@ def test_gateway_image_does_not_trust_forwarded_headers_from_everyone():
     env_example = (ROOT / ".env.example").read_text(encoding="utf-8")
     assert "KLYROW_FORWARDED_ALLOW_IPS=" in env_example
     compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
-    assert 'KLYROW_FORWARDED_ALLOW_IPS: "${KLYROW_FORWARDED_ALLOW_IPS:-127.0.0.1}"' in compose
+    # Inside Compose the gateway's peer is the web container on the frontend
+    # network, so the default allow-list must cover that (pinned) subnet.
+    assert "KLYROW_FORWARDED_ALLOW_IPS: " in compose
+    assert ':-127.0.0.1,${KLYROW_FRONTEND_SUBNET:-172.28.0.0/24}}"' in compose
+    assert 'subnet: "${KLYROW_FRONTEND_SUBNET:-172.28.0.0/24}"' in compose
+    assert 'KLYROW_FORWARDED_ALLOW_IPS: "${KLYROW_FORWARDED_ALLOW_IPS:-*' not in compose
 
 
 def test_host_nginx_template_has_dedicated_auth_limit_zones():
