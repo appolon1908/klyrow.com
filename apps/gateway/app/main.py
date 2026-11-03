@@ -22,7 +22,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from jwt import PyJWKClient
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
@@ -3896,11 +3896,6 @@ def auth_home():
     return RedirectResponse("/login", status_code=302)
 
 
-@app.get("/portal", response_class=HTMLResponse, include_in_schema=False)
-def portal():
-    return Path(__file__).with_name("portal.html").read_text()
-
-
 @app.get("/login", include_in_schema=False)
 @app.get("/signup", include_in_schema=False)
 @app.get("/verify-email", include_in_schema=False)
@@ -3922,21 +3917,6 @@ def auth_page():
     if not index.exists():
         raise HTTPException(503, "authentication_ui_not_built")
     return FileResponse(index, media_type="text/html", headers={"Cache-Control": "no-store"})
-
-
-@app.get("/assets/portal.js", include_in_schema=False)
-def portal_js():
-    return FileResponse(Path(__file__).with_name("portal.js"), media_type="application/javascript")
-
-
-@app.get("/admin", response_class=HTMLResponse, include_in_schema=False)
-def admin_portal():
-    return Path(__file__).with_name("admin.html").read_text()
-
-
-@app.get("/assets/admin.js", include_in_schema=False)
-def admin_js():
-    return FileResponse(Path(__file__).with_name("admin.js"), media_type="application/javascript")
 
 
 from .saas import router as saas_router

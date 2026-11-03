@@ -90,11 +90,9 @@ for route in list(tenancy_onboarding_router.routes):
     if getattr(route, "path", "") in SHELL_PATHS:
         tenancy_onboarding_router.routes.remove(route)
 
-# Remove legacy/product shell routes that may already exist on the core app.
+# Remove product shell routes that may already exist on the core app.
 for route in list(app.router.routes):
-    if getattr(route, "path", "") in SHELL_PATHS or (
-        getattr(route, "path", "") == "/admin" and getattr(route, "name", "") == "admin_portal"
-    ):
+    if getattr(route, "path", "") in SHELL_PATHS:
         app.router.routes.remove(route)
 
 if not getattr(app.state, "klyrow_postal_callback_route_registered", False):
