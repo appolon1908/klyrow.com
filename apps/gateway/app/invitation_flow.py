@@ -17,7 +17,13 @@ from .main import Tenant, User, audit, db, ph
 from . import auth_bff, tenancy_onboarding
 from .auth_bff import BrowserSession, browser_context, csrf_guard
 from .saas import Onboarding
-from .tenancy import OidcIdentity, TenantInvitation, TenantMember, validate_role
+from .tenancy import (
+    OidcIdentity,
+    TenantInvitation,
+    TenantMember,
+    assert_role_assignable,
+    validate_role,
+)
 
 router = APIRouter(tags=["Browser invitations"])
 _INSTALLED = False
@@ -196,6 +202,7 @@ def browser_invite(
 
     tenancy_onboarding._require_management(ctx)
     role = validate_role(payload.role)
+    assert_role_assignable(ctx["role"], role)
     raw = secrets.token_urlsafe(32)
     item = TenantInvitation(
         id=str(uuid.uuid4()),
