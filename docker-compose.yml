@@ -44,6 +44,8 @@ services:
       KLYROW_SAFE_MODE: "true"
       KLYROW_PRODUCTION_GATE_APPROVED: "false"
       KLYROW_REQUIRE_LEAST_PRIVILEGE_DB: "true"
+      # Proxies whose X-Forwarded-* headers uvicorn honours (see .env.example).
+      KLYROW_FORWARDED_ALLOW_IPS: "${KLYROW_FORWARDED_ALLOW_IPS:-127.0.0.1}"
       LIVE_SMS_DELIVERY: "false"
       LIVE_EMAIL_DELIVERY: "false"
       EXTERNAL_SMS_DELIVERY: "false"

@@ -15,7 +15,6 @@ introducing a parallel identity concept.
 from __future__ import annotations
 
 import os
-import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -23,7 +22,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .main import AllowedSender, audit, auth, db, rate_buckets
+from .main import AllowedSender, audit, auth, db, rate_limit_window
 from .messaging import STREAMS, DomainClaim, SenderIdentity
 
 router = APIRouter(tags=["Middleware sender identities"])
@@ -44,14 +43,8 @@ def _sender_identity_rate_limit(ctx: dict, action: str) -> None:
     same operations (defense in depth, not a replacement for it).
     """
     identity = ctx.get("tenant", "unknown")
-    now = time.time()
-    bucket = rate_buckets[("sender-identity", action, identity)]
-    while bucket and bucket[0] < now - 60:
-        bucket.popleft()
     limit = int(os.getenv("KLYROW_SENDER_IDENTITY_RATE_PER_MINUTE", "30"))
-    if len(bucket) >= limit:
-        raise HTTPException(429, "rate_limit_exceeded")
-    bucket.append(now)
+    rate_limit_window(("sender-identity", action, identity), limit)
 
 
 class SenderIdentityIn(BaseModel):
