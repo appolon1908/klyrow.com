@@ -223,3 +223,93 @@ def test_untrusted_context_role_cannot_open_platform_scope(billing_database, ope
             calls[operation]()
         assert (error.value.status_code, error.value.detail) == (403, "platform_admin_required")
         _assert_request_scope(session, postgres)
+
+
+def test_admin_request_keeps_authority_locks_until_handler_commit(billing_database, monkeypatch):
+    """Real PostgreSQL updates must wait through cached browser dependencies."""
+    runtime, setup, postgres = billing_database
+    if not postgres:
+        pytest.skip("Requires PostgreSQL row locks")
+    import time
+    import jwt
+    from fastapi import Depends, FastAPI
+    from fastapi.testclient import TestClient
+    from sqlalchemy import update
+    from sqlalchemy.exc import DBAPIError
+    from apps.gateway.app import auth_bff, main, platform_owner
+    from apps.gateway.app.platform_owner_policy import CANONICAL_ISSUER
+    from apps.gateway.app.tenancy import OidcIdentity, TenantMember
+
+    for model in (auth_bff.BrowserSession, TenantMember, OidcIdentity):
+        model.__table__.create(setup)
+    subject = "8f52e865-d121-4c50-a41d-61c201402efd"
+    monkeypatch.setenv("KLYROW_OIDC_ISSUER", CANONICAL_ISSUER)
+    monkeypatch.setenv("KLYROW_PLATFORM_OWNER_ISSUER", CANONICAL_ISSUER)
+    monkeypatch.setenv("KLYROW_PLATFORM_OWNER_SUBJECT", subject)
+    monkeypatch.setenv("KLYROW_PLATFORM_OWNER_EMAIL", "owner@example.com")
+    now = datetime.now(timezone.utc)
+    claims = {"iss": CANONICAL_ISSUER, "sub": subject, "email": "owner@example.com",
+              "email_verified": True, "amr": ["pwd", "otp"], "auth_time": int(time.time()),
+              "iat": int(time.time()), "exp": int(time.time()) + 300}
+    with Session(setup) as session:
+        session.add(OidcIdentity(id="lock-identity", issuer=CANONICAL_ISSUER, subject=subject,
+                                 user_id="owner", default_tenant_id="a", identity_type="KLYROW_ONLY", enabled=True))
+        session.add(TenantMember(id="lock-member", tenant_id="a", user_id="owner",
+                                 role="platform_admin", active=True))
+        session.add(auth_bff.BrowserSession(
+            id="lock-session", token_hash=main.sha("lock-token"), csrf_hash=main.sha("lock-csrf"),
+            identity_id="lock-identity", user_id="owner", tenant_id="a", role="platform_admin",
+            created_at=now, last_seen_at=now, expires_at=now + timedelta(minutes=5),
+            id_token_ciphertext=auth_bff._encrypt(jwt.encode(claims, "fixture-only-signing-key-32-bytes-long", algorithm="HS256")),
+        ))
+        session.commit()
+
+    app = FastAPI()
+
+    def isolated_db():
+        with Session(setup) as session:
+            yield session
+
+    app.dependency_overrides[main.db] = isolated_db
+    app.dependency_overrides[auth_bff.db] = isolated_db
+    authorities = (
+        (auth_bff.BrowserSession, "lock-session", {"revoked_at": now}),
+        (User, "owner", {"enabled": False}),
+        (TenantMember, "lock-member", {"active": False}),
+        (OidcIdentity, "lock-identity", {"enabled": False}),
+    )
+
+    @app.post("/app/api/admin/lock-regression", dependencies=[
+        Depends(platform_owner.platform_owner_role_stability_guard), Depends(admin.admin_csrf_guard),
+    ])
+    def protected_mutation(ctx: dict = Depends(admin.admin_browser_context), session: Session = Depends(main.db)):
+        blocked = []
+        for model, identity, values in authorities:
+            with Session(setup) as competing:
+                competing.execute(text("SET LOCAL lock_timeout = '150ms'"))
+                try:
+                    competing.execute(update(model).where(model.id == identity).values(**values))
+                except DBAPIError as error:
+                    assert error.orig.sqlstate == "55P03", error
+                    blocked.append(True)
+                else:
+                    blocked.append(False)
+                finally:
+                    competing.rollback()
+        session.add(Audit(id="lock-audit", tenant_id=ctx["tenant"], actor=ctx["sub"], action="lock.regression"))
+        session.commit()
+        return {"blocked": blocked, "owner": ctx["sub"]}
+
+    response = TestClient(app, base_url="https://app.klyrow.test").post(
+        "/app/api/admin/lock-regression", cookies={auth_bff.SESSION_COOKIE: "lock-token"},
+        headers={"X-Klyrow-CSRF": "lock-csrf"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json() == {"blocked": [True] * 4, "owner": "owner"}
+    with Session(setup) as after:
+        assert after.get(Audit, "lock-audit") is not None
+        # Handler commit releases the locks: revocation can now take effect.
+        after.execute(text("SET LOCAL lock_timeout = '150ms'"))
+        for model, identity, values in authorities:
+            after.execute(update(model).where(model.id == identity).values(**values))
+        after.rollback()
