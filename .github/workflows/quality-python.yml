@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - "mod/**"
 
 permissions:
   contents: read
@@ -61,7 +60,7 @@ jobs:
       - name: Report error count to step summary
         if: always()
         run: |
-          count=$(grep -cE '^[^:]+:[0-9]+:( [0-9]+:)? error:' mypy-output.txt || true)
+          count=$(grep -cE '^[^:]+:[0-9]+(:[0-9]+)?: error:' mypy-output.txt 2>/dev/null || true); count=${count:-0}
           {
             echo "## mypy (advisory, non-blocking)"
             echo

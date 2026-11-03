@@ -68,7 +68,8 @@ updates:
         update-types: ["minor", "patch"]
 
   # --- docker: base images (digest-pinned) --------------------------------
-  # Only directories that actually contain a Dockerfile are registered.
+  # Dependabot matches Dockerfile, *.Dockerfile and Dockerfile.* in each listed
+  # directory (no recursion), so /docker is listed explicitly.
   - package-ecosystem: "docker"
     directory: "/apps/gateway"
     schedule:
@@ -95,6 +96,20 @@ updates:
       prefix: "chore(deps)"
     groups:
       web-docker-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/La_Paz"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      docker-dir-minor-patch:
         update-types: ["minor", "patch"]
 
   # --- github-actions: workflow actions (SHA-pinned) ----------------------

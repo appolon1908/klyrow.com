@@ -10,10 +10,10 @@ Major bumps arrive as individual PRs.
 | ---------------- | -------------------------------------------- | --------------------------------- |
 | `pip`            | `/apps/gateway`, `/`                         | `requirements.txt`, `requirements-dev.txt` |
 | `npm`            | `/apps/web`, `/tools/contracts`              | `pnpm-lock.yaml`, `package-lock.json` |
-| `docker`         | `/apps/gateway`, `/apps/web`                 | `Dockerfile` base images          |
+| `docker`         | `/apps/gateway`, `/apps/web`, `/docker`      | `Dockerfile`, `*.Dockerfile` base images |
 | `github-actions` | `/`                                          | `.github/workflows/*.yml`         |
 
-`/docker` and `/apps/postal-provisioner` have no Dockerfile or Gemfile today; add entries when they do.
+`docker/database-runtime.Dockerfile` takes its base images from `ARG` defaults, which Dependabot does not resolve; bump those two digests by hand. `apps/postal-provisioner` has no Gemfile today; add a `bundler` entry when it does.
 
 ## Reviewing pinned bumps
 
