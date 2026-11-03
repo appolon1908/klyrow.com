@@ -507,91 +507,91 @@
     "declared_path": "/app/api/admin/abuse",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_abuse",
-    "line": 374,
+    "line": 373,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/abuse/evaluate",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_abuse_evaluate",
-    "line": 451,
+    "line": 450,
     "method": "POST"
   },
   {
     "declared_path": "/app/api/admin/abuse/suspensions",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_abuse_suspend",
-    "line": 462,
+    "line": 461,
     "method": "POST"
   },
   {
     "declared_path": "/app/api/admin/abuse/suspensions/{item_id}/release",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_abuse_release",
-    "line": 473,
+    "line": 472,
     "method": "POST"
   },
   {
     "declared_path": "/app/api/admin/abuse/alerts/{alert_id}/state",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_abuse_alert_state",
-    "line": 484,
+    "line": 483,
     "method": "POST"
   },
   {
     "declared_path": "/app/api/admin/reconciliation",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_reconciliation",
-    "line": 526,
+    "line": 525,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/reconciliation/billing",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_billing_reconciliation",
-    "line": 541,
+    "line": 540,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/reconciliation/{run_id}",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_reconciliation_detail",
-    "line": 561,
+    "line": 560,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/reconciliation",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_reconciliation_run",
-    "line": 574,
+    "line": 573,
     "method": "POST"
   },
   {
     "declared_path": "/app/api/admin/billing/overview",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_billing_overview",
-    "line": 584,
+    "line": 583,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/billing/subscriptions",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_billing_subscriptions",
-    "line": 658,
+    "line": 657,
     "method": "GET"
   },
   {
     "declared_path": "/app/api/admin/billing/dunning",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_billing_dunning",
-    "line": 712,
+    "line": 711,
     "method": "POST"
   },
   {
     "declared_path": "/app/api/admin/audit",
     "file": "apps/gateway/app/browser_admin_ops.py",
     "handler": "browser_admin_audit",
-    "line": 766,
+    "line": 765,
     "method": "GET"
   },
   {

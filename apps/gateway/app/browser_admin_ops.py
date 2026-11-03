@@ -41,15 +41,14 @@ from .delivery_controls import (
 )
 from .main import Audit, Tenant, User, audit, bind_tenant_rls, db
 from .operations import ReconciliationRun, reconcile as run_platform_reconciliation
+from .auth_bff import browser_context
 
 router = APIRouter(tags=["Browser platform administration"])
 
 
-def admin_browser_context(request: Request, session: Session = Depends(db)) -> dict:
-    """Resolve the existing browser context lazily to avoid import-order coupling."""
-    from .auth_bff import browser_context
-
-    return browser_context(request=request, s=session)
+def admin_browser_context(ctx: dict = Depends(browser_context)) -> dict:
+    """Reuse the cached context and preserve the guard's authority locks."""
+    return ctx
 
 
 def admin_csrf_guard(
