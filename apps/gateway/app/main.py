@@ -993,10 +993,7 @@ def auth(
             else:
                 header = jwt.get_unverified_header(raw)
                 if header.get("alg") == "HS256":
-                    if (
-                        os.getenv("KLYROW_ENV", "development").lower() == "production"
-                        or os.getenv("KLYROW_LOCAL_AUTH_ENABLED", "true").lower() != "true"
-                    ):
+                    if not local_auth_enabled():
                         raise HTTPException(401, "canonical_oidc_required")
                     ctx = jwt.decode(raw, SECRET, algorithms=["HS256"])
                     from .saas import SessionRecord

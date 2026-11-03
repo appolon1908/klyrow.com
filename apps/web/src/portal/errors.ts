@@ -49,6 +49,7 @@ export function normalizeFailure(error: unknown): PortalFailure {
 
 const EXPLANATIONS: Record<string, string> = {
   tenant_management_denied: 'This action needs an owner or admin role in the current organization.',
+  role_escalation_forbidden: 'Only an organization owner can assign, change or remove the owner or admin role.',
   platform_admin_required: 'Platform administration needs a platform administrator identity.',
   workspace_access_denied: 'Your membership in this organization is no longer active.',
   tenant_suspended: 'This organization is suspended.',

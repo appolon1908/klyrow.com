@@ -225,6 +225,22 @@ def test_admin_cannot_change_an_owners_role():
     assert _member_role(TENANT["second_owner_user"]) == "OWNER"
 
 
+def test_admin_cannot_remove_an_owner():
+    headers = _as("admin_user")
+    # Two active owners exist, so last-owner protection does not apply; the
+    # refusal must come from the escalation guard (revoking OWNER is owner-only).
+    response = client.delete(f"/app/api/team/{TENANT['second_owner_user']}", headers=headers)
+    assert response.status_code == 403, response.text
+    assert response.json()["detail"] == "role_escalation_forbidden"
+    assert _member_role(TENANT["second_owner_user"]) == "OWNER"
+
+
+def test_role_rank_covers_every_permission_role():
+    from apps.gateway.app.tenancy import ROLE_PERMISSIONS, ROLE_RANK
+
+    assert set(ROLE_RANK) == set(ROLE_PERMISSIONS)
+
+
 def test_owner_can_assign_owner_and_last_owner_protection_remains():
     headers = _as("owner_user")
     response = client.patch(

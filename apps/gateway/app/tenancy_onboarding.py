@@ -778,6 +778,8 @@ def browser_remove_member(
     )
     if not member:
         raise HTTPException(404, "member_not_found")
+    # Revoking an owner is an owner-only action (same rule as assigning OWNER).
+    assert_role_assignable(ctx["role"], member.role, current_role=member.role)
     if member.role == "OWNER" and _active_owner_count(s, ctx["tenant"]) <= 1:
         raise HTTPException(409, "last_owner_protected")
     member.active = False
