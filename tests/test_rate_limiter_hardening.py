@@ -94,4 +94,4 @@ def test_host_nginx_template_has_dedicated_auth_limit_zones():
     assert "limit_req_status 429;" in source
     assert "limit_req zone=klyrow_web_auth burst=10 nodelay;" in source
     assert "limit_req zone=klyrow_api_auth burst=10 nodelay;" in source
-    assert "location ~ ^/v1/auth(/|$)" in source
+    assert "location ~ ^/v1/auth/(login|forgot-password|reset-password)$" in source

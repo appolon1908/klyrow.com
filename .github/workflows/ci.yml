@@ -37,6 +37,7 @@ jobs:
       - name: Verify composed API catalog and audience exports
         run: |
           python scripts/export-api-contracts.py --check
+          python scripts/export-api-route-registry.py --check
           python scripts/validate-api-contracts.py
           python scripts/export-event-contracts.py --check
           pytest -q tests/test_api_contract_compatibility.py tests/test_mission_api_boundaries.py tests/test_odoo_writer_architecture.py

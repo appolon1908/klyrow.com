@@ -388,8 +388,14 @@ BILLING_DRIFT = platform_metric(
 # that an attacker who can vary the identity (for example by spoofing
 # X-Forwarded-For from a trusted proxy address) cannot grow the map without
 # bound; when the cap is exceeded the least recently touched keys are dropped.
+#
+# Known bound: an attacker who can mint more than KLYROW_RATE_LIMIT_MAX_KEYS
+# distinct identities inside one window (that is, ~10,000 source addresses
+# once X-Forwarded-For is trusted only from the proxy) evicts every other
+# in-window bucket and so resets their counts. That costs the attacker one
+# request per identity and is why the edge limiter remains authoritative.
 RATE_LIMIT_WINDOW_SECONDS = 60.0
-RATE_LIMIT_MAX_KEYS = int(os.getenv("KLYROW_RATE_LIMIT_MAX_KEYS", "10000"))
+RATE_LIMIT_MAX_KEYS = max(1, int(os.getenv("KLYROW_RATE_LIMIT_MAX_KEYS", "10000")))
 RATE_LIMIT_SWEEP_PER_CALL = 8
 
 
