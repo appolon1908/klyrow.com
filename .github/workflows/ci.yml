@@ -28,7 +28,7 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "22"
-      - run: pip install -r apps/gateway/requirements.txt openapi-spec-validator pytest
+      - run: pip install -r requirements-dev.txt
       - name: Verify composed API catalog and audience exports
         run: |
           python scripts/export-api-contracts.py --check
@@ -106,7 +106,7 @@ jobs:
           cache: pip
           cache-dependency-path: apps/gateway/requirements.txt
       - name: Install gateway and test dependencies
-        run: pip install -r apps/gateway/requirements.txt pytest pip-audit openapi-spec-validator
+        run: pip install -r requirements-dev.txt
       - name: Audit Python dependencies
         run: pip-audit --requirement apps/gateway/requirements.txt
       - name: Apply migrations twice and verify the ledger
@@ -157,7 +157,7 @@ jobs:
           persist-credentials: false
       - name: Verify owned Middleware adapters against the gateway
         run: |
-          pip install temporalio==1.32.0 asyncpg==0.30.0 pydantic-settings==2.15.0 pytest-asyncio==1.4.0
+          pip install -r requirements-dev.txt
           python scripts/verify_middleware_contract.py .ci-middleware
 
   secrets:
