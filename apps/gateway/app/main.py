@@ -11,7 +11,7 @@ import socket
 import ssl
 import time
 import uuid
-from collections import defaultdict, deque
+from collections import OrderedDict, deque
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -22,7 +22,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from jwt import PyJWKClient
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
@@ -373,7 +373,88 @@ BILLING_DRIFT = platform_metric(
         ],
     )
 )
-rate_buckets = defaultdict(deque)
+
+# In-process sliding-window rate limiter.
+#
+# This limiter is per-process: every uvicorn worker and every gateway replica
+# keeps its own buckets, so a client can obtain roughly (limit x replicas)
+# requests per window before this code refuses it. Cross-replica, per-IP
+# limiting is the job of the host Nginx (docker/proxy/klyrow.conf, limit_req);
+# this layer is defence in depth for identities Nginx cannot see (tenants,
+# actions) and for deployments where the edge limiter is absent.
+#
+# Buckets are keyed by (scope, action, identity). Expired buckets are swept
+# opportunistically on every call and the number of tracked keys is capped so
+# that an attacker who can vary the identity (for example by spoofing
+# X-Forwarded-For from a trusted proxy address) cannot grow the map without
+# bound; when the cap is exceeded the least recently touched keys are dropped.
+#
+# Known bound: an attacker who can mint more than KLYROW_RATE_LIMIT_MAX_KEYS
+# distinct identities inside one window (that is, ~10,000 source addresses
+# once X-Forwarded-For is trusted only from the proxy) evicts every other
+# in-window bucket and so resets their counts. That costs the attacker one
+# request per identity and is why the edge limiter remains authoritative.
+RATE_LIMIT_WINDOW_SECONDS = 60.0
+RATE_LIMIT_MAX_KEYS = max(1, int(os.getenv("KLYROW_RATE_LIMIT_MAX_KEYS", "10000")))
+RATE_LIMIT_SWEEP_PER_CALL = 8
+
+
+class RateBuckets(OrderedDict):
+    """Mapping of limiter key -> deque of request timestamps, ordered by last touch."""
+
+    def __missing__(self, key):
+        bucket = deque()
+        self[key] = bucket
+        self.enforce_cap()
+        return bucket
+
+    def enforce_cap(self, max_keys: int | None = None) -> None:
+        cap = RATE_LIMIT_MAX_KEYS if max_keys is None else max_keys
+        while len(self) > cap:
+            self.popitem(last=False)
+
+    def sweep(
+        self,
+        now: float,
+        window: float = RATE_LIMIT_WINDOW_SECONDS,
+        limit: int = RATE_LIMIT_SWEEP_PER_CALL,
+    ) -> int:
+        """Drop up to ``limit`` least-recently-touched buckets whose entries all expired.
+
+        Keys are ordered by last touch, so once the oldest key still holds a
+        live timestamp every later key does too and the scan can stop.
+        """
+        removed = 0
+        cutoff = now - window
+        while self and removed < limit:
+            key, bucket = next(iter(self.items()))
+            if bucket and bucket[-1] >= cutoff:
+                break
+            del self[key]
+            removed += 1
+        return removed
+
+
+rate_buckets = RateBuckets()
+
+
+def rate_limit_window(
+    key, limit: int, *, now: float | None = None, window: float = RATE_LIMIT_WINDOW_SECONDS
+) -> None:
+    """Record one request for ``key``; 429 when ``limit`` requests already fell in ``window``."""
+    now = time.time() if now is None else now
+    rate_buckets.sweep(now, window)
+    bucket = rate_buckets[key]
+    rate_buckets.move_to_end(key)
+    while bucket and bucket[0] < now - window:
+        bucket.popleft()
+    if len(bucket) >= limit:
+        if not bucket:
+            del rate_buckets[key]
+        raise HTTPException(429, "rate_limit_exceeded")
+    bucket.append(now)
+
+
 _jwks_clients = {}
 
 SMTP_EVENT_MAP = {
@@ -772,14 +853,8 @@ def safe_webhook_url(value: str) -> str:
 
 def auth_rate(request: Request, action: str):
     identity = request.client.host if request.client else "unknown"
-    now = time.time()
-    bucket = rate_buckets[("auth", action, identity)]
-    while bucket and bucket[0] < now - 60:
-        bucket.popleft()
     limit = int(os.getenv("KLYROW_AUTH_RATE_PER_MINUTE", "10"))
-    if len(bucket) >= limit:
-        raise HTTPException(429, "rate_limit_exceeded")
-    bucket.append(now)
+    rate_limit_window(("auth", action, identity), limit)
 
 
 def auth(
@@ -924,10 +999,7 @@ def auth(
             else:
                 header = jwt.get_unverified_header(raw)
                 if header.get("alg") == "HS256":
-                    if (
-                        os.getenv("KLYROW_ENV", "development").lower() == "production"
-                        or os.getenv("KLYROW_LOCAL_AUTH_ENABLED", "true").lower() != "true"
-                    ):
+                    if not local_auth_enabled():
                         raise HTTPException(401, "canonical_oidc_required")
                     ctx = jwt.decode(raw, SECRET, algorithms=["HS256"])
                     from .saas import SessionRecord
@@ -1020,13 +1092,7 @@ def auth(
     except Exception:
         raise HTTPException(401, "invalid_credentials")
     bind_tenant_rls(s, ctx["tenant"])
-    now = time.time()
-    q = rate_buckets[ctx["tenant"]]
-    while q and q[0] < now - 60:
-        q.popleft()
-    if len(q) >= int(os.getenv("KLYROW_RATE_PER_MINUTE", "60")):
-        raise HTTPException(429, "rate_limit_exceeded")
-    q.append(now)
+    rate_limit_window(ctx["tenant"], int(os.getenv("KLYROW_RATE_PER_MINUTE", "60")))
     return ctx
 
 
@@ -2585,13 +2651,23 @@ def metrics(authorization: str = Header(default="")):
     return Response(generate_latest(), media_type="text/plain")
 
 
-@app.post("/v1/auth/login")
-def login(x: Login, request: Request, s: Session = Depends(db)):
-    if (
+def local_auth_enabled() -> bool:
+    """Legacy HS256/password auth is refused in production or when disabled."""
+
+    return not (
         os.getenv("KLYROW_ENV", "development").lower() == "production"
         or os.getenv("KLYROW_LOCAL_AUTH_ENABLED", "true").lower() != "true"
-    ):
+    )
+
+
+def require_local_auth() -> None:
+    if not local_auth_enabled():
         raise HTTPException(410, "use_canonical_oidc")
+
+
+@app.post("/v1/auth/login")
+def login(x: Login, request: Request, s: Session = Depends(db)):
+    require_local_auth()
     auth_rate(request, "login")
     u = s.scalar(select(User).where(User.email == x.email.lower()))
     try:
@@ -2630,19 +2706,31 @@ def logout(ctx=Depends(auth), s: Session = Depends(db)):
 
 @app.post("/v1/auth/forgot-password", status_code=202)
 def forgot(x: ResetRequest, request: Request, s: Session = Depends(db)):
+    require_local_auth()
     auth_rate(request, "forgot-password")
     u = s.scalar(select(User).where(User.email == x.email.lower()))
     if u:
-        raw = secrets.token_urlsafe(32)
-        u.reset_hash = sha(raw)
-        u.reset_expires = datetime.now(UTC) + timedelta(minutes=30)
+        now = datetime.now(UTC)
+        pending = (
+            u.reset_hash is not None
+            and u.reset_expires is not None
+            and u.reset_expires.replace(tzinfo=UTC) > now
+        )
+        # A still-valid pending reset is kept so repeated requests cannot
+        # invalidate a token the account holder is about to use.
+        if not pending:
+            raw = secrets.token_urlsafe(32)
+            u.reset_hash = sha(raw)
+            u.reset_expires = now + timedelta(minutes=30)
         audit(s, {"tenant": u.tenant_id, "sub": u.id}, "password.reset.requested")
         s.commit()
     return {"detail": "If the account exists, reset instructions will be delivered."}
 
 
 @app.post("/v1/auth/reset-password")
-def reset(x: Reset, s: Session = Depends(db)):
+def reset(x: Reset, request: Request, s: Session = Depends(db)):
+    require_local_auth()
+    auth_rate(request, "reset-password")
     u = s.scalar(select(User).where(User.reset_hash == sha(x.token)))
     if not u or not u.reset_expires or u.reset_expires.replace(tzinfo=UTC) < datetime.now(UTC):
         raise HTTPException(400, "invalid_or_expired_token")
@@ -3896,11 +3984,6 @@ def auth_home():
     return RedirectResponse("/login", status_code=302)
 
 
-@app.get("/portal", response_class=HTMLResponse, include_in_schema=False)
-def portal():
-    return Path(__file__).with_name("portal.html").read_text()
-
-
 @app.get("/login", include_in_schema=False)
 @app.get("/signup", include_in_schema=False)
 @app.get("/verify-email", include_in_schema=False)
@@ -3922,21 +4005,6 @@ def auth_page():
     if not index.exists():
         raise HTTPException(503, "authentication_ui_not_built")
     return FileResponse(index, media_type="text/html", headers={"Cache-Control": "no-store"})
-
-
-@app.get("/assets/portal.js", include_in_schema=False)
-def portal_js():
-    return FileResponse(Path(__file__).with_name("portal.js"), media_type="application/javascript")
-
-
-@app.get("/admin", response_class=HTMLResponse, include_in_schema=False)
-def admin_portal():
-    return Path(__file__).with_name("admin.html").read_text()
-
-
-@app.get("/assets/admin.js", include_in_schema=False)
-def admin_js():
-    return FileResponse(Path(__file__).with_name("admin.js"), media_type="application/javascript")
 
 
 from .saas import router as saas_router

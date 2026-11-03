@@ -29,9 +29,6 @@ from .browser_security_fixes import (
 from .browser_security_fixes import (
     install_browser_security_fixes,
 )
-from .browser_security_fixes import (
-    legacy_router as legacy_security_router,
-)
 from .browser_step_up_deadline import (
     install_step_up_deadline_guard,
 )
@@ -90,11 +87,9 @@ for route in list(tenancy_onboarding_router.routes):
     if getattr(route, "path", "") in SHELL_PATHS:
         tenancy_onboarding_router.routes.remove(route)
 
-# Remove legacy/product shell routes that may already exist on the core app.
+# Remove product shell routes that may already exist on the core app.
 for route in list(app.router.routes):
-    if getattr(route, "path", "") in SHELL_PATHS or (
-        getattr(route, "path", "") == "/admin" and getattr(route, "name", "") == "admin_portal"
-    ):
+    if getattr(route, "path", "") in SHELL_PATHS:
         app.router.routes.remove(route)
 
 if not getattr(app.state, "klyrow_postal_callback_route_registered", False):
@@ -108,7 +103,6 @@ if not getattr(app.state, "klyrow_browser_api_routes_registered", False):
     auth_bff._identity_context = resolve_identity_context_with_provisioning
     for platform_router in (
         browser_security_router,
-        legacy_security_router,
         auth_bff_router,
         platform_owner_router,
         browser_auth_actions_router,
@@ -186,6 +180,13 @@ def product_app_ui(path: str = ""):
 from .openapi_authority import install_openapi_authority
 
 install_openapi_authority(app)
+
+# Structural guard (security finding M3): first-match routing would let a
+# shadowed duplicate silently win if the registration order above changed.
+# Fail composition outright when any (path, method) has more than one APIRoute.
+from .routing_guards import assert_unique_api_routes
+
+assert_unique_api_routes(app.router.routes)
 
 
 __all__ = ["app"]

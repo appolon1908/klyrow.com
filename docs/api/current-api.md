@@ -91,8 +91,6 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/app/api/team` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_team` |
 | GET | `/app/api/team/invitations` | BROWSER_BFF | BROWSER_SESSION_COOKIE | true | `browser_invitations` |
 | GET | `/app/{path:path}` | BROWSER_BFF | BROWSER_SESSION_COOKIE | false | `product_app_ui` |
-| GET | `/assets/admin.js` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `admin_js` |
-| GET | `/assets/portal.js` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `portal_js` |
 | GET | `/auth/callback` | BROWSER_BFF | OIDC_PRE_SESSION_OR_SIGNED_BROWSER_ACTION | true | `oidc_callback` |
 | GET | `/auth/google` | BROWSER_BFF | OIDC_PRE_SESSION_OR_SIGNED_BROWSER_ACTION | true | `google_start` |
 | GET | `/auth/login` | BROWSER_BFF | OIDC_PRE_SESSION_OR_SIGNED_BROWSER_ACTION | true | `login_start` |
@@ -113,7 +111,6 @@ This inventories the composed platform, including hidden compatibility and brows
 | GET | `/login` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `auth_page` |
 | GET | `/metrics` | INTERNAL | METRICS_BEARER_ON_PRIVATE_ROUTE | true | `metrics` |
 | GET | `/onboarding` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `product_app_ui` |
-| GET | `/portal` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `portal` |
 | GET | `/privacy` | PUBLIC | BEARER_JWT_OR_API_KEY | false | `auth_page` |
 | GET | `/readiness` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `readiness_alias` |
 | GET | `/readyz` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `provider_readyz` |
@@ -465,8 +462,6 @@ This inventories the composed platform, including hidden compatibility and brows
 | POST | `/v1/support/tickets` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `support` |
 | POST | `/v1/suppressions` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `suppression_create` |
 | POST | `/v1/team/invitations` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `invite` |
-| POST | `/v1/team/invitations/accept` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `accept` |
-| POST | `/v1/team/invitations/accept` | PUBLIC | NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN | true | `accept_legacy_invitation` |
 | POST | `/v1/templates` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `template_create` |
 | POST | `/v1/templates/{item_id}/publish` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `template_publish` |
 | POST | `/v1/templates/{item_id}/render` | PUBLIC | BEARER_JWT_OR_API_KEY | true | `template_render` |

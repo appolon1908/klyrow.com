@@ -1,6 +1,5 @@
 import os
 import time
-from pathlib import Path
 from types import SimpleNamespace
 
 import jwt
@@ -64,15 +63,6 @@ def test_oidc_config_requires_pkce_and_disables_local_password():
         and body["code_challenge_method"] == "S256"
         and body["local_password_login"] is False
     )
-
-
-def test_legacy_portal_no_longer_exchanges_or_stores_oidc_tokens():
-    source = (Path(__file__).parents[1] / "apps/gateway/app/portal.js").read_text()
-    assert 'location.assign("/login")' in source
-    assert "location.origin" not in source
-    assert "sessionStorage" not in source
-    assert "token_endpoint" not in source
-    assert 'grant_type:"authorization_code"' not in source
 
 
 def test_production_local_login_is_disabled():

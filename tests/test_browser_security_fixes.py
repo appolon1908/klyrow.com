@@ -10,6 +10,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from fastapi import HTTPException
 from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from starlette.requests import Request
@@ -34,7 +35,6 @@ from apps.gateway.app.browser_security_fixes import (
     FLOW_COOKIE,
     FLOW_COOKIE_MAX_BINDINGS,
     FLOW_COOKIE_PATH,
-    accept_legacy_invitation,
     accept_selected_invitation,
     authorization_state,
     begin_recovery,
@@ -47,7 +47,6 @@ from apps.gateway.app.browser_security_fixes import (
     set_flow_cookie,
 )
 from apps.gateway.app.tenancy import (
-    AcceptIn,
     OidcIdentity,
     TenantInvitation,
     TenantMember,
@@ -233,7 +232,6 @@ def test_composition_replaces_each_security_sensitive_route_once() -> None:
         ("POST", "/auth/actions/invitation"),
         ("GET", "/auth/step-up"),
         ("POST", "/app/api/email/send"),
-        ("POST", "/v1/team/invitations/accept"),
     }
     observed = {}
     for route in app.router.routes:
@@ -832,25 +830,20 @@ def test_inactive_membership_is_reactivated_by_explicit_invitation(
     assert invitation.accepted_at is not None
 
 
-def test_legacy_invitation_path_also_denies_silent_role_change(
-    isolated_session,
-) -> None:
-    membership, invitation = _add_invitation(
-        isolated_session,
-        invitation_id="legacy-conflict",
-        role="READ_ONLY",
-        active_role="ADMIN",
+def test_legacy_invitation_accept_route_removed() -> None:
+    """M1-02: the unauthenticated body-token acceptance route no longer exists."""
+
+    assert not any(
+        isinstance(route, APIRoute)
+        and route.path == "/v1/team/invitations/accept"
+        and "POST" in (route.methods or set())
+        for route in app.router.routes
     )
-    with pytest.raises(HTTPException) as denied:
-        accept_legacy_invitation(
-            AcceptIn(token="token-legacy-conflict"),
-            session=isolated_session,
-        )
-    assert denied.value.status_code == 409
-    isolated_session.refresh(membership)
-    isolated_session.refresh(invitation)
-    assert membership.role == "ADMIN"
-    assert invitation.accepted_at is None
+    response = TestClient(app).post(
+        "/v1/team/invitations/accept",
+        json={"token": "token-legacy-conflict"},
+    )
+    assert response.status_code == 404
 
 
 def test_stage_new_session_never_commits_by_itself(

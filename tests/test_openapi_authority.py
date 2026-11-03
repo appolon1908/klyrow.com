@@ -45,7 +45,7 @@ def test_every_documented_operation_has_one_canonical_audience_and_auth_model():
     schema = app.openapi()
     rows = list(operations(schema))
     assert len(rows) == schema["x-klyrow-operation-count"]
-    assert len(rows) == 455
+    assert len(rows) == 454
     assert all(row[2]["x-klyrow-audience"] in AUDIENCES for row in rows)
     assert all(row[2]["x-klyrow-auth-model"] for row in rows)
     assert all("security" in row[2] for row in rows)
@@ -132,9 +132,9 @@ def test_pre_session_and_body_token_entrypoints_are_anonymous():
     for method, path in {
         ("get", "/health/live"),
         ("get", "/health/ready"),
-        ("post", "/v1/team/invitations/accept"),
     }:
         assert schema["paths"][path][method]["security"] == []
+    assert "/v1/team/invitations/accept" not in schema["paths"]
 
 
 def test_authenticated_browser_mutations_require_session_and_csrf():
@@ -249,7 +249,7 @@ def test_schema_generation_is_cached_and_deterministic():
         "BROWSER_BFF": 117,
         "INTERNAL": 51,
         "LEGACY": 1,
-        "PUBLIC": 254,
+        "PUBLIC": 253,
         "TRACKING": 6,
         "WEBHOOK": 3,
     }

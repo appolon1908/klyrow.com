@@ -1,4 +1,5 @@
 import os
+import secrets
 import uuid
 from datetime import UTC, timedelta
 
@@ -9,7 +10,6 @@ from apps.gateway.app.main import DB, Base, Tenant, User, engine, ph, sha
 from apps.gateway.app.platform import app
 from apps.gateway.app import auth_bff
 from apps.gateway.app.auth_bff import SESSION_COOKIE, BrowserSession
-from apps.gateway.app.browser_auth_actions import stable_csrf_token
 from apps.gateway.app.tenancy import OidcIdentity, TenantMember
 
 ISSUER = "https://auth.codestra.co/realms/codestra"
@@ -32,7 +32,7 @@ def _principal_with_session(*, last_seen_delta=timedelta(), expires_delta=timede
     identity_id = f"identity-session-{suffix}"
     session_id = f"session-{suffix}"
     raw = "browser_" + uuid.uuid4().hex
-    csrf = stable_csrf_token(session_id)
+    csrf = secrets.token_urlsafe(32)
     current = auth_bff.now()
     with DB() as session:
         tenant = Tenant(id=tenant_id, name="Session Tenant", quota=10)
@@ -61,6 +61,7 @@ def _principal_with_session(*, last_seen_delta=timedelta(), expires_delta=timede
             id=session_id,
             token_hash=sha(raw),
             csrf_hash=sha(csrf),
+            csrf_ciphertext=auth_bff._encrypt(csrf),
             identity_id=identity_id,
             user_id=user_id,
             tenant_id=tenant_id,
@@ -101,6 +102,7 @@ def test_logout_all_revokes_every_identity_session_for_local_user():
     fixture = _principal_with_session()
     second_identity_id = "identity-second-" + uuid.uuid4().hex
     second_session_id = "session-second-" + uuid.uuid4().hex
+    second_csrf = secrets.token_urlsafe(32)
     with DB() as session:
         session.add(
             OidcIdentity(
@@ -116,7 +118,8 @@ def test_logout_all_revokes_every_identity_session_for_local_user():
             BrowserSession(
                 id=second_session_id,
                 token_hash=sha("other_" + uuid.uuid4().hex),
-                csrf_hash=sha(stable_csrf_token(second_session_id)),
+                csrf_hash=sha(second_csrf),
+                csrf_ciphertext=auth_bff._encrypt(second_csrf),
                 identity_id=second_identity_id,
                 user_id=fixture["user_id"],
                 tenant_id=fixture["tenant_id"],

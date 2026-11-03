@@ -30,7 +30,6 @@ from . import (
     invitation_flow,
     platform_owner,
     postal_provisioning,
-    tenancy,
     tenancy_onboarding,
 )
 from .auth_bff import (
@@ -57,7 +56,6 @@ browser_router = APIRouter(
     tags=["Browser flow security"],
     dependencies=[Depends(auth_bff._canonical_browser_request)],
 )
-legacy_router = APIRouter(tags=["Tenant authority"])
 _INSTALLED = False
 
 
@@ -291,11 +289,12 @@ def _stage_new_session(
     """Stage a browser session without crossing the callback commit boundary."""
 
     raw = secrets.token_urlsafe(48)
-    csrf = secrets.token_urlsafe(32)
+    csrf = auth_bff._inherited_csrf(session, rotated_from_id) or secrets.token_urlsafe(32)
     item = BrowserSession(
         id=str(uuid.uuid4()),
         token_hash=sha(raw),
         csrf_hash=sha(csrf),
+        csrf_ciphertext=auth_bff._encrypt(csrf),
         identity_id=identity.id,
         user_id=user.id,
         tenant_id=membership.tenant_id,
@@ -699,7 +698,7 @@ def oidc_callback(
             )
 
         _stage_postal_provisioning(session, membership.tenant_id)
-        item, raw, _csrf = _stage_new_session(
+        _item, raw, _csrf = _stage_new_session(
             session,
             request,
             identity,
@@ -722,7 +721,6 @@ def oidc_callback(
     auth_bff._set_session_cookie(response, raw)
     remove_flow_cookie(response, request, state)
     response.headers["Cache-Control"] = "no-store"
-    response.headers["X-Klyrow-Session-Id"] = item.id
     return response
 
 
@@ -1021,37 +1019,6 @@ def accept_selected_invitation(
     return membership
 
 
-@legacy_router.post("/v1/team/invitations/accept", status_code=201)
-def accept_legacy_invitation(
-    payload: tenancy.AcceptIn,
-    session: Session = Depends(db),
-):
-    invitation = _locked_valid_invitation(
-        session,
-        token_hash=sha(payload.token),
-    )
-    user = session.scalar(select(User).where(User.email == invitation.email))
-    if user is None or not user.enabled:
-        raise HTTPException(409, "keycloak_user_link_required")
-    membership = _membership_for_invitation(
-        session,
-        invitation,
-        user,
-    )
-    invitation.accepted_at = auth_bff.now()
-    audit(
-        session,
-        {"tenant": invitation.tenant_id, "sub": user.id},
-        "tenant.invitation.accepted",
-    )
-    session.commit()
-    return {
-        "tenant_id": invitation.tenant_id,
-        "role": membership.role,
-        "user_id": user.id,
-    }
-
-
 def _remove_route(
     routes: list,
     *,
@@ -1077,7 +1044,12 @@ def install_browser_security_fixes(app) -> None:
     if _INSTALLED:
         return
 
-    for path in ("/auth/login", "/auth/signup", "/auth/google"):
+    # Every GET endpoint this module hardens is removed from ``auth_bff.router``
+    # here, explicitly. ``/auth/callback`` was previously dropped only as a
+    # side effect of ``browser_auth_actions.install_auth_extensions``; the
+    # un-hardened callback (no flow-cookie binding) must never depend on
+    # another installer or on router registration order in ``platform.py``.
+    for path in ("/auth/login", "/auth/signup", "/auth/google", "/auth/callback"):
         _remove_route(auth_bff.router.routes, path=path, method="GET")
     _remove_route(
         browser_auth_actions.router.routes,
@@ -1105,11 +1077,6 @@ def install_browser_security_fixes(app) -> None:
         path="/app/api/email/send",
         method="POST",
     )
-    _remove_route(
-        app.router.routes,
-        path="/v1/team/invitations/accept",
-        method="POST",
-    )
 
     auth_bff.FLOW_COOKIE = FLOW_COOKIE
     auth_bff._flow_binding = flow_binding
@@ -1135,7 +1102,6 @@ __all__ = [
     "encode_flow_cookie",
     "flow_binding",
     "install_browser_security_fixes",
-    "legacy_router",
     "parse_flow_cookie",
     "remove_flow_cookie",
     "require_flow_cookie",

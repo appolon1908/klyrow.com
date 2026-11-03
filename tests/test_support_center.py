@@ -1,4 +1,5 @@
 import os
+import secrets
 import uuid
 from datetime import timedelta
 from pathlib import Path
@@ -10,7 +11,6 @@ from apps.gateway.app.main import DB, Base, Tenant, User, engine, ph, sha
 from apps.gateway.app.platform import app
 from apps.gateway.app import auth_bff
 from apps.gateway.app.auth_bff import SESSION_COOKIE, BrowserSession
-from apps.gateway.app.browser_auth_actions import stable_csrf_token
 from apps.gateway.app.support_center import SupportTicket, SupportTicketMessage
 from apps.gateway.app.tenancy import OidcIdentity, TenantMember
 
@@ -28,7 +28,7 @@ def _principal(label: str):
     identity_id = f"identity-support-{label}-{suffix}"
     session_id = f"session-support-{label}-{suffix}"
     raw = "browser_" + uuid.uuid4().hex
-    csrf = stable_csrf_token(session_id)
+    csrf = secrets.token_urlsafe(32)
     with DB() as session:
         session.add(Tenant(id=tenant_id, name=f"Support {label}", quota=100))
         session.add(
@@ -63,6 +63,7 @@ def _principal(label: str):
                 id=session_id,
                 token_hash=sha(raw),
                 csrf_hash=sha(csrf),
+                csrf_ciphertext=auth_bff._encrypt(csrf),
                 identity_id=identity_id,
                 user_id=user_id,
                 tenant_id=tenant_id,

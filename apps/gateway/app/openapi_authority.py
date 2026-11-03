@@ -30,7 +30,6 @@ PUBLIC_ANONYMOUS = {
     ("post", "/v1/auth/login"),
     ("post", "/v1/auth/forgot-password"),
     ("post", "/v1/auth/reset-password"),
-    ("post", "/v1/team/invitations/accept"),
 }
 
 BROWSER_ANONYMOUS = {

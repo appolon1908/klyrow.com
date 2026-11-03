@@ -57,9 +57,12 @@ def main():
                 text=True,
             )
             if previous.returncode == 0:
+                waived = compatibility.load_waivers(
+                    ROOT / "contracts/openapi/compatibility-waivers.json", path.name
+                )
                 failures.extend(
                     f"{path.name}: {item}"
-                    for item in compatibility.changes(json.loads(previous.stdout), document)
+                    for item in compatibility.changes(json.loads(previous.stdout), document, waived)
                 )
             else:
                 print(f"{relative}: initial contract baseline (absent at base commit)")

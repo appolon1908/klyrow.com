@@ -40,7 +40,13 @@ def contract(value, document):
     return {"value": value, "refs": refs}
 
 
-def changes(old: dict, new: dict) -> list[str]:
+def changes(old: dict, new: dict, waived_removals: frozenset[str] = frozenset()) -> list[str]:
+    """Return breaking changes between two OpenAPI documents.
+
+    ``waived_removals`` holds ``"METHOD /path"`` labels whose removal has been
+    reviewed and recorded in ``contracts/openapi/compatibility-waivers.json``.
+    Only removals can be waived; every other contract change still fails.
+    """
     failures = []
     for path, item in old.get("paths", {}).items():
         for method, operation in item.items():
@@ -50,7 +56,10 @@ def changes(old: dict, new: dict) -> list[str]:
             current_item = new.get("paths", {}).get(path, {})
             current = current_item.get(method)
             if current is None:
-                failures.append(f"{label}: operation removed")
+                if label in waived_removals:
+                    print(f"{label}: operation removed (waived)")
+                else:
+                    failures.append(f"{label}: operation removed")
                 continue
             for key in ("operationId", "requestBody"):
                 if contract(operation.get(key), old) != contract(current.get(key), new):
@@ -90,12 +99,31 @@ def changes(old: dict, new: dict) -> list[str]:
     return failures
 
 
+def load_waivers(path: Path, spec_name: str) -> frozenset[str]:
+    """Labels of operations whose removal from ``spec_name`` has been reviewed."""
+    if not path.exists():
+        return frozenset()
+    entries = json.loads(path.read_text()).get("removed_operations", [])
+    labels = set()
+    for entry in entries:
+        for key in ("spec", "method", "path", "reason", "pr"):
+            if not entry.get(key):
+                raise ValueError(f"compatibility waiver missing '{key}': {entry}")
+        if entry["spec"] == spec_name:
+            labels.add(f"{entry['method'].upper()} {entry['path']}")
+    return frozenset(labels)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("previous", type=Path)
     parser.add_argument("current", type=Path)
+    parser.add_argument("--waivers", type=Path, default=None)
     args = parser.parse_args()
-    failures = changes(json.loads(args.previous.read_text()), json.loads(args.current.read_text()))
+    waived = load_waivers(args.waivers, args.current.name) if args.waivers else frozenset()
+    failures = changes(
+        json.loads(args.previous.read_text()), json.loads(args.current.read_text()), waived
+    )
     for failure in failures:
         print(failure)
     return int(bool(failures))

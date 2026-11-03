@@ -1,4 +1,5 @@
 import os
+import secrets
 import uuid
 from datetime import timedelta
 
@@ -9,7 +10,6 @@ from apps.gateway.app.main import DB, Base, Tenant, User, engine, ph, sha
 from apps.gateway.app.platform import app
 from apps.gateway.app import auth_bff
 from apps.gateway.app.auth_bff import SESSION_COOKIE, BrowserSession
-from apps.gateway.app.browser_auth_actions import stable_csrf_token
 from apps.gateway.app.tenancy import OidcIdentity, TenantMember
 
 ISSUER = "https://auth.codestra.co/realms/codestra"
@@ -26,6 +26,8 @@ def _seed_session(*, second_identity: bool = False):
     member_id = f"member-authority-{suffix}"
     session_id = f"session-authority-{suffix}"
     raw = "browser_" + uuid.uuid4().hex
+    csrf = secrets.token_urlsafe(32)
+    other_csrf = secrets.token_urlsafe(32)
     current = auth_bff.now()
     with DB() as session:
         tenant = Tenant(id=tenant_id, name="Authority Tenant", quota=10)
@@ -53,7 +55,8 @@ def _seed_session(*, second_identity: bool = False):
         current_session = BrowserSession(
             id=session_id,
             token_hash=sha(raw),
-            csrf_hash=sha(stable_csrf_token(session_id)),
+            csrf_hash=sha(csrf),
+            csrf_ciphertext=auth_bff._encrypt(csrf),
             identity_id=identity_id,
             user_id=user_id,
             tenant_id=tenant_id,
@@ -83,7 +86,8 @@ def _seed_session(*, second_identity: bool = False):
                 BrowserSession(
                     id=other_session_id,
                     token_hash=sha("browser_" + uuid.uuid4().hex),
-                    csrf_hash=sha(stable_csrf_token(other_session_id)),
+                    csrf_hash=sha(other_csrf),
+                    csrf_ciphertext=auth_bff._encrypt(other_csrf),
                     identity_id=second_identity_id,
                     user_id=user_id,
                     tenant_id=tenant_id,
@@ -98,6 +102,7 @@ def _seed_session(*, second_identity: bool = False):
     client.cookies.set(SESSION_COOKIE, raw)
     return {
         "client": client,
+        "csrf": csrf,
         "tenant_id": tenant_id,
         "user_id": user_id,
         "identity_id": identity_id,
@@ -134,7 +139,7 @@ def test_disabled_identity_cannot_refresh_or_rotate_session():
 
     response = seeded["client"].post(
         "/auth/refresh",
-        headers={"X-Klyrow-CSRF": stable_csrf_token(seeded["session_id"])},
+        headers={"X-Klyrow-CSRF": seeded["csrf"]},
     )
     assert response.status_code == 401
     assert response.json()["detail"] == "principal_disabled"
@@ -211,7 +216,7 @@ def test_logout_all_revokes_sessions_for_every_identity_of_the_user():
     seeded = _seed_session(second_identity=True)
     response = seeded["client"].post(
         "/auth/logout-all",
-        headers={"X-Klyrow-CSRF": stable_csrf_token(seeded["session_id"])},
+        headers={"X-Klyrow-CSRF": seeded["csrf"]},
     )
     assert response.status_code == 200
     assert response.json()["revoked_sessions"] == 2

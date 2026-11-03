@@ -510,18 +510,6 @@
     "path": "/app/{path:path}"
   },
   {
-    "documented": false,
-    "handler": "admin_js",
-    "method": "GET",
-    "path": "/assets/admin.js"
-  },
-  {
-    "documented": false,
-    "handler": "portal_js",
-    "method": "GET",
-    "path": "/assets/portal.js"
-  },
-  {
     "documented": true,
     "handler": "oidc_callback",
     "method": "GET",
@@ -640,12 +628,6 @@
     "handler": "product_app_ui",
     "method": "GET",
     "path": "/onboarding"
-  },
-  {
-    "documented": false,
-    "handler": "portal",
-    "method": "GET",
-    "path": "/portal"
   },
   {
     "documented": false,
@@ -2752,18 +2734,6 @@
     "handler": "invite",
     "method": "POST",
     "path": "/v1/team/invitations"
-  },
-  {
-    "documented": true,
-    "handler": "accept",
-    "method": "POST",
-    "path": "/v1/team/invitations/accept"
-  },
-  {
-    "documented": true,
-    "handler": "accept_legacy_invitation",
-    "method": "POST",
-    "path": "/v1/team/invitations/accept"
   },
   {
     "documented": true,

@@ -18,7 +18,8 @@ def test_base_gateway_image_bundles_reviewed_vue_application():
     assert " AS web-build" in dockerfile.splitlines()[0]
     assert "RUN pnpm build" in dockerfile
     assert "COPY --from=web-build /build/dist ./app/auth_web" in dockerfile
-    assert '"app.platform:app"' in dockerfile
+    command = next(line for line in dockerfile.splitlines() if line.startswith("CMD "))
+    assert "uvicorn app.platform:app" in command
 
 
 def test_bundled_vue_assets_resolve_from_the_distribution_root():
