@@ -1,0 +1,12 @@
+{
+  "$comment": "Intentional removals of public operations. The compatibility gate (scripts/check-api-compatibility.py) refuses any removed operation unless it is listed here with a reason and the PR that reviewed it. Only 'operation removed' can be waived; contract changes on live operations still require a new API version. Remove an entry once the base branch no longer contains the operation.",
+  "removed_operations": [
+    {
+      "spec": "klyrow-public-api.yaml",
+      "method": "POST",
+      "path": "/v1/team/invitations/accept",
+      "reason": "Security finding H1: unauthenticated acceptance granted membership to anyone holding the one-time token and revealed whether an email was registered. The OIDC browser flow (verified-email ID token) is the only supported path.",
+      "pr": "https://github.com/appolon1908/klyrow.com/pull/223"
+    }
+  ]
+}
