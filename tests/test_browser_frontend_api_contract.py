@@ -137,6 +137,20 @@ def test_frontend_only_calls_registered_browser_api_paths():
         assert path in source, path
 
 
+def test_admin_abuse_manual_suspension_matches_backend_contract():
+    source = (
+        ROOT / "apps/web/src/portal/pages/AdminAbusePage.vue"
+    ).read_text(encoding="utf-8")
+    assert "ref<'TENANT' | 'DOMAIN' | 'SENDER'>('TENANT')" in source
+    assert 'option value="TENANT"' in source
+    assert 'option value="DOMAIN"' in source
+    assert 'option value="SENDER"' in source
+    assert (
+        "resource_id: suspendType.value === 'TENANT' ? "
+        "suspendTenant.value.trim() : suspendResource.value.trim()"
+    ) in source
+
+
 def test_frontend_has_no_browser_token_storage_contract():
     source = "\n".join(
         (ROOT / path).read_text(encoding="utf-8")

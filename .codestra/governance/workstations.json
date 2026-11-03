@@ -1,0 +1,775 @@
+{
+  "schema_version": "codestra.workstations.v3",
+  "family": "klyrow",
+  "product": "klyrow.com",
+  "sections": [
+    {
+      "section": "kl-01-foundation",
+      "branch": "section/kl-01-foundation",
+      "order": 1,
+      "depends_on": [],
+      "subsections": [
+        {
+          "subsection": "01-app-bootstrap",
+          "workstation_id": "klyrow-com::kl-01-foundation::01-app-bootstrap",
+          "branch": "subsection/kl-01-foundation--01-app-bootstrap",
+          "parent_branch": "section/kl-01-foundation",
+          "order": 1,
+          "depends_on": [],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-01-foundation/subsections/01-app-bootstrap/repo"
+        },
+        {
+          "subsection": "02-config-errors",
+          "workstation_id": "klyrow-com::kl-01-foundation::02-config-errors",
+          "branch": "subsection/kl-01-foundation--02-config-errors",
+          "parent_branch": "section/kl-01-foundation",
+          "order": 2,
+          "depends_on": [
+            "klyrow-com::kl-01-foundation::01-app-bootstrap"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-01-foundation/subsections/02-config-errors/repo"
+        },
+        {
+          "subsection": "03-lifecycle",
+          "workstation_id": "klyrow-com::kl-01-foundation::03-lifecycle",
+          "branch": "subsection/kl-01-foundation--03-lifecycle",
+          "parent_branch": "section/kl-01-foundation",
+          "order": 3,
+          "depends_on": [
+            "klyrow-com::kl-01-foundation::02-config-errors"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-01-foundation/subsections/03-lifecycle/repo"
+        }
+      ]
+    },
+    {
+      "section": "kl-02-identity-orgs",
+      "branch": "section/kl-02-identity-orgs",
+      "order": 2,
+      "depends_on": [
+        "klyrow-com::kl-01-foundation"
+      ],
+      "subsections": [
+        {
+          "subsection": "01-accounts",
+          "workstation_id": "klyrow-com::kl-02-identity-orgs::01-accounts",
+          "branch": "subsection/kl-02-identity-orgs--01-accounts",
+          "parent_branch": "section/kl-02-identity-orgs",
+          "order": 1,
+          "depends_on": [],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-02-identity-orgs/subsections/01-accounts/repo"
+        },
+        {
+          "subsection": "02-organizations",
+          "workstation_id": "klyrow-com::kl-02-identity-orgs::02-organizations",
+          "branch": "subsection/kl-02-identity-orgs--02-organizations",
+          "parent_branch": "section/kl-02-identity-orgs",
+          "order": 2,
+          "depends_on": [
+            "klyrow-com::kl-02-identity-orgs::01-accounts"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-02-identity-orgs/subsections/02-organizations/repo"
+        },
+        {
+          "subsection": "03-rbac",
+          "workstation_id": "klyrow-com::kl-02-identity-orgs::03-rbac",
+          "branch": "subsection/kl-02-identity-orgs--03-rbac",
+          "parent_branch": "section/kl-02-identity-orgs",
+          "order": 3,
+          "depends_on": [
+            "klyrow-com::kl-02-identity-orgs::02-organizations"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-02-identity-orgs/subsections/03-rbac/repo"
+        }
+      ]
+    },
+    {
+      "section": "kl-03-projects-media",
+      "branch": "section/kl-03-projects-media",
+      "order": 3,
+      "depends_on": [
+        "klyrow-com::kl-02-identity-orgs"
+      ],
+      "subsections": [
+        {
+          "subsection": "01-projects",
+          "workstation_id": "klyrow-com::kl-03-projects-media::01-projects",
+          "branch": "subsection/kl-03-projects-media--01-projects",
+          "parent_branch": "section/kl-03-projects-media",
+          "order": 1,
+          "depends_on": [],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-03-projects-media/subsections/01-projects/repo"
+        },
+        {
+          "subsection": "02-media-library",
+          "workstation_id": "klyrow-com::kl-03-projects-media::02-media-library",
+          "branch": "subsection/kl-03-projects-media--02-media-library",
+          "parent_branch": "section/kl-03-projects-media",
+          "order": 2,
+          "depends_on": [
+            "klyrow-com::kl-03-projects-media::01-projects"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-03-projects-media/subsections/02-media-library/repo"
+        },
+        {
+          "subsection": "03-assets",
+          "workstation_id": "klyrow-com::kl-03-projects-media::03-assets",
+          "branch": "subsection/kl-03-projects-media--03-assets",
+          "parent_branch": "section/kl-03-projects-media",
+          "order": 3,
+          "depends_on": [
+            "klyrow-com::kl-03-projects-media::02-media-library"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-03-projects-media/subsections/03-assets/repo"
+        }
+      ]
+    },
+    {
+      "section": "kl-04-publishing",
+      "branch": "section/kl-04-publishing",
+      "order": 4,
+      "depends_on": [
+        "klyrow-com::kl-03-projects-media"
+      ],
+      "subsections": [
+        {
+          "subsection": "01-content",
+          "workstation_id": "klyrow-com::kl-04-publishing::01-content",
+          "branch": "subsection/kl-04-publishing--01-content",
+          "parent_branch": "section/kl-04-publishing",
+          "order": 1,
+          "depends_on": [],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-04-publishing/subsections/01-content/repo"
+        },
+        {
+          "subsection": "02-scheduling",
+          "workstation_id": "klyrow-com::kl-04-publishing::02-scheduling",
+          "branch": "subsection/kl-04-publishing--02-scheduling",
+          "parent_branch": "section/kl-04-publishing",
+          "order": 2,
+          "depends_on": [
+            "klyrow-com::kl-04-publishing::01-content"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-04-publishing/subsections/02-scheduling/repo"
+        },
+        {
+          "subsection": "03-delivery",
+          "workstation_id": "klyrow-com::kl-04-publishing::03-delivery",
+          "branch": "subsection/kl-04-publishing--03-delivery",
+          "parent_branch": "section/kl-04-publishing",
+          "order": 3,
+          "depends_on": [
+            "klyrow-com::kl-04-publishing::02-scheduling"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-04-publishing/subsections/03-delivery/repo"
+        }
+      ]
+    },
+    {
+      "section": "kl-05-messaging",
+      "branch": "section/kl-05-messaging",
+      "order": 5,
+      "depends_on": [
+        "klyrow-com::kl-04-publishing"
+      ],
+      "subsections": [
+        {
+          "subsection": "01-email",
+          "workstation_id": "klyrow-com::kl-05-messaging::01-email",
+          "branch": "subsection/kl-05-messaging--01-email",
+          "parent_branch": "section/kl-05-messaging",
+          "order": 1,
+          "depends_on": [],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-05-messaging/subsections/01-email/repo"
+        },
+        {
+          "subsection": "02-notifications",
+          "workstation_id": "klyrow-com::kl-05-messaging::02-notifications",
+          "branch": "subsection/kl-05-messaging--02-notifications",
+          "parent_branch": "section/kl-05-messaging",
+          "order": 2,
+          "depends_on": [
+            "klyrow-com::kl-05-messaging::01-email"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-05-messaging/subsections/02-notifications/repo"
+        },
+        {
+          "subsection": "03-conversations",
+          "workstation_id": "klyrow-com::kl-05-messaging::03-conversations",
+          "branch": "subsection/kl-05-messaging--03-conversations",
+          "parent_branch": "section/kl-05-messaging",
+          "order": 3,
+          "depends_on": [
+            "klyrow-com::kl-05-messaging::02-notifications"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-05-messaging/subsections/03-conversations/repo"
+        }
+      ]
+    },
+    {
+      "section": "kl-06-billing",
+      "branch": "section/kl-06-billing",
+      "order": 6,
+      "depends_on": [
+        "klyrow-com::kl-05-messaging"
+      ],
+      "subsections": [
+        {
+          "subsection": "01-plans",
+          "workstation_id": "klyrow-com::kl-06-billing::01-plans",
+          "branch": "subsection/kl-06-billing--01-plans",
+          "parent_branch": "section/kl-06-billing",
+          "order": 1,
+          "depends_on": [],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-06-billing/subsections/01-plans/repo"
+        },
+        {
+          "subsection": "02-checkout",
+          "workstation_id": "klyrow-com::kl-06-billing::02-checkout",
+          "branch": "subsection/kl-06-billing--02-checkout",
+          "parent_branch": "section/kl-06-billing",
+          "order": 2,
+          "depends_on": [
+            "klyrow-com::kl-06-billing::01-plans"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-06-billing/subsections/02-checkout/repo"
+        },
+        {
+          "subsection": "03-invoices-ledger",
+          "workstation_id": "klyrow-com::kl-06-billing::03-invoices-ledger",
+          "branch": "subsection/kl-06-billing--03-invoices-ledger",
+          "parent_branch": "section/kl-06-billing",
+          "order": 3,
+          "depends_on": [
+            "klyrow-com::kl-06-billing::02-checkout"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-06-billing/subsections/03-invoices-ledger/repo"
+        }
+      ]
+    },
+    {
+      "section": "kl-07-providers",
+      "branch": "section/kl-07-providers",
+      "order": 7,
+      "depends_on": [
+        "klyrow-com::kl-06-billing"
+      ],
+      "subsections": [
+        {
+          "subsection": "01-social",
+          "workstation_id": "klyrow-com::kl-07-providers::01-social",
+          "branch": "subsection/kl-07-providers--01-social",
+          "parent_branch": "section/kl-07-providers",
+          "order": 1,
+          "depends_on": [],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-07-providers/subsections/01-social/repo"
+        },
+        {
+          "subsection": "02-storage",
+          "workstation_id": "klyrow-com::kl-07-providers::02-storage",
+          "branch": "subsection/kl-07-providers--02-storage",
+          "parent_branch": "section/kl-07-providers",
+          "order": 2,
+          "depends_on": [
+            "klyrow-com::kl-07-providers::01-social"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-07-providers/subsections/02-storage/repo"
+        },
+        {
+          "subsection": "03-payment-providers",
+          "workstation_id": "klyrow-com::kl-07-providers::03-payment-providers",
+          "branch": "subsection/kl-07-providers--03-payment-providers",
+          "parent_branch": "section/kl-07-providers",
+          "order": 3,
+          "depends_on": [
+            "klyrow-com::kl-07-providers::02-storage"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-07-providers/subsections/03-payment-providers/repo"
+        }
+      ]
+    },
+    {
+      "section": "kl-08-analytics",
+      "branch": "section/kl-08-analytics",
+      "order": 8,
+      "depends_on": [
+        "klyrow-com::kl-07-providers"
+      ],
+      "subsections": [
+        {
+          "subsection": "01-usage",
+          "workstation_id": "klyrow-com::kl-08-analytics::01-usage",
+          "branch": "subsection/kl-08-analytics--01-usage",
+          "parent_branch": "section/kl-08-analytics",
+          "order": 1,
+          "depends_on": [],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-08-analytics/subsections/01-usage/repo"
+        },
+        {
+          "subsection": "02-campaigns",
+          "workstation_id": "klyrow-com::kl-08-analytics::02-campaigns",
+          "branch": "subsection/kl-08-analytics--02-campaigns",
+          "parent_branch": "section/kl-08-analytics",
+          "order": 2,
+          "depends_on": [
+            "klyrow-com::kl-08-analytics::01-usage"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-08-analytics/subsections/02-campaigns/repo"
+        },
+        {
+          "subsection": "03-business-metrics",
+          "workstation_id": "klyrow-com::kl-08-analytics::03-business-metrics",
+          "branch": "subsection/kl-08-analytics--03-business-metrics",
+          "parent_branch": "section/kl-08-analytics",
+          "order": 3,
+          "depends_on": [
+            "klyrow-com::kl-08-analytics::02-campaigns"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-08-analytics/subsections/03-business-metrics/repo"
+        }
+      ]
+    },
+    {
+      "section": "kl-09-saas-security",
+      "branch": "section/kl-09-saas-security",
+      "order": 9,
+      "depends_on": [
+        "klyrow-com::kl-08-analytics"
+      ],
+      "subsections": [
+        {
+          "subsection": "01-tenancy",
+          "workstation_id": "klyrow-com::kl-09-saas-security::01-tenancy",
+          "branch": "subsection/kl-09-saas-security--01-tenancy",
+          "parent_branch": "section/kl-09-saas-security",
+          "order": 1,
+          "depends_on": [],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-09-saas-security/subsections/01-tenancy/repo"
+        },
+        {
+          "subsection": "02-quotas",
+          "workstation_id": "klyrow-com::kl-09-saas-security::02-quotas",
+          "branch": "subsection/kl-09-saas-security--02-quotas",
+          "parent_branch": "section/kl-09-saas-security",
+          "order": 2,
+          "depends_on": [
+            "klyrow-com::kl-09-saas-security::01-tenancy"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-09-saas-security/subsections/02-quotas/repo"
+        },
+        {
+          "subsection": "03-security-audit",
+          "workstation_id": "klyrow-com::kl-09-saas-security::03-security-audit",
+          "branch": "subsection/kl-09-saas-security--03-security-audit",
+          "parent_branch": "section/kl-09-saas-security",
+          "order": 3,
+          "depends_on": [
+            "klyrow-com::kl-09-saas-security::02-quotas"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-09-saas-security/subsections/03-security-audit/repo"
+        }
+      ]
+    },
+    {
+      "section": "kl-10-release",
+      "branch": "section/kl-10-release",
+      "order": 10,
+      "depends_on": [
+        "klyrow-com::kl-09-saas-security"
+      ],
+      "subsections": [
+        {
+          "subsection": "01-testing",
+          "workstation_id": "klyrow-com::kl-10-release::01-testing",
+          "branch": "subsection/kl-10-release--01-testing",
+          "parent_branch": "section/kl-10-release",
+          "order": 1,
+          "depends_on": [],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-10-release/subsections/01-testing/repo"
+        },
+        {
+          "subsection": "02-performance-dr",
+          "workstation_id": "klyrow-com::kl-10-release::02-performance-dr",
+          "branch": "subsection/kl-10-release--02-performance-dr",
+          "parent_branch": "section/kl-10-release",
+          "order": 2,
+          "depends_on": [
+            "klyrow-com::kl-10-release::01-testing"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-10-release/subsections/02-performance-dr/repo"
+        },
+        {
+          "subsection": "03-certification-promotion",
+          "workstation_id": "klyrow-com::kl-10-release::03-certification-promotion",
+          "branch": "subsection/kl-10-release--03-certification-promotion",
+          "parent_branch": "section/kl-10-release",
+          "order": 3,
+          "depends_on": [
+            "klyrow-com::kl-10-release::02-performance-dr"
+          ],
+          "required_gates": [
+            "lint",
+            "unit",
+            "integration",
+            "contract",
+            "security",
+            "clean_tree",
+            "remote_sha_match",
+            "ci_exact_sha",
+            "review",
+            "regression"
+          ],
+          "worktree": "/srv/codestra/workstations/klyrow.com/sections/kl-10-release/subsections/03-certification-promotion/repo"
+        }
+      ]
+    }
+  ]
+}

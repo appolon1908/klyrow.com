@@ -1,3 +1,44 @@
+<!-- CODESTRA-GOVERNANCE-V3:BEGIN -->
+# Native GitHub source development contract
+
+Standalone family: Klyrow
+Component: klyrow.com
+
+Mandatory hierarchy:
+Product -> Section -> Subsection -> Atomic Task
+
+Branch hierarchy for planned environment promotions:
+subsection -> section -> development -> testing -> staging -> production
+
+Native-reviewed source repair PRs may target protected branches under effective
+GitHub rules.
+
+Agent rules:
+- one active writer per assigned subsection or source-repair task, recorded in the issue and GitHub PR;
+- work only in the assigned branch and isolated worktree;
+- implementation + tests + evidence + commit + push are required;
+- review-only output is not completion;
+- no force push and no direct protected-environment writes;
+- every source promotion requires current-SHA GitHub Actions checks and effective repository protections, including independent review, signed commits and resolved review threads;
+- custom controller statuses and database leases are not source merge prerequisites;
+- dirty, stale, divergent, dependency-incomplete, unreviewed work or failing required checks fail closed.
+
+GitHub is the source merge authority. Source integrity inspection checks Git
+contents only; it does not certify runtime behavior or authorize deployment.
+
+Production safety:
+- PRODUCTION_GO=NO
+- LIVE_CAPABILITIES_ENABLED=NO
+- EXTERNAL_EFFECTS=false
+
+Live calls, SMS, email, WhatsApp, payments, publishing, credential issuance,
+production database writes, and production infrastructure mutation remain disabled
+until separately certified and explicitly approved.
+<!-- CODESTRA-GOVERNANCE-V3:END -->
+
+
+# Existing repository-specific instructions
+
 <!-- CODESTRA_AGENT_PROTOCOL_V1 -->
 ## Codestra continuation contract
 

@@ -1,0 +1,29 @@
+{
+  "schema_version": "github.native-governance.v1",
+  "family": "klyrow",
+  "product": "klyrow.com",
+  "repository": "appolon1908/klyrow.com",
+  "source_authority": "github_actions_and_repository_protections",
+  "merge_requirements": {
+    "required_checks": "effective_repository_protections",
+    "independent_review": true,
+    "signed_commits": true,
+    "resolved_review_threads": true
+  },
+  "promotion_chain": [
+    "subsection",
+    "section",
+    "development",
+    "testing",
+    "staging",
+    "production"
+  ],
+  "worktree_mode": "lazy-subsection",
+  "production": {
+    "PRODUCTION_GO": "NO",
+    "LIVE_CAPABILITIES_ENABLED": "NO",
+    "EXTERNAL_EFFECTS": "false"
+  },
+  "force_push": false,
+  "direct_protected_branch_writes": false
+}
