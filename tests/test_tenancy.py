@@ -54,8 +54,21 @@ def test_multiple_organizations_invitation_acceptance_and_switching():
         "/v1/team/invitations", headers=owner, json={"email": "b@example.com", "role": "DEVELOPER"}
     )
     assert invite.status_code == 201 and "token" in invite.json()
-    accepted = client.post("/v1/team/invitations/accept", json={"token": invite.json()["token"]})
-    assert accepted.status_code == 201 and accepted.json()["role"] == "DEVELOPER"
+    # M1-02: the unauthenticated legacy acceptance route is gone; membership is
+    # established through the verified-email OIDC invitation flow instead.
+    assert (
+        client.post(
+            "/v1/team/invitations/accept", json={"token": invite.json()["token"]}
+        ).status_code
+        == 404
+    )
+    with DB() as session:
+        session.add(
+            TenantMember(
+                id="b-alpha", tenant_id=first.json()["tenant_id"], user_id="b", role="DEVELOPER"
+            )
+        )
+        session.commit()
     b = login("b")
     b_switched = client.post(f"/v1/organizations/{first.json()['tenant_id']}/switch", headers=b)
     assert b_switched.status_code == 200 and b_switched.json()["role"] == "DEVELOPER"

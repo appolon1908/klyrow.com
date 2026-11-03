@@ -30,7 +30,6 @@ from . import (
     invitation_flow,
     platform_owner,
     postal_provisioning,
-    tenancy,
     tenancy_onboarding,
 )
 from .auth_bff import (
@@ -57,7 +56,6 @@ browser_router = APIRouter(
     tags=["Browser flow security"],
     dependencies=[Depends(auth_bff._canonical_browser_request)],
 )
-legacy_router = APIRouter(tags=["Tenant authority"])
 _INSTALLED = False
 
 
@@ -1021,37 +1019,6 @@ def accept_selected_invitation(
     return membership
 
 
-@legacy_router.post("/v1/team/invitations/accept", status_code=201)
-def accept_legacy_invitation(
-    payload: tenancy.AcceptIn,
-    session: Session = Depends(db),
-):
-    invitation = _locked_valid_invitation(
-        session,
-        token_hash=sha(payload.token),
-    )
-    user = session.scalar(select(User).where(User.email == invitation.email))
-    if user is None or not user.enabled:
-        raise HTTPException(409, "keycloak_user_link_required")
-    membership = _membership_for_invitation(
-        session,
-        invitation,
-        user,
-    )
-    invitation.accepted_at = auth_bff.now()
-    audit(
-        session,
-        {"tenant": invitation.tenant_id, "sub": user.id},
-        "tenant.invitation.accepted",
-    )
-    session.commit()
-    return {
-        "tenant_id": invitation.tenant_id,
-        "role": membership.role,
-        "user_id": user.id,
-    }
-
-
 def _remove_route(
     routes: list,
     *,
@@ -1105,11 +1072,6 @@ def install_browser_security_fixes(app) -> None:
         path="/app/api/email/send",
         method="POST",
     )
-    _remove_route(
-        app.router.routes,
-        path="/v1/team/invitations/accept",
-        method="POST",
-    )
 
     auth_bff.FLOW_COOKIE = FLOW_COOKIE
     auth_bff._flow_binding = flow_binding
@@ -1135,7 +1097,6 @@ __all__ = [
     "encode_flow_cookie",
     "flow_binding",
     "install_browser_security_fixes",
-    "legacy_router",
     "parse_flow_cookie",
     "remove_flow_cookie",
     "require_flow_cookie",

@@ -2755,18 +2755,6 @@
   },
   {
     "documented": true,
-    "handler": "accept",
-    "method": "POST",
-    "path": "/v1/team/invitations/accept"
-  },
-  {
-    "documented": true,
-    "handler": "accept_legacy_invitation",
-    "method": "POST",
-    "path": "/v1/team/invitations/accept"
-  },
-  {
-    "documented": true,
     "handler": "template_create",
     "method": "POST",
     "path": "/v1/templates"

@@ -240,11 +240,6 @@ class InviteIn(BaseModel):
     expires_hours: int = Field(default=72, ge=1, le=720)
 
 
-class AcceptIn(BaseModel):
-    token: str
-    display_email: EmailStr | None = None
-
-
 class RoleIn(BaseModel):
     role: str
 
@@ -528,36 +523,6 @@ def team_invitations(ctx=Depends(auth), s: Session = Depends(db)):
         .where(TenantInvitation.tenant_id == ctx["tenant"])
         .order_by(TenantInvitation.created_at.desc())
     ).all()
-
-
-@router.post("/team/invitations/accept", status_code=201)
-def accept(x: AcceptIn, s: Session = Depends(db)):
-    item = s.scalar(select(TenantInvitation).where(TenantInvitation.token_hash == sha(x.token)))
-    if (
-        not item
-        or item.revoked_at
-        or item.accepted_at
-        or item.expires_at.replace(tzinfo=UTC) < now()
-    ):
-        raise HTTPException(410, "invitation_invalid_or_expired")
-    user_model = _user_model()
-    user = s.scalar(select(user_model).where(user_model.email == item.email))
-    if not user:
-        raise HTTPException(409, "keycloak_user_link_required")
-    old = s.scalar(
-        select(TenantMember).where(
-            TenantMember.tenant_id == item.tenant_id, TenantMember.user_id == user.id
-        )
-    )
-    m = old or TenantMember(
-        id=str(uuid.uuid4()), tenant_id=item.tenant_id, user_id=user.id, role=item.role
-    )
-    m.role = item.role
-    m.active = True
-    item.accepted_at = now()
-    s.add(m)
-    s.commit()
-    return {"tenant_id": item.tenant_id, "role": m.role, "user_id": user.id}
 
 
 @router.patch("/team/members/{user_id}")
