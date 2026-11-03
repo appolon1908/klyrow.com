@@ -36,4 +36,12 @@ COPY --from=web-build /build/dist ./app/auth_web
 USER 10001
 EXPOSE 8000
 HEALTHCHECK --interval=20s --timeout=5s --retries=5 CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/v1/health')"
-CMD ["python3", "-m", "uvicorn", "app.platform:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
+# Proxy headers (X-Forwarded-For / X-Forwarded-Proto) are only honoured from
+# the addresses listed in KLYROW_FORWARDED_ALLOW_IPS. The default trusts only
+# loopback; docker-compose.yml passes the host Nginx and docker bridge gateway
+# addresses. Never set this to "*": request.client.host feeds the per-IP
+# authentication rate limiter and would become spoofable by any peer that can
+# reach the gateway port (it is also published on the private 10.40.0.4 bind).
+# Exec form keeps PID 1 as the shell-free python process once sh has exec'd;
+# the shell exists solely to expand the variable.
+CMD ["/bin/sh", "-c", "set -eu; exec python3 -m uvicorn app.platform:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips=\"${KLYROW_FORWARDED_ALLOW_IPS:-127.0.0.1}\""]
