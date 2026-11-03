@@ -158,12 +158,12 @@ def artifacts() -> dict[str, str]:
     from fastapi.routing import APIRoute
 
     from apps.gateway.app.main import Base
+    from apps.gateway.app.platform import app
     from apps.gateway.app.openapi_authority import (
         operation_audience,
         operation_auth,
         runtime_routes,
     )
-    from apps.gateway.app.platform import app
 
     schema = app.openapi()
     rows = runtime_routes(app)

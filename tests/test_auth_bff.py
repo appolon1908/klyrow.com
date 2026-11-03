@@ -4,9 +4,9 @@ from urllib.parse import parse_qs, urlparse
 from fastapi.testclient import TestClient
 
 from apps.gateway.app.main import DB, Base, Tenant, User, engine, ph
+from apps.gateway.app.platform import app
 from apps.gateway.app import auth_bff
 from apps.gateway.app.auth_bff import BrowserSession, OidcLoginTransaction
-from apps.gateway.app.platform import app
 from apps.gateway.app.tenancy import OidcIdentity, TenantMember
 
 issuer = "https://auth.codestra.co/realms/codestra"

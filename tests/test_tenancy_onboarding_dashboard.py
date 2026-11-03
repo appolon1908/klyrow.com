@@ -5,9 +5,9 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from apps.gateway.app.main import DB, Base, Message, Tenant, User, engine, sha
+from apps.gateway.app.platform import app
 from apps.gateway.app import auth_bff
 from apps.gateway.app.auth_bff import BrowserSession
-from apps.gateway.app.platform import app
 from apps.gateway.app.saas import Onboarding
 from apps.gateway.app.tenancy import OidcIdentity, Organization, TenantMember
 from apps.gateway.app.tenancy_onboarding import IdentityProfileRecord, resolve_identity_context

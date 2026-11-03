@@ -20,6 +20,7 @@ os.environ.setdefault("KLYROW_OIDC_ISSUER", ISSUER)
 os.environ.setdefault("KLYROW_PUBLIC_URL", "https://app.klyrow.test")
 
 from apps.gateway.app.main import Base, MailIn, Tenant, User
+from apps.gateway.app.platform import app
 from apps.gateway.app import (
     auth_bff,
     tenancy_onboarding,
@@ -45,7 +46,6 @@ from apps.gateway.app.browser_security_fixes import (
     platform_owner_step_up,
     set_flow_cookie,
 )
-from apps.gateway.app.platform import app
 from apps.gateway.app.tenancy import (
     AcceptIn,
     OidcIdentity,

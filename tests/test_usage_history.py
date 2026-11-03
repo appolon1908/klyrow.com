@@ -11,8 +11,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from apps.gateway.app.main import auth, db
-from apps.gateway.app.billing import UsageEvent
 from apps.gateway.app.platform import app
+from apps.gateway.app.billing import UsageEvent
 from apps.gateway.app.usage_history import UsageHistoryQuery, usage_history
 
 

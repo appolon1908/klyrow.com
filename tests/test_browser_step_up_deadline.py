@@ -6,12 +6,12 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
+from apps.gateway.app.platform import app
 from apps.gateway.app import auth_bff, browser_security_fixes
 from apps.gateway.app.auth_bff import BrowserSession
 from apps.gateway.app.browser_step_up_deadline import (
     stage_new_session_with_parent_deadline,
 )
-from apps.gateway.app.platform import app
 
 
 class _ParentSession:

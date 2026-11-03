@@ -44,12 +44,12 @@ def build() -> list[dict]:
         EXTERNAL_EMAIL_DELIVERY="false",
         PRODUCTION_PROVIDER_ROUTING="false",
     )
+    from apps.gateway.app.platform import app
     from apps.gateway.app.openapi_authority import (
         operation_audience,
         operation_auth,
         runtime_routes,
     )
-    from apps.gateway.app.platform import app
 
     schema = app.openapi()
     openapi_operations = {

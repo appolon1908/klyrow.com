@@ -1,5 +1,6 @@
 from collections import Counter
 
+from apps.gateway.app.platform import app
 from apps.gateway.app.openapi_authority import (
     AUDIENCES,
     BROWSER_ANONYMOUS,
@@ -12,7 +13,6 @@ from apps.gateway.app.openapi_authority import (
     runtime_route_fingerprint,
     runtime_routes,
 )
-from apps.gateway.app.platform import app
 
 HTTP_METHODS = {
     "get",

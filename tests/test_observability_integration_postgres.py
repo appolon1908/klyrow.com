@@ -21,9 +21,9 @@ os.environ.setdefault("KLYROW_SAFE_MODE", "true")
 os.environ.setdefault("KLYROW_ENV", "test")
 
 from apps.gateway.app.main import Audit, Tenant
+from apps.gateway.app.platform import app  # noqa: F401
 from apps.gateway.app import observability
 from apps.gateway.app.operations import IntegrationOutbox, IntegrationResult
-from apps.gateway.app.platform import app  # noqa: F401
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("KLYROW_CONTRACT_POSTGRES_URL"),

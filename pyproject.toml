@@ -53,10 +53,15 @@ extend-immutable-calls = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["apps", "tests", "scripts"]
-# apps.gateway.app.main is the composition root: every feature module imports
-# it first and main imports the feature routers late in its body. Keeping it
-# at the top of each import block preserves that import topology.
-force-to-top = ["apps.gateway.app.main", ".main", "main"]
+# apps.gateway.app.platform / main are the composition roots: tests and feature
+# modules import them first and main imports the feature routers late in its
+# body. Keeping them at the top of each import block preserves that topology.
+force-to-top = [
+    "apps.gateway.app.platform",
+    "apps.gateway.app.main",
+    ".main",
+    "main",
+]
 
 [tool.mypy]
 python_version = "3.12"

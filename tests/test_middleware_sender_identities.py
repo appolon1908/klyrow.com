@@ -12,9 +12,9 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from apps.gateway.app.platform import app
 from apps.gateway.app import main as core
 from apps.gateway.app.messaging import DomainClaim
-from apps.gateway.app.platform import app
 
 DOMAIN_CLAIM_ID = "claim-tenant-a"
 

@@ -1,7 +1,7 @@
 from fastapi.routing import APIRoute
 
-from apps.gateway.app.browser_profiles_suppressions import router
 from apps.gateway.app.platform import app
+from apps.gateway.app.browser_profiles_suppressions import router
 
 
 def _routes():

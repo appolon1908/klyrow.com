@@ -25,9 +25,9 @@ os.environ.setdefault("KLYROW_ENV", "test")
 
 # Main registers the observability router; import it before the module alias.
 from apps.gateway.app.main import Base, Tenant
+from apps.gateway.app.platform import app
 from apps.gateway.app import observability
 from apps.gateway.app.operations import IntegrationOutbox
-from apps.gateway.app.platform import app
 from apps.gateway.app.production_api import _authorize_operation_mutation
 
 ROOT = Path(__file__).resolve().parents[1]

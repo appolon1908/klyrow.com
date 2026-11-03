@@ -4,6 +4,7 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy.exc import OperationalError
 
+from apps.gateway.app.platform import app  # noqa: F401  # load the composition root first
 from apps.gateway.app.openapi_authority import operation_audience, operation_auth
 from apps.gateway.app.production_api import health_live, health_ready
 

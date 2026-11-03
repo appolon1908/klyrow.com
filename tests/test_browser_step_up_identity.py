@@ -9,12 +9,12 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import sessionmaker
 
 from apps.gateway.app.main import Base, Tenant, User, sha
+from apps.gateway.app.platform import app
 from apps.gateway.app import auth_bff, browser_security_fixes
 from apps.gateway.app.auth_bff import BrowserSession
 from apps.gateway.app.browser_step_up_identity import (
     resolve_existing_step_up_identity,
 )
-from apps.gateway.app.platform import app
 from apps.gateway.app.tenancy import OidcIdentity, TenantMember
 
 ISSUER = "https://auth.codestra.co/realms/codestra"

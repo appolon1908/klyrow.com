@@ -12,6 +12,7 @@ from sqlalchemy import create_engine, func, select, text
 from sqlalchemy.orm import Session
 
 from apps.gateway.app.main import Tenant
+from apps.gateway.app.platform import app  # noqa: F401  # compose legacy module dependencies
 from apps.gateway.app.billing import UsageEvent
 from apps.gateway.app.business_events import BusinessEventOutbox, daily_snapshot
 

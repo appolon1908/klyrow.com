@@ -16,9 +16,9 @@ from sqlalchemy import create_engine, event, func, select, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from apps.gateway.app.platform import app
 from apps.gateway.app import main as core
 from apps.gateway.app.middleware_email import EmailCommandBinding
-from apps.gateway.app.platform import app
 
 
 @pytest.fixture

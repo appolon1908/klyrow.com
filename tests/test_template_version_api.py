@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from apps.gateway.app.main import auth, db
-from apps.gateway.app.messaging import Template, TemplateVersion
 from apps.gateway.app.platform import app
+from apps.gateway.app.messaging import Template, TemplateVersion
 
 
 @pytest.fixture

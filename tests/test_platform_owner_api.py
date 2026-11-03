@@ -7,8 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from apps.gateway.app import main
 from apps.gateway.app.platform import app
+from apps.gateway.app import main
 from apps.gateway.app.platform_owner_policy import CANONICAL_ISSUER
 from apps.gateway.app.tenancy import OidcIdentity, TenantMember
 

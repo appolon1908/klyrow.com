@@ -8,10 +8,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from apps.gateway.app.main import DB, Base, Tenant, User, engine, ph, sha
+from apps.gateway.app.platform import app
 from apps.gateway.app import auth_bff
 from apps.gateway.app.auth_bff import SESSION_COOKIE, BrowserSession, OidcLoginTransaction
 from apps.gateway.app.browser_auth_actions import stable_csrf_token
-from apps.gateway.app.platform import app
 from apps.gateway.app.tenancy import OidcIdentity, TenantInvitation, TenantMember
 
 ISSUER = "https://auth.codestra.co/realms/codestra"

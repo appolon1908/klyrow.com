@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response
 
+from apps.gateway.app.platform import app
 from apps.gateway.app import browser_security_fixes as legacy
 from apps.gateway.app.browser_flow_cookie_authority import (
     FLOW_COOKIE_PATH,
@@ -16,7 +17,6 @@ from apps.gateway.app.browser_flow_cookie_authority import (
     require_flow_cookie,
     set_flow_cookie,
 )
-from apps.gateway.app.platform import app
 
 
 def _request(cookies: dict[str, str] | None = None) -> Request:

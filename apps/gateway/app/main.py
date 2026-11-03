@@ -4001,6 +4001,13 @@ app.include_router(delivery_controls_router)
 from .preferences import router as preferences_router
 
 app.include_router(preferences_router)
+# Side-effect imports: these modules register ORM tables on Base.metadata and
+# worker entrypoints at import time. They must stay even though nothing below
+# references the bound names (ruff F401 would otherwise remove them).
+from . import business_events as _business_events  # noqa: F401, E402
+from . import campaign_dispatcher as _campaign_dispatcher  # noqa: F401, E402
+from . import durable_jobs as _durable_jobs  # noqa: F401, E402
+from . import journey_storage as _journey_storage  # noqa: F401, E402
 from .secret_responses import router as secret_responses_router
 
 app.include_router(secret_responses_router)

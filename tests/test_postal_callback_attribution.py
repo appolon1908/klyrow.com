@@ -21,8 +21,8 @@ from apps.gateway.app.main import (
     Tenant,
     engine,
 )
-from apps.gateway.app import postal_callback_attribution as callback
 from apps.gateway.app.platform import app
+from apps.gateway.app import postal_callback_attribution as callback
 from apps.gateway.app.tenant_postal_delivery import attributed_postal_payload
 
 client = TestClient(app, base_url="https://api.klyrow.test")

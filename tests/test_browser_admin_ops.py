@@ -8,6 +8,7 @@ from fastapi.routing import APIRoute
 from sqlalchemy import delete
 
 from apps.gateway.app.main import DB, Audit, Base, Tenant, User, engine
+from apps.gateway.app.platform import app
 from apps.gateway.app.browser_admin_ops import (
     AbuseAlertStateIn,
     AdminDunningIn,
@@ -22,7 +23,6 @@ from apps.gateway.app.browser_admin_ops import (
     router,
 )
 from apps.gateway.app.delivery_controls import AbuseAlert, AbuseIn, ResourceSuspension
-from apps.gateway.app.platform import app
 
 EXPECTED_ROUTES = {
     ("/app/api/admin/abuse", "GET"),
