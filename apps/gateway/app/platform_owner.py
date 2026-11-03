@@ -9,7 +9,7 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.dependencies.utils import get_parameterless_sub_dependant
 from fastapi.responses import JSONResponse
-from fastapi.routing import APIRoute
+from fastapi.routing import APIRoute, iter_route_contexts
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
@@ -273,28 +273,44 @@ def platform_owner_role_stability_guard(
     request.state.klyrow_platform_owner_session_id = item.id
 
 
+def _attach_platform_owner_dependency(route, path: str) -> None:
+    """Attach the guard to an original or effective FastAPI route once."""
+
+    if any(
+        getattr(dependant, "call", None) is platform_owner_role_stability_guard
+        for dependant in route.dependant.dependencies
+    ):
+        return
+    marker = Depends(platform_owner_role_stability_guard)
+    route.dependencies.insert(0, marker)
+    route.dependant.dependencies.insert(
+        0,
+        get_parameterless_sub_dependant(
+            depends=marker,
+            path=path,
+        ),
+    )
+
+
 def _install_browser_route_dependencies(app) -> tuple[str, ...]:
-    """Attach the same-session role-stability guard to every browser API."""
+    """Attach the same-session role-stability guard to every browser API.
+
+    FastAPI 0.141 keeps included routers as lazy route contexts. Walking only
+    ``app.router.routes`` misses those effective routes, so protect both the
+    current effective context and its original APIRoute for future rebuilds.
+    """
 
     protected: list[str] = []
-    for route in app.router.routes:
-        if not isinstance(route, APIRoute) or not _is_browser_api_path(route.path):
+    for route_context in iter_route_contexts(app.routes):
+        route = route_context.original_route
+        path = str(route_context.path or "")
+        if not isinstance(route, APIRoute) or not _is_browser_api_path(path):
             continue
-        protected.append(route.path)
-        if any(
-            getattr(dependant, "call", None)
-            is platform_owner_role_stability_guard
-            for dependant in route.dependant.dependencies
-        ):
-            continue
-        marker = Depends(platform_owner_role_stability_guard)
-        route.dependencies.insert(0, marker)
-        route.dependant.dependencies.insert(
-            0,
-            get_parameterless_sub_dependant(
-                depends=marker,
-                path=route.path_format,
-            ),
+        protected.append(path)
+        _attach_platform_owner_dependency(route, route.path_format)
+        _attach_platform_owner_dependency(
+            route_context,
+            str(route_context.path_format or path),
         )
     if not protected:
         raise RuntimeError("platform owner browser routes were not registered")
