@@ -1,0 +1,79 @@
+name: Python quality gates
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "mod/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-python-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    name: ruff (lint + format)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+      - name: ruff check
+        run: ruff check .
+      - name: ruff format --check
+        run: ruff format --check .
+
+  mypy:
+    name: mypy (advisory)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+      - name: mypy
+        id: mypy
+        continue-on-error: true
+        # Config (targets, strictness, excludes) comes from [tool.mypy] in pyproject.toml.
+        run: |
+          set -o pipefail
+          mypy --config-file pyproject.toml 2>&1 | tee mypy-output.txt
+      - name: Report error count to step summary
+        if: always()
+        run: |
+          count=$(grep -cE '^[^:]+:[0-9]+:( [0-9]+:)? error:' mypy-output.txt || true)
+          {
+            echo "## mypy (advisory, non-blocking)"
+            echo
+            echo "- Errors: **${count}**"
+            echo "- Step outcome: \`${{ steps.mypy.outcome }}\`"
+            if [ "${count}" != "0" ]; then
+              echo
+              echo "<details><summary>First 50 errors</summary>"
+              echo
+              echo '```'
+              grep -E ' error:' mypy-output.txt | head -n 50
+              echo '```'
+              echo "</details>"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
