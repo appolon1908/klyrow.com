@@ -1044,7 +1044,12 @@ def install_browser_security_fixes(app) -> None:
     if _INSTALLED:
         return
 
-    for path in ("/auth/login", "/auth/signup", "/auth/google"):
+    # Every GET endpoint this module hardens is removed from ``auth_bff.router``
+    # here, explicitly. ``/auth/callback`` was previously dropped only as a
+    # side effect of ``browser_auth_actions.install_auth_extensions``; the
+    # un-hardened callback (no flow-cookie binding) must never depend on
+    # another installer or on router registration order in ``platform.py``.
+    for path in ("/auth/login", "/auth/signup", "/auth/google", "/auth/callback"):
         _remove_route(auth_bff.router.routes, path=path, method="GET")
     _remove_route(
         browser_auth_actions.router.routes,

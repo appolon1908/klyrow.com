@@ -181,5 +181,12 @@ from .openapi_authority import install_openapi_authority
 
 install_openapi_authority(app)
 
+# Structural guard (security finding M3): first-match routing would let a
+# shadowed duplicate silently win if the registration order above changed.
+# Fail composition outright when any (path, method) has more than one APIRoute.
+from .routing_guards import assert_unique_api_routes
+
+assert_unique_api_routes(app.router.routes)
+
 
 __all__ = ["app"]
