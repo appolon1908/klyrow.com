@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - "mod/**"
 
 permissions:
   contents: read

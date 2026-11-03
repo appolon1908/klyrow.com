@@ -20,7 +20,6 @@ os.environ.setdefault("KLYROW_SAFE_MODE", "true")
 os.environ.setdefault("KLYROW_ENV", "test")
 os.environ.setdefault("KLYROW_SANDBOX_DOMAIN", "klyrow-sink.test")
 
-from apps.gateway.app import provider
 from apps.gateway.app.main import (
     Base,
     EmailOutbox,
@@ -28,6 +27,7 @@ from apps.gateway.app.main import (
     Message,
     Tenant,
 )
+from apps.gateway.app import provider
 from apps.gateway.app.provider import (
     ProviderEvent,
     ProviderInbound,

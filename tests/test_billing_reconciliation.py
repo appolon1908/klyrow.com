@@ -1,16 +1,16 @@
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 import uuid
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from apps.gateway.app.main import Base, Tenant, app
 from apps.gateway.app.billing import Invoice, Payment
+from apps.gateway.app.billing_provider_events import BillingProviderEvent
 from apps.gateway.app.billing_reconciliation import reconcile_billing
 from apps.gateway.app.billing_reconciliation import router as reconciliation_router
 from apps.gateway.app.billing_reconciliation_worker import run_billing_reconciliation
-from apps.gateway.app.billing_provider_events import BillingProviderEvent
 from apps.gateway.app.payment_attempts import CAPTURED, PaymentAttempt
 
 
@@ -22,11 +22,18 @@ def _session():
 
 def _invoice(tenant: str, *, status: str = "OPEN") -> Invoice:
     return Invoice(
-        id=str(uuid.uuid4()), number="INV-" + uuid.uuid4().hex[:8], tenant_id=tenant,
-        subscription_id="sub", currency="USD", subtotal=Decimal("10.00"),
-        tax=Decimal("0.00"), discount=Decimal("0.00"), credits=Decimal("0.00"),
-        total=Decimal("10.00"), status=status,
-        due_at=datetime.now(timezone.utc) + timedelta(days=30),
+        id=str(uuid.uuid4()),
+        number="INV-" + uuid.uuid4().hex[:8],
+        tenant_id=tenant,
+        subscription_id="sub",
+        currency="USD",
+        subtotal=Decimal("10.00"),
+        tax=Decimal("0.00"),
+        discount=Decimal("0.00"),
+        credits=Decimal("0.00"),
+        total=Decimal("10.00"),
+        status=status,
+        due_at=datetime.now(UTC) + timedelta(days=30),
     )
 
 
@@ -35,9 +42,16 @@ def test_captured_attempt_without_payment_is_reported_without_mutation():
     session.add(Tenant(id="tenant-a", name="A", quota=100))
     invoice = _invoice("tenant-a")
     attempt = PaymentAttempt(
-        id="attempt-a", tenant_id="tenant-a", invoice_id=invoice.id, provider="stripe",
-        idempotency_key="attempt-key", request_fingerprint="fingerprint", amount_minor=1000,
-        currency="USD", status=CAPTURED, created_by="user-a",
+        id="attempt-a",
+        tenant_id="tenant-a",
+        invoice_id=invoice.id,
+        provider="stripe",
+        idempotency_key="attempt-key",
+        request_fingerprint="fingerprint",
+        amount_minor=1000,
+        currency="USD",
+        status=CAPTURED,
+        created_by="user-a",
     )
     session.add_all([invoice, attempt])
     session.commit()
@@ -55,21 +69,38 @@ def test_confirmed_payment_and_attempt_mismatches_are_reported():
     session.add(Tenant(id="tenant-a", name="A", quota=100))
     invoice = _invoice("tenant-a")
     attempt = PaymentAttempt(
-        id="attempt-a", tenant_id="tenant-a", invoice_id=invoice.id, provider="stripe",
-        idempotency_key="attempt-key", request_fingerprint="fingerprint", amount_minor=1000,
-        currency="USD", status="PENDING", created_by="user-a",
+        id="attempt-a",
+        tenant_id="tenant-a",
+        invoice_id=invoice.id,
+        provider="stripe",
+        idempotency_key="attempt-key",
+        request_fingerprint="fingerprint",
+        amount_minor=1000,
+        currency="USD",
+        status="PENDING",
+        created_by="user-a",
     )
     payment = Payment(
-        id="payment-a", tenant_id="tenant-a", invoice_id=invoice.id,
-        payment_attempt_id=attempt.id, provider="stripe", provider_reference="pi-a",
-        amount=Decimal("9.00"), currency="EUR", status="CONFIRMED",
+        id="payment-a",
+        tenant_id="tenant-a",
+        invoice_id=invoice.id,
+        payment_attempt_id=attempt.id,
+        provider="stripe",
+        provider_reference="pi-a",
+        amount=Decimal("9.00"),
+        currency="EUR",
+        status="CONFIRMED",
     )
     session.add_all([invoice, attempt, payment])
     session.commit()
 
     codes = {item.code for item in reconcile_billing(session, tenant_id="tenant-a")}
 
-    assert {"confirmed_payment_attempt_not_captured", "payment_attempt_currency_mismatch", "payment_attempt_amount_mismatch"} <= codes
+    assert {
+        "confirmed_payment_attempt_not_captured",
+        "payment_attempt_currency_mismatch",
+        "payment_attempt_amount_mismatch",
+    } <= codes
     session.close()
     engine.dispose()
 
@@ -96,23 +127,40 @@ def test_provider_event_exact_correlation_is_reported():
     session.add(Tenant(id="tenant-a", name="A", quota=100))
     invoice = _invoice("tenant-a")
     attempt = PaymentAttempt(
-        id="attempt-a", tenant_id="tenant-a", invoice_id=invoice.id, provider="stripe",
-        idempotency_key="attempt-key", request_fingerprint="fingerprint", amount_minor=1000,
-        currency="USD", status="PENDING", created_by="user-a",
+        id="attempt-a",
+        tenant_id="tenant-a",
+        invoice_id=invoice.id,
+        provider="stripe",
+        idempotency_key="attempt-key",
+        request_fingerprint="fingerprint",
+        amount_minor=1000,
+        currency="USD",
+        status="PENDING",
+        created_by="user-a",
     )
     event = BillingProviderEvent(
-        id="event-a", provider="stripe", provider_event_id="evt-a",
-        event_type="payment_intent.succeeded", tenant_id="tenant-a",
-        payment_attempt_id=attempt.id, invoice_id="wrong-invoice", livemode=False,
+        id="event-a",
+        provider="stripe",
+        provider_event_id="evt-a",
+        event_type="payment_intent.succeeded",
+        tenant_id="tenant-a",
+        payment_attempt_id=attempt.id,
+        invoice_id="wrong-invoice",
+        livemode=False,
         payload_json='{"data":{"object":{"currency":"EUR","amount_received":900}}}',
-        payload_hash="hash", processing_state="RECEIVED",
+        payload_hash="hash",
+        processing_state="RECEIVED",
     )
     session.add_all([invoice, attempt, event])
     session.commit()
 
     codes = {item.code for item in reconcile_billing(session, tenant_id="tenant-a")}
 
-    assert {"provider_event_invoice_mismatch", "provider_event_currency_mismatch", "provider_event_amount_mismatch"} <= codes
+    assert {
+        "provider_event_invoice_mismatch",
+        "provider_event_currency_mismatch",
+        "provider_event_amount_mismatch",
+    } <= codes
     session.close()
     engine.dispose()
 
@@ -120,11 +168,18 @@ def test_provider_event_exact_correlation_is_reported():
 def test_pending_payment_without_invoice_is_not_reported_as_confirmed_drift():
     engine, session = _session()
     session.add(Tenant(id="tenant-a", name="A", quota=100))
-    session.add(Payment(
-        id="payment-pending", tenant_id="tenant-a", invoice_id="missing-invoice",
-        provider="stripe", provider_reference="pi-pending", amount=Decimal("1.00"),
-        currency="USD", status="PENDING_RECONCILIATION",
-    ))
+    session.add(
+        Payment(
+            id="payment-pending",
+            tenant_id="tenant-a",
+            invoice_id="missing-invoice",
+            provider="stripe",
+            provider_reference="pi-pending",
+            amount=Decimal("1.00"),
+            currency="USD",
+            status="PENDING_RECONCILIATION",
+        )
+    )
     session.commit()
 
     codes = {item.code for item in reconcile_billing(session, tenant_id="tenant-a")}
@@ -142,16 +197,22 @@ def test_billing_rls_migration_covers_financial_tables_and_runtime_role():
     assert "klyrow_runtime" in migration
     assert "NOBYPASSRLS" in migration
     for table in (
-        "klyrow_invoices", "klyrow_payments", "klyrow_refunds",
-        "klyrow_credits", "klyrow_payment_attempts",
-        "klyrow_payment_attempt_events", "klyrow_billing_provider_events",
+        "klyrow_invoices",
+        "klyrow_payments",
+        "klyrow_refunds",
+        "klyrow_credits",
+        "klyrow_payment_attempts",
+        "klyrow_payment_attempt_events",
+        "klyrow_billing_provider_events",
     ):
         assert table in migration
     assert "current_setting(''app.tenant_id'', true)" in migration
 
 
 def test_reconciliation_api_is_operator_only_and_tenant_filterable():
-    route = next(item for item in reconciliation_router.routes if item.path.endswith("/reconciliation"))
+    route = next(
+        item for item in reconciliation_router.routes if item.path.endswith("/reconciliation")
+    )
     dependency_names = {dependency.call.__name__ for dependency in route.dependant.dependencies}
     assert "inner" in dependency_names
     assert route.methods == {"GET"}

@@ -17,7 +17,7 @@ import re
 import ssl
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlsplit
@@ -30,11 +30,10 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from .main import DB, Tenant, audit, auth, db, runtime_secret
 from .capabilities import has_service_permission
 from .durable_results import seal_integration_result
-from .main import DB, Tenant, audit, auth, db, runtime_secret
 from .operations import IntegrationOutbox, IntegrationResult
-
 
 MAX_OBSERVABILITY_REQUEST_BYTES = 64 * 1024
 
@@ -230,7 +229,7 @@ class KpiSnapshotIn(BaseModel):
         return value
 
     @model_validator(mode="after")
-    def valid_window(self) -> "KpiSnapshotIn":
+    def valid_window(self) -> KpiSnapshotIn:
         if self.window_end <= self.window_start:
             raise ValueError("invalid_kpi_window")
         return self
@@ -291,12 +290,7 @@ def _normal_time(value: str | datetime) -> str:
         raise HTTPException(422, "invalid_observability_timestamp") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise HTTPException(422, "observability_timestamp_requires_timezone")
-    return (
-        parsed.astimezone(timezone.utc)
-        .replace(microsecond=0)
-        .isoformat()
-        .replace("+00:00", "Z")
-    )
+    return parsed.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _safe_annotations(annotations: dict[str, str]) -> dict[str, str]:
@@ -398,9 +392,7 @@ def _enqueue_projection(
     payload_json = _canonical_json(payload)
     prior = _prior_projection(session, context["tenant"], idempotency_key)
     if prior is not None:
-        if _semantic_payload(json.loads(prior.payload_json)) != _semantic_payload(
-            payload
-        ):
+        if _semantic_payload(json.loads(prior.payload_json)) != _semantic_payload(payload):
             raise HTTPException(409, "observability_idempotency_conflict")
         return prior, True
 
@@ -421,18 +413,14 @@ def _enqueue_projection(
         prior = _prior_projection(session, context["tenant"], idempotency_key)
         if prior is None:
             raise
-        if _semantic_payload(json.loads(prior.payload_json)) != _semantic_payload(
-            payload
-        ):
+        if _semantic_payload(json.loads(prior.payload_json)) != _semantic_payload(payload):
             raise HTTPException(409, "observability_idempotency_conflict")
         return prior, True
     return item, False
 
 
 def _lock_tenant(session: Session, tenant_id: str) -> None:
-    tenant = session.scalar(
-        select(Tenant.id).where(Tenant.id == tenant_id).with_for_update()
-    )
+    tenant = session.scalar(select(Tenant.id).where(Tenant.id == tenant_id).with_for_update())
     if tenant is None:
         raise HTTPException(404, "tenant_not_found")
 
@@ -460,10 +448,7 @@ def _latest_incident_projection(
         return None
     try:
         payload = json.loads(row.payload_json)
-        if (
-            not isinstance(payload, dict)
-            or not isinstance(payload.get("resource_version"), int)
-        ):
+        if not isinstance(payload, dict) or not isinstance(payload.get("resource_version"), int):
             raise ValueError
         return payload
     except (TypeError, ValueError):
@@ -504,17 +489,14 @@ def _alert_payload(
         "klyrow-gateway",
     )
     source_deployment = _safe_identifier(
-        labels.get("deployment")
-        or os.getenv("CODESTRA_DEPLOYMENT", "klyrow-gateway:unknown"),
+        labels.get("deployment") or os.getenv("CODESTRA_DEPLOYMENT", "klyrow-gateway:unknown"),
         "klyrow-gateway:unknown",
         min_length=3,
     )
     annotations = _safe_annotations(alert.annotations)
-    summary = (
-        annotations.get("summary")
-        or annotations.get("description")
-        or alertname
-    ).strip()[:512]
+    summary = (annotations.get("summary") or annotations.get("description") or alertname).strip()[
+        :512
+    ]
     if not summary:
         summary = alertname
     observed_at = ends_at if alert.status == "resolved" else starts_at
@@ -573,14 +555,10 @@ def receive_alertmanager_events(
     for alert in body.alerts:
         starts_at = _normal_time(alert.starts_at)
         group_key = _opaque_group_key(body.group_key, alert.fingerprint)
-        identity = (
-            f"{alert.fingerprint}:{alert.status}:{starts_at}:{group_key}"
-        )
+        identity = f"{alert.fingerprint}:{alert.status}:{starts_at}:{group_key}"
         idempotency_key = "observability:incident:" + _payload_hash(identity)
         prior = _prior_projection(session, ctx["tenant"], idempotency_key)
-        incident_id = "incident-" + _payload_hash(
-            ctx["tenant"] + "\0" + alert.fingerprint
-        )[:32]
+        incident_id = "incident-" + _payload_hash(ctx["tenant"] + "\0" + alert.fingerprint)[:32]
         if prior is not None:
             prior_payload = json.loads(prior.payload_json)
             correlation = str(prior_payload["correlation_id"])
@@ -591,9 +569,7 @@ def receive_alertmanager_events(
                 ctx["tenant"],
                 incident_id,
             )
-            resource_version = (
-                int(latest["resource_version"]) + 1 if latest is not None else 1
-            )
+            resource_version = int(latest["resource_version"]) + 1 if latest is not None else 1
             correlation = _correlation_id(x_correlation_id, identity)
         event_id = "incident-event-" + _payload_hash(idempotency_key)[:32]
         payload = _alert_payload(
@@ -738,10 +714,10 @@ def _outbox_summary(session: Session, tenant_id: str) -> dict[str, Any]:
     oldest_seconds = 0.0
     if oldest:
         if oldest.tzinfo is None:
-            oldest = oldest.replace(tzinfo=timezone.utc)
+            oldest = oldest.replace(tzinfo=UTC)
         oldest_seconds = max(
             0.0,
-            (datetime.now(timezone.utc) - oldest).total_seconds(),
+            (datetime.now(UTC) - oldest).total_seconds(),
         )
     return {
         "counts": counts,
@@ -774,12 +750,7 @@ def _valid_https_url(value: str, *, origin_only: bool) -> bool:
 
 
 def _delivery_enabled() -> bool:
-    return (
-        os.getenv("KLYROW_OBSERVABILITY_DELIVERY_ENABLED", "false")
-        .strip()
-        .lower()
-        == "true"
-    )
+    return os.getenv("KLYROW_OBSERVABILITY_DELIVERY_ENABLED", "false").strip().lower() == "true"
 
 
 def _transport_configured() -> bool:
@@ -825,11 +796,7 @@ def _middleware_tls_context() -> ssl.SSLContext:
         )
     for value in paths.values():
         path = Path(value)
-        if (
-            not path.is_absolute()
-            or path.is_symlink()
-            or not path.is_file()
-        ):
+        if not path.is_absolute() or path.is_symlink() or not path.is_file():
             raise ProjectionDeliveryError(
                 "middleware_mtls_material_invalid",
                 retryable=False,
@@ -862,10 +829,14 @@ async def _middleware_access_token() -> str:
         current = time.monotonic()
         if _token_cache is not None and _token_cache[1] > current + 30:
             return _token_cache[0]
-        issuer = os.getenv(
-            "CODESTRA_AUTH_ISSUER",
-            "https://auth.codestra.co/realms/codestra",
-        ).strip().rstrip("/")
+        issuer = (
+            os.getenv(
+                "CODESTRA_AUTH_ISSUER",
+                "https://auth.codestra.co/realms/codestra",
+            )
+            .strip()
+            .rstrip("/")
+        )
         if not _valid_https_url(issuer, origin_only=False):
             raise ProjectionDeliveryError(
                 "middleware_oidc_issuer_invalid",
@@ -898,10 +869,7 @@ async def _middleware_access_token() -> str:
                         "client_id": client_id,
                         "client_secret": client_secret,
                         "audience": audience,
-                        "scope": (
-                            "observability.kpis.write "
-                            "observability.incidents.write"
-                        ),
+                        "scope": ("observability.kpis.write observability.incidents.write"),
                     },
                     headers={"Accept": "application/json"},
                 )
@@ -913,8 +881,7 @@ async def _middleware_access_token() -> str:
         if response.status_code != 200 or response.is_redirect:
             raise ProjectionDeliveryError(
                 "middleware_oidc_rejected",
-                retryable=response.status_code in {408, 425, 429}
-                or response.status_code >= 500,
+                retryable=response.status_code in {408, 425, 429} or response.status_code >= 500,
             )
         try:
             document = response.json()
@@ -944,7 +911,7 @@ async def _middleware_access_token() -> str:
 
 
 def _claim_projection() -> dict[str, Any] | None:
-    current = datetime.now(timezone.utc)
+    current = datetime.now(UTC)
     with DB() as session:
         session.execute(
             update(IntegrationOutbox)
@@ -1063,8 +1030,7 @@ async def _send_projection(
     if response.status_code != 202:
         raise ProjectionDeliveryError(
             f"middleware_projection_http_{response.status_code}",
-            retryable=response.status_code in {408, 425, 429}
-            or response.status_code >= 500,
+            retryable=response.status_code in {408, 425, 429} or response.status_code >= 500,
         )
     content_type = response.headers.get("content-type", "").partition(";")[0]
     if content_type.strip().lower() != "application/json":
@@ -1103,15 +1069,9 @@ def _complete_projection(
 ) -> None:
     with DB() as session:
         item = session.scalar(
-            select(IntegrationOutbox)
-            .where(IntegrationOutbox.id == claim["id"])
-            .with_for_update()
+            select(IntegrationOutbox).where(IntegrationOutbox.id == claim["id"]).with_for_update()
         )
-        if (
-            item is None
-            or item.state != "PROCESSING"
-            or item.attempts != claim["attempt"]
-        ):
+        if item is None or item.state != "PROCESSING" or item.attempts != claim["attempt"]:
             return
         result_key = "middleware-observability:" + result["delivery_id"]
         payload_json = seal_integration_result(
@@ -1131,7 +1091,7 @@ def _complete_projection(
                 payload_json=payload_json,
             )
         )
-        current = datetime.now(timezone.utc)
+        current = datetime.now(UTC)
         item.state = "COMPLETED"
         item.lease_expires_at = None
         item.last_error = None
@@ -1145,22 +1105,14 @@ def _fail_projection(
 ) -> None:
     with DB() as session:
         item = session.scalar(
-            select(IntegrationOutbox)
-            .where(IntegrationOutbox.id == claim["id"])
-            .with_for_update()
+            select(IntegrationOutbox).where(IntegrationOutbox.id == claim["id"]).with_for_update()
         )
-        if (
-            item is None
-            or item.state != "PROCESSING"
-            or item.attempts != claim["attempt"]
-        ):
+        if item is None or item.state != "PROCESSING" or item.attempts != claim["attempt"]:
             return
         retry = error.retryable and item.attempts < MAX_DELIVERY_ATTEMPTS
-        current = datetime.now(timezone.utc)
+        current = datetime.now(UTC)
         item.state = "RETRY" if retry else "DEAD_LETTER"
-        item.next_attempt_at = current + timedelta(
-            seconds=min(300, 2 ** item.attempts)
-        )
+        item.next_attempt_at = current + timedelta(seconds=min(300, 2**item.attempts))
         item.lease_expires_at = None
         item.last_error = error.code[:255]
         item.updated_at = current
@@ -1224,11 +1176,7 @@ def odoo_health(
     configured = _transport_configured()
     enabled = _delivery_enabled()
     status = (
-        "disabled"
-        if not enabled
-        else "healthy"
-        if configured and dead_letters == 0
-        else "degraded"
+        "disabled" if not enabled else "healthy" if configured and dead_letters == 0 else "degraded"
     )
     return {
         "status": status,
@@ -1274,9 +1222,7 @@ def odoo_checkpoints(
                 "event_type": event_type,
                 "state": state,
                 "count": int(count),
-                "last_updated_at": updated_at.isoformat()
-                if updated_at
-                else None,
+                "last_updated_at": updated_at.isoformat() if updated_at else None,
             }
             for event_type, state, count, updated_at in rows
         ],

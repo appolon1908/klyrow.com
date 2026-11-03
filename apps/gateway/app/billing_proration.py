@@ -1,10 +1,10 @@
 """Deterministic provider-neutral subscription change quotes."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from decimal import Decimal, ROUND_HALF_UP
-
+from decimal import ROUND_HALF_UP, Decimal
 
 CENT = Decimal("0.01")
 

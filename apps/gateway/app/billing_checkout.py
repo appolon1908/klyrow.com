@@ -1,4 +1,5 @@
 """Application service for sandbox hosted billing checkout."""
+
 from __future__ import annotations
 
 import uuid
@@ -9,14 +10,13 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .billing import Invoice, money
-from .billing_config import BillingConfigError, load_billing_settings
 from .main import audit, scoped_idempotency_key, semantic_request_hash
+from .billing import Invoice
+from .billing_config import BillingConfigError, load_billing_settings
 from .payment_attempts import (
     CREATED,
     REQUIRES_ACTION,
     PaymentAttempt,
-    PaymentAttemptEvent,
     _apply_transition,
     _minor_from_decimal,
 )
@@ -45,7 +45,8 @@ def _settings():
         not settings.enabled
         or not settings.stripe.enabled
         or settings.stripe.environment not in {"sandbox", "production"}
-        or settings.stripe.environment == "production" and (not settings.live_charging_enabled or not settings.stripe.production_approved)
+        or settings.stripe.environment == "production"
+        and (not settings.live_charging_enabled or not settings.stripe.production_approved)
         or not settings.webhook_processing_enabled
     ):
         raise HTTPException(503, "billing_checkout_disabled")
@@ -95,7 +96,9 @@ def create_or_resume_stripe_checkout(
     )
 
     invoice = session.scalar(
-        select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id).with_for_update()
+        select(Invoice)
+        .where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id)
+        .with_for_update()
     )
     if invoice is None:
         raise HTTPException(404, "invoice_not_found")
@@ -179,10 +182,12 @@ def create_or_resume_stripe_checkout(
         raise HTTPException(503, exc.args[0]) from None
 
     locked_attempt = session.scalar(
-        select(PaymentAttempt).where(
+        select(PaymentAttempt)
+        .where(
             PaymentAttempt.id == attempt.id,
             PaymentAttempt.tenant_id == tenant_id,
-        ).with_for_update()
+        )
+        .with_for_update()
     )
     if locked_attempt is None:
         raise HTTPException(404, "payment_attempt_not_found")

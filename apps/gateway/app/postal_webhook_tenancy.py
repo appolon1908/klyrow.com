@@ -1,20 +1,21 @@
 """Tenant-safe Postal native webhook routing for the production Klyrow app."""
+
 from __future__ import annotations
 
 import hashlib
 import json
 import os
 import time
-from datetime import datetime, timezone
-from typing import Iterable, Optional
+from collections.abc import Iterable
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from . import main
 from .main import EmailOutbox, Message, PostalEvent, Tenant, db
-from .postal_provisioning import PostalTenantMapping, READY
+from . import main
+from .postal_provisioning import READY, PostalTenantMapping
 from .provider import ProviderMessage
 
 router = APIRouter(tags=["Postal webhooks"])
@@ -22,12 +23,12 @@ _INSTALLED = False
 
 
 def tenant_postal_provisioning_enabled() -> bool:
-    return (
-        os.getenv("KLYROW_TENANT_POSTAL_PROVISIONING_ENABLED", "false")
-        .strip()
-        .lower()
-        in {"1", "true", "yes", "on"}
-    )
+    return os.getenv("KLYROW_TENANT_POSTAL_PROVISIONING_ENABLED", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
 
 
 def install_postal_webhook_extension() -> None:
@@ -37,9 +38,8 @@ def install_postal_webhook_extension() -> None:
     if _INSTALLED:
         return
     for route in list(main.app.router.routes):
-        if (
-            getattr(route, "path", "") == "/v1/webhooks/postal-native"
-            and "POST" in getattr(route, "methods", set())
+        if getattr(route, "path", "") == "/v1/webhooks/postal-native" and "POST" in getattr(
+            route, "methods", set()
         ):
             main.app.router.routes.remove(route)
     _INSTALLED = True
@@ -47,7 +47,7 @@ def install_postal_webhook_extension() -> None:
 
 def _one_tenant(
     session: Session,
-    tenant_ids: Iterable[Optional[str]],
+    tenant_ids: Iterable[str | None],
 ) -> str:
     candidates = {value for value in tenant_ids if value}
     if len(candidates) > 1:
@@ -58,9 +58,7 @@ def _one_tenant(
         if not tenant or not tenant.enabled:
             raise HTTPException(422, "postal_tenant_unavailable")
         if tenant_postal_provisioning_enabled():
-            mapping = session.get(
-                PostalTenantMapping, tenant_id, populate_existing=True
-            )
+            mapping = session.get(PostalTenantMapping, tenant_id, populate_existing=True)
             if not mapping or mapping.state != READY:
                 raise HTTPException(422, "postal_tenant_mapping_not_ready")
         return tenant_id
@@ -85,16 +83,14 @@ def resolve_postal_tenant(
 ) -> str:
     """Resolve one tenant from durable local send records, never callback input."""
 
-    candidates: list[Optional[str]] = []
+    candidates: list[str | None] = []
     provider_message_id = provider_message_id.strip()
     correlation_id = correlation_id.strip()
     local_message_id = local_message_id.strip()
 
     outbox_filters = []
     if provider_message_id:
-        outbox_filters.append(
-            EmailOutbox.provider_message_id == provider_message_id
-        )
+        outbox_filters.append(EmailOutbox.provider_message_id == provider_message_id)
     if correlation_id:
         outbox_filters.extend(
             [
@@ -106,28 +102,18 @@ def resolve_postal_tenant(
         outbox_filters.append(EmailOutbox.message_id == local_message_id)
     if outbox_filters:
         candidates.extend(
-            session.scalars(
-                select(EmailOutbox.tenant_id).where(or_(*outbox_filters))
-            ).all()
+            session.scalars(select(EmailOutbox.tenant_id).where(or_(*outbox_filters))).all()
         )
 
-    message_ids = {
-        value
-        for value in (correlation_id, local_message_id)
-        if value
-    }
+    message_ids = {value for value in (correlation_id, local_message_id) if value}
     if message_ids:
         candidates.extend(
-            session.scalars(
-                select(Message.tenant_id).where(Message.id.in_(message_ids))
-            ).all()
+            session.scalars(select(Message.tenant_id).where(Message.id.in_(message_ids))).all()
         )
 
     provider_filters = []
     if provider_message_id:
-        provider_filters.append(
-            ProviderMessage.provider_message_id == provider_message_id
-        )
+        provider_filters.append(ProviderMessage.provider_message_id == provider_message_id)
     if correlation_id:
         provider_filters.extend(
             [
@@ -139,11 +125,7 @@ def resolve_postal_tenant(
         provider_filters.append(ProviderMessage.id == local_message_id)
     if provider_filters:
         candidates.extend(
-            session.scalars(
-                select(ProviderMessage.tenant_id).where(
-                    or_(*provider_filters)
-                )
-            ).all()
+            session.scalars(select(ProviderMessage.tenant_id).where(or_(*provider_filters))).all()
         )
 
     return _one_tenant(session, candidates)
@@ -176,10 +158,7 @@ async def postal_native_hook(
         event_timestamp = float(raw.get("timestamp"))
     except (TypeError, ValueError):
         raise HTTPException(401, "invalid_postal_timestamp")
-    if (
-        event_timestamp > time.time() + 300
-        or event_timestamp < time.time() - 86400
-    ):
+    if event_timestamp > time.time() + 300 or event_timestamp < time.time() - 86400:
         raise HTTPException(401, "expired_postal_event")
 
     event_name = str(raw.get("event") or "")
@@ -191,14 +170,9 @@ async def postal_native_hook(
     if not isinstance(message, dict):
         raise HTTPException(400, "invalid_postal_message")
 
-    provider_message_id = str(
-        message.get("message_id") or message.get("id") or ""
-    )
+    provider_message_id = str(message.get("message_id") or message.get("id") or "")
     correlation = str(
-        payload.get("correlation_id")
-        or message.get("tag")
-        or provider_message_id
-        or event_id
+        payload.get("correlation_id") or message.get("tag") or provider_message_id or event_id
     )
     local_message_id = str(message.get("id") or correlation)
     tenant_id = resolve_postal_tenant(
@@ -209,9 +183,7 @@ async def postal_native_hook(
     )
 
     recipient = _recipient(message)
-    canonical_status = main.TERMINAL_MESSAGE_STATUSES.get(
-        canonical, canonical.rsplit(".", 1)[-1]
-    )
+    canonical_status = main.TERMINAL_MESSAGE_STATUSES.get(canonical, canonical.rsplit(".", 1)[-1])
     normalized = {
         "event": canonical,
         "event_id": event_id,
@@ -222,17 +194,13 @@ async def postal_native_hook(
         "stream": "transactional",
         "correlation_id": correlation,
         "causation_id": correlation,
-        "recipient_reference": "sha256:"
-        + hashlib.sha256(recipient.lower().encode()).hexdigest(),
+        "recipient_reference": "sha256:" + hashlib.sha256(recipient.lower().encode()).hexdigest(),
         "recipient": recipient,
         "sender": message.get("from"),
         "provider": "postal",
-        "status": payload.get("status")
-        or canonical.rsplit(".", 1)[-1],
+        "status": payload.get("status") or canonical.rsplit(".", 1)[-1],
         "canonical_status": canonical_status,
-        "occurred_at": datetime.fromtimestamp(
-            event_timestamp, timezone.utc
-        ).isoformat(),
+        "occurred_at": datetime.fromtimestamp(event_timestamp, UTC).isoformat(),
         "attempt": 1,
         "metadata": {
             "provider_event": event_name,
@@ -253,13 +221,11 @@ async def postal_native_hook(
             correlation_id=correlation,
             message_id=local_message_id,
             tenant_id=tenant_id,
-            payload=json.dumps(
-                normalized, separators=(",", ":"), sort_keys=True
-            ),
+            payload=json.dumps(normalized, separators=(",", ":"), sort_keys=True),
         )
         session.add(item)
     item.attempts = (item.attempts or 0) + 1
-    item.updated_at = datetime.now(timezone.utc)
+    item.updated_at = datetime.now(UTC)
     session.commit()
 
     main.persist_email_event(
@@ -274,9 +240,7 @@ async def postal_native_hook(
         payload=item.payload,
     )
     item = session.get(PostalEvent, event_id)
-    item.payload = json.dumps(
-        normalized, separators=(",", ":"), sort_keys=True
-    )
+    item.payload = json.dumps(normalized, separators=(",", ":"), sort_keys=True)
     session.commit()
 
     delivered = await main.emit_middleware(

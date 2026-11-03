@@ -1,10 +1,10 @@
 """Deterministic tax/VAT evidence and immutable invoice snapshots."""
+
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from decimal import Decimal, ROUND_HALF_UP
 import json
-
+from dataclasses import asdict, dataclass
+from decimal import ROUND_HALF_UP, Decimal
 
 CENT = Decimal("0.01")
 

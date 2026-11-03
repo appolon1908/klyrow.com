@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -13,8 +13,7 @@ from apps.gateway.app.billing_entitlements import (
 )
 from apps.gateway.app.billing_proration import quote_plan_change
 
-
-UTC = timezone.utc
+UTC = UTC
 START = datetime(2026, 1, 1, tzinfo=UTC)
 END = datetime(2026, 2, 1, tzinfo=UTC)
 

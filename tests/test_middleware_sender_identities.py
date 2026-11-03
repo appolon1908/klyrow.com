@@ -1,7 +1,6 @@
 """Exercise the service-authenticated sender-identity provisioning routes."""
 
 import os
-import uuid
 
 os.environ.setdefault("KLYROW_DATABASE_URL", "sqlite:///./test-middleware-sender-identities.db")
 os.environ.setdefault("KLYROW_SESSION_SECRET", "test-middleware-sender-identities-secret-32")
@@ -13,9 +12,9 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from apps.gateway.app.platform import app
 from apps.gateway.app import main as core
 from apps.gateway.app.messaging import DomainClaim
-from apps.gateway.app.platform import app
 
 DOMAIN_CLAIM_ID = "claim-tenant-a"
 
@@ -33,8 +32,11 @@ def gateway(monkeypatch):
     core.Base.metadata.create_all(engine)
     sessions = sessionmaker(bind=engine)
     context = {
-        "tenant": "tenant-a", "sub": "middleware-service", "service": True,
-        "role": "tenant_admin", "identity_type": "SERVICE",
+        "tenant": "tenant-a",
+        "sub": "middleware-service",
+        "service": True,
+        "role": "tenant_admin",
+        "identity_type": "SERVICE",
         "permissions": ["klyrow.middleware.command.write", "klyrow.integration.result.write"],
     }
     with sessions() as session:
@@ -42,9 +44,14 @@ def gateway(monkeypatch):
         session.flush()
         session.add(
             DomainClaim(
-                id=DOMAIN_CLAIM_ID, tenant_id="tenant-a", domain="codestra.agency",
-                state="VERIFIED", challenge_hash="x", dkim_selector="s1",
-                return_path="bounce.codestra.agency", tracking_domain="track.codestra.agency",
+                id=DOMAIN_CLAIM_ID,
+                tenant_id="tenant-a",
+                domain="codestra.agency",
+                state="VERIFIED",
+                challenge_hash="x",
+                dkim_selector="s1",
+                return_path="bounce.codestra.agency",
+                tracking_domain="track.codestra.agency",
             )
         )
         session.commit()
@@ -139,10 +146,14 @@ def test_read_sender_identity_is_audited(gateway):
     created = client.post("/v1/internal/sender-identities", json=body()).json()
     client.get(f"/v1/internal/sender-identities/{created['id']}")
     with sessions() as session:
-        rows = session.query(core.Audit).filter(
-            core.Audit.action == "sender_identity.read",
-            core.Audit.tenant_id == ctx["tenant"],
-        ).all()
+        rows = (
+            session.query(core.Audit)
+            .filter(
+                core.Audit.action == "sender_identity.read",
+                core.Audit.tenant_id == ctx["tenant"],
+            )
+            .all()
+        )
     assert len(rows) >= 1
     assert rows[0].actor == ctx["sub"]
 

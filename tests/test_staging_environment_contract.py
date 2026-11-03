@@ -4,7 +4,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 STAGING = ROOT / "deploy" / "staging"
 
@@ -13,7 +12,17 @@ def test_staging_images_are_required_as_immutable_digests():
     script = (ROOT / "scripts" / "staging-preflight").read_text()
     example = (STAGING / "staging.env.example").read_text()
     assert "@sha256:" in script
-    for image in ("GATEWAY", "WEB", "MIGRATE", "SEARCH", "CADDY", "POSTGRES", "PROMETHEUS", "GRAFANA", "NODE_EXPORTER"):
+    for image in (
+        "GATEWAY",
+        "WEB",
+        "MIGRATE",
+        "SEARCH",
+        "CADDY",
+        "POSTGRES",
+        "PROMETHEUS",
+        "GRAFANA",
+        "NODE_EXPORTER",
+    ):
         assert f"KLYROW_{image}_IMAGE" in script
         assert f"KLYROW_{image}_IMAGE=" in example
 
@@ -88,7 +97,7 @@ def test_staging_ses_credentials_are_service_readable_and_private():
     preflight = (ROOT / "scripts" / "staging-preflight").read_text()
     assert "for file in ses-smtp-username ses-smtp-password; do" in preflight
     assert '[[ "$(stat -c %u "$path")" = 10001 ]]' in preflight
-    assert 'service-owned secret required' in preflight
+    assert "service-owned secret required" in preflight
     assert '[[ "$mode" = 400 || "$mode" = 600 ]]' in preflight
 
 
@@ -115,7 +124,13 @@ def test_staging_dependencies_are_declared():
         variable = service["image"].split("${", 1)[1].split(":", 1)[0]
         assert variable + "=" in template
     gateway = compose["services"]["gateway"]
-    for name in ("webhook_secret", "provider_credential_key", "middleware_ca", "middleware_cert", "middleware_key"):
+    for name in (
+        "webhook_secret",
+        "provider_credential_key",
+        "middleware_ca",
+        "middleware_cert",
+        "middleware_key",
+    ):
         assert name in gateway["secrets"]
         assert name in compose["secrets"]
     prometheus = compose["services"]["prometheus"]

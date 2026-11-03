@@ -5,7 +5,7 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from apps.gateway.app.main import Base, DB, InboundRouteConfig, Tenant, engine
+from apps.gateway.app.main import DB, Base, InboundRouteConfig, Tenant, engine
 from apps.gateway.app.webmail import capture_provider_inbound, delete_message, get_attachment
 from apps.gateway.app.webmail_models import (
     WebmailAccess,
@@ -104,7 +104,7 @@ def test_owned_route_persists_and_authorizes_attachment_download():
         assert attachment.sha256 == hashlib.sha256(attachment.content).hexdigest()
         assert message is not None
         mailbox = session.get(WebmailMailbox, "mailbox-1")
-        expected_bytes = len("AttachmentSee attachment".encode()) + len(attachment.content)
+        expected_bytes = len(b"AttachmentSee attachment") + len(attachment.content)
         assert mailbox.storage_used_bytes == expected_bytes
         response = get_attachment(
             "mailbox-1",
@@ -124,9 +124,13 @@ def test_duplicate_attachments_are_preserved_and_quota_fails_closed():
     Base.metadata.create_all(engine)
     with DB() as session:
         route = InboundRouteConfig(
-            id="route-1", tenant_id="tenant-a", address="support@example.test",
-            destination_kind="webmail", destination_ref="klyrow:webmail",
-            verified=True, enabled=True,
+            id="route-1",
+            tenant_id="tenant-a",
+            address="support@example.test",
+            destination_kind="webmail",
+            destination_ref="klyrow:webmail",
+            verified=True,
+            enabled=True,
         )
         mailbox = _mailbox()
         mailbox.storage_quota_bytes = 10_000
@@ -136,8 +140,10 @@ def test_duplicate_attachments_are_preserved_and_quota_fails_closed():
         parsed["attachments"] = parsed["attachments"] * 2
         parsed["attachment_contents"] = parsed["attachment_contents"] * 2
         provider_item = SimpleNamespace(
-            id="provider-inbound-duplicates", tenant_id="tenant-a",
-            recipient="support@example.test", disposition="ACCEPT",
+            id="provider-inbound-duplicates",
+            tenant_id="tenant-a",
+            recipient="support@example.test",
+            disposition="ACCEPT",
         )
         capture_provider_inbound(session, route, provider_item, parsed)
         session.commit()
@@ -158,15 +164,26 @@ def test_reader_cannot_move_or_delete_shared_mailbox_messages():
     with DB() as session:
         mailbox = _mailbox()
         message = WebmailMessage(
-            id="message-1", tenant_id="tenant-a", mailbox_id=mailbox.id,
-            thread_id="thread-1", direction="INBOUND", folder="INBOX",
-            from_address="sender@example.net", subject="Shared",
+            id="message-1",
+            tenant_id="tenant-a",
+            mailbox_id=mailbox.id,
+            thread_id="thread-1",
+            direction="INBOUND",
+            folder="INBOX",
+            from_address="sender@example.net",
+            subject="Shared",
         )
         access = WebmailAccess(
-            id="access-1", tenant_id="tenant-a", mailbox_id=mailbox.id,
-            user_id="reader-1", role="READER", created_by="owner-1",
+            id="access-1",
+            tenant_id="tenant-a",
+            mailbox_id=mailbox.id,
+            user_id="reader-1",
+            role="READER",
+            created_by="owner-1",
         )
-        session.add_all([Tenant(id="tenant-a", name="Tenant A", quota=100), mailbox, message, access])
+        session.add_all(
+            [Tenant(id="tenant-a", name="Tenant A", quota=100), mailbox, message, access]
+        )
         session.commit()
         ctx = {"sub": "reader-1", "tenant": "tenant-a", "role": "SUPPORT"}
         with pytest.raises(HTTPException) as denied:

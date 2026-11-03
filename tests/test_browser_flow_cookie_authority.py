@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response
 
+from apps.gateway.app.platform import app
 from apps.gateway.app import browser_security_fixes as legacy
 from apps.gateway.app.browser_flow_cookie_authority import (
     FLOW_COOKIE_PATH,
@@ -16,7 +17,6 @@ from apps.gateway.app.browser_flow_cookie_authority import (
     require_flow_cookie,
     set_flow_cookie,
 )
-from apps.gateway.app.platform import app
 
 
 def _request(cookies: dict[str, str] | None = None) -> Request:
@@ -25,9 +25,7 @@ def _request(cookies: dict[str, str] | None = None) -> Request:
         headers.append(
             (
                 b"cookie",
-                "; ".join(
-                    f"{name}={value}" for name, value in cookies.items()
-                ).encode("utf-8"),
+                "; ".join(f"{name}={value}" for name, value in cookies.items()).encode("utf-8"),
             )
         )
     return Request(
@@ -56,11 +54,7 @@ def _set_cookie_lines(response: Response) -> list[str]:
 
 
 def _cookie_value(response: Response, name: str) -> str:
-    line = next(
-        value
-        for value in _set_cookie_lines(response)
-        if value.startswith(name + "=")
-    )
+    line = next(value for value in _set_cookie_lines(response) if value.startswith(name + "="))
     parsed = SimpleCookie()
     parsed.load(line)
     return parsed[name].value
@@ -82,17 +76,13 @@ def test_new_flow_uses_a_state_specific_host_only_cookie() -> None:
     name = flow_cookie_name(state)
     lines = _set_cookie_lines(response)
     exact_line = next(line for line in lines if line.startswith(name + "="))
-    mirror_line = next(
-        line
-        for line in lines
-        if line.startswith(legacy.FLOW_COOKIE + "=")
-    )
+    mirror_line = next(line for line in lines if line.startswith(legacy.FLOW_COOKIE + "="))
     assert name.startswith(FLOW_COOKIE_PREFIX)
     assert state not in name
     assert _cookie_value(response, name) == legacy.flow_binding(state)
-    assert legacy.parse_flow_cookie(
-        _cookie_value(response, legacy.FLOW_COOKIE)
-    ) == [legacy.flow_binding(state)]
+    assert legacy.parse_flow_cookie(_cookie_value(response, legacy.FLOW_COOKIE)) == [
+        legacy.flow_binding(state)
+    ]
     for line in (exact_line, mirror_line):
         assert "Secure" in line
         assert "HttpOnly" in line
@@ -115,18 +105,13 @@ def test_rollout_mirror_remains_bounded_while_exact_cookies_are_independent() ->
     states = [f"tab-{index}" for index in range(10)]
     for state in states:
         response = Response()
-        request = _request(
-            {legacy.FLOW_COOKIE: mirror} if mirror else None
-        )
+        request = _request({legacy.FLOW_COOKIE: mirror} if mirror else None)
         set_flow_cookie(response, request, state)
         mirror = _cookie_value(response, legacy.FLOW_COOKIE)
-        assert _cookie_value(response, flow_cookie_name(state)) == (
-            legacy.flow_binding(state)
-        )
+        assert _cookie_value(response, flow_cookie_name(state)) == (legacy.flow_binding(state))
 
     assert legacy.parse_flow_cookie(mirror) == [
-        legacy.flow_binding(state)
-        for state in states[-legacy.FLOW_COOKIE_MAX_BINDINGS :]
+        legacy.flow_binding(state) for state in states[-legacy.FLOW_COOKIE_MAX_BINDINGS :]
     ]
 
 
@@ -167,9 +152,7 @@ def test_new_flow_callback_leaves_shared_rollout_mirror_to_ttl() -> None:
     lines = _set_cookie_lines(response)
     assert len(lines) == 1
     assert lines[0].startswith(exact_name + "=")
-    assert all(
-        not line.startswith(legacy.FLOW_COOKIE + "=") for line in lines
-    )
+    assert all(not line.startswith(legacy.FLOW_COOKIE + "=") for line in lines)
 
 
 def test_exact_per_flow_binding_is_required() -> None:
@@ -186,9 +169,7 @@ def test_exact_per_flow_binding_is_required() -> None:
             _request(
                 {
                     name: legacy.flow_binding("other"),
-                    legacy.FLOW_COOKIE: legacy.encode_flow_cookie(
-                        [legacy.flow_binding(state)]
-                    ),
+                    legacy.FLOW_COOKIE: legacy.encode_flow_cookie([legacy.flow_binding(state)]),
                 }
             ),
             state,

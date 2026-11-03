@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Generate the source-owned API route registry from the composed FastAPI app."""
+
 from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -44,7 +45,11 @@ def build() -> list[dict]:
         PRODUCTION_PROVIDER_ROUTING="false",
     )
     from apps.gateway.app.platform import app
-    from apps.gateway.app.openapi_authority import operation_audience, operation_auth, runtime_routes
+    from apps.gateway.app.openapi_authority import (
+        operation_audience,
+        operation_auth,
+        runtime_routes,
+    )
 
     schema = app.openapi()
     openapi_operations = {
@@ -59,35 +64,55 @@ def build() -> list[dict]:
         audience = operation_audience(path)
         security, auth_model = operation_auth(method, path, audience)
         operation = openapi_operations.get(key, {})
-        operation_id = operation.get("operationId") or f"runtime_{method}_{path.strip('/').replace('/', '_').replace('{', '').replace('}', '') or 'root'}"
+        operation_id = operation.get("operationId") or "runtime_" + method + "_" + (
+            path.strip("/").replace("/", "_").replace("{", "").replace("}", "") or "root"
+        )
         mutation = method.lower() in {"post", "put", "patch", "delete"}
-        rows.append({
-            "operation_id": operation_id,
-            "method": method.upper(),
-            "path": path,
-            "handler": handler,
-            "audience": audience,
-            "namespace": (
-                "/app/api/*" if path.startswith("/app/") else
-                "/v1/admin/*" if path.startswith("/v1/admin/") else
-                "/internal/v1/*" if path.startswith("/internal/v1/") else
-                "/v1/internal/*" if path.startswith("/v1/internal/") else
-                "/v1/*" if path.startswith("/v1/") else
-                "/auth/*" if path.startswith("/auth/") else
-                "other"
-            ),
-            "classification": classification(method, path, documented),
-            "documented": documented,
-            "authentication": {"security": security, "model": auth_model},
-            "csrf": {"required": audience == "BROWSER_BFF" and mutation and (method, path) not in {("post", "/auth/actions/recover"), ("post", "/auth/actions/update-password"), ("post", "/auth/actions/verify-email"), ("post", "/auth/actions/invitation")}},
-            "idempotency": {
-                "required": bool(operation.get("x-idempotency-required", False)),
-                "durable": bool(operation.get("x-durable-idempotency", False)),
-                "model": operation.get("x-idempotency-model"),
-            },
-            "pagination": pagination(operation),
-            "response": operation.get("responses", {}),
-        })
+        rows.append(
+            {
+                "operation_id": operation_id,
+                "method": method.upper(),
+                "path": path,
+                "handler": handler,
+                "audience": audience,
+                "namespace": (
+                    "/app/api/*"
+                    if path.startswith("/app/")
+                    else "/v1/admin/*"
+                    if path.startswith("/v1/admin/")
+                    else "/internal/v1/*"
+                    if path.startswith("/internal/v1/")
+                    else "/v1/internal/*"
+                    if path.startswith("/v1/internal/")
+                    else "/v1/*"
+                    if path.startswith("/v1/")
+                    else "/auth/*"
+                    if path.startswith("/auth/")
+                    else "other"
+                ),
+                "classification": classification(method, path, documented),
+                "documented": documented,
+                "authentication": {"security": security, "model": auth_model},
+                "csrf": {
+                    "required": audience == "BROWSER_BFF"
+                    and mutation
+                    and (method, path)
+                    not in {
+                        ("post", "/auth/actions/recover"),
+                        ("post", "/auth/actions/update-password"),
+                        ("post", "/auth/actions/verify-email"),
+                        ("post", "/auth/actions/invitation"),
+                    }
+                },
+                "idempotency": {
+                    "required": bool(operation.get("x-idempotency-required", False)),
+                    "durable": bool(operation.get("x-durable-idempotency", False)),
+                    "model": operation.get("x-idempotency-model"),
+                },
+                "pagination": pagination(operation),
+                "response": operation.get("responses", {}),
+            }
+        )
     return sorted(rows, key=lambda row: (row["path"], row["method"], row["handler"]))
 
 

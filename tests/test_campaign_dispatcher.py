@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
@@ -21,11 +21,11 @@ from apps.gateway.app.campaign_dispatcher import (
 )
 from apps.gateway.app.messaging import Template, TemplateVersion
 from apps.gateway.app.preferences import ScopedSuppression
-from apps.gateway.app.provider import SenderIdentity
 from apps.gateway.app.production_api import (
     CampaignDispatchConfiguration,
     campaign_dispatch_configuration,
 )
+from apps.gateway.app.provider import SenderIdentity
 
 
 @pytest.fixture
@@ -95,10 +95,8 @@ def campaign_store(monkeypatch):
     engine.dispose()
 
 
-def add_campaign(
-    factory, *, campaign_id="campaign-a", recipients=("one@example.com",), when=None
-):
-    when = when or datetime.now(timezone.utc) - timedelta(seconds=1)
+def add_campaign(factory, *, campaign_id="campaign-a", recipients=("one@example.com",), when=None):
+    when = when or datetime.now(UTC) - timedelta(seconds=1)
     with factory() as session:
         campaign = main.Campaign(
             id=campaign_id,
@@ -153,9 +151,7 @@ def test_dispatch_configuration_is_idempotent_and_versions_changes(campaign_stor
             "role": "MARKETING",
             "permissions": ["campaign.manage"],
         }
-        body = CampaignDispatchConfiguration(
-            sender_id="sender-a", template_id="template-a"
-        )
+        body = CampaignDispatchConfiguration(sender_id="sender-a", template_id="template-a")
         first = campaign_dispatch_configuration(campaign.id, body, context, session)
         second = campaign_dispatch_configuration(campaign.id, body, context, session)
         assert first == second
@@ -177,9 +173,7 @@ def test_campaign_freezes_version_and_deduplicates_recipient_identity(campaign_s
         assert len(items) == 1
 
 
-def test_campaign_normal_completion_uses_normal_message_admission(
-    campaign_store, monkeypatch
-):
+def test_campaign_normal_completion_uses_normal_message_admission(campaign_store, monkeypatch):
     add_campaign(campaign_store)
     calls = []
     fake_success(monkeypatch, calls)
@@ -188,9 +182,7 @@ def test_campaign_normal_completion_uses_normal_message_admission(
     payload, ctx, key, correlation = calls[0]
     assert payload.stream == "MARKETING" and payload.sandbox is True
     assert ctx["service"] == "campaign-dispatcher"
-    assert key.startswith("campaign:campaign-a:4:") and correlation.startswith(
-        "cmpmsg_"
-    )
+    assert key.startswith("campaign:campaign-a:4:") and correlation.startswith("cmpmsg_")
     with campaign_store() as session:
         assert session.scalar(select(CampaignDispatchRun)).state == "COMPLETED"
         assert session.scalar(select(CampaignDispatchItem)).state == "DELIVERED"
@@ -200,7 +192,7 @@ def test_campaign_normal_completion_uses_normal_message_admission(
 
 
 def test_pause_resume_and_cancel_are_fenced_and_durable(campaign_store):
-    add_campaign(campaign_store, when=datetime.now(timezone.utc) + timedelta(hours=1))
+    add_campaign(campaign_store, when=datetime.now(UTC) + timedelta(hours=1))
     with campaign_store() as session:
         campaign = session.get(main.Campaign, "campaign-a")
         run = pause_campaign(session, campaign)
@@ -213,15 +205,10 @@ def test_pause_resume_and_cancel_are_fenced_and_durable(campaign_store):
         session.commit()
         assert run.state == "CANCELLED" and campaign.status == "cancelled"
         assert session.scalar(select(CampaignDispatchItem)).state == "CANCELLED"
-        assert (
-            session.scalar(select(BusinessEventOutbox)).event_type
-            == "klyrow.campaign.summary"
-        )
+        assert session.scalar(select(BusinessEventOutbox)).event_type == "klyrow.campaign.summary"
 
 
-def test_expired_dispatcher_lease_recovers_without_duplicate_send(
-    campaign_store, monkeypatch
-):
+def test_expired_dispatcher_lease_recovers_without_duplicate_send(campaign_store, monkeypatch):
     add_campaign(campaign_store)
     with campaign_store() as session:
         run = session.scalar(select(CampaignDispatchRun))
@@ -229,7 +216,7 @@ def test_expired_dispatcher_lease_recovers_without_duplicate_send(
         run.state = "RUNNING"
         run.lease_owner = "crashed"
         run.fence_token = 7
-        run.lease_expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+        run.lease_expires_at = datetime.now(UTC) - timedelta(seconds=1)
         item.state = "LEASED"
         item.lease_owner = "crashed"
         item.fence_token = 7
@@ -250,7 +237,7 @@ def test_active_dispatcher_lease_prevents_duplicate_worker(campaign_store, monke
         run.state = "RUNNING"
         run.lease_owner = "worker-a"
         run.fence_token = 1
-        run.lease_expires_at = datetime.now(timezone.utc) + timedelta(minutes=1)
+        run.lease_expires_at = datetime.now(UTC) + timedelta(minutes=1)
         session.commit()
     calls = []
     fake_success(monkeypatch, calls)
@@ -279,9 +266,7 @@ def test_suppressed_recipient_is_never_admitted(campaign_store, monkeypatch):
         assert states == {"SUPPRESSED", "DELIVERED"}
 
 
-def test_transient_admission_failure_retries_with_same_logical_key(
-    campaign_store, monkeypatch
-):
+def test_transient_admission_failure_retries_with_same_logical_key(campaign_store, monkeypatch):
     add_campaign(campaign_store)
     import apps.gateway.app.provider as provider
 
@@ -299,13 +284,11 @@ def test_transient_admission_failure_retries_with_same_logical_key(
         item = session.scalar(select(CampaignDispatchItem))
         run = session.scalar(select(CampaignDispatchRun))
         assert item.state == "RETRYING" and run.state == "RETRYING"
-        item.next_attempt_at = datetime.now(timezone.utc) - timedelta(seconds=1)
-        run.next_attempt_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+        item.next_attempt_at = datetime.now(UTC) - timedelta(seconds=1)
+        run.next_attempt_at = datetime.now(UTC) - timedelta(seconds=1)
         session.commit()
     assert dispatch_campaigns() == 1
     assert calls[0] == calls[1]
     with campaign_store() as session:
         assert session.scalar(select(CampaignDispatchItem)).state == "DELIVERED"
-        assert (
-            session.scalar(select(func.count()).select_from(BusinessEventOutbox)) == 1
-        )
+        assert session.scalar(select(func.count()).select_from(BusinessEventOutbox)) == 1

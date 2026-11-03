@@ -6,11 +6,10 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from apps.gateway.app import guards, main, operations, webmail
 from apps.gateway.app.main import (
+    DB,
     AllowedSender,
     Base,
-    DB,
     Domain,
     EmailOutbox,
     Message,
@@ -18,6 +17,7 @@ from apps.gateway.app.main import (
     Tenant,
     engine,
 )
+from apps.gateway.app import guards, main, operations
 from apps.gateway.app.provider import parse_inbound
 from apps.gateway.app.saas import Consent, Preference, Profile
 from apps.gateway.app.webmail import ComposeIn, send_message
@@ -30,33 +30,35 @@ def reset_db():
 
 
 def seed_webmail_sender(session):
-    session.add_all([
-        Tenant(id="tenant-a", name="Tenant A", quota=100),
-        Domain(
-            id="domain-a",
-            tenant_id="tenant-a",
-            domain="example.com",
-            token="verified",
-            verified=True,
-        ),
-        AllowedSender(
-            id="sender-a",
-            tenant_id="tenant-a",
-            address="support@example.com",
-            role="support",
-            enabled=True,
-        ),
-        WebmailMailbox(
-            id="mailbox-a",
-            tenant_id="tenant-a",
-            domain_id="domain-a",
-            address="support@example.com",
-            display_name="Support",
-            status="ACTIVE",
-            sending_enabled=True,
-            receiving_enabled=True,
-        ),
-    ])
+    session.add_all(
+        [
+            Tenant(id="tenant-a", name="Tenant A", quota=100),
+            Domain(
+                id="domain-a",
+                tenant_id="tenant-a",
+                domain="example.com",
+                token="verified",
+                verified=True,
+            ),
+            AllowedSender(
+                id="sender-a",
+                tenant_id="tenant-a",
+                address="support@example.com",
+                role="support",
+                enabled=True,
+            ),
+            WebmailMailbox(
+                id="mailbox-a",
+                tenant_id="tenant-a",
+                domain_id="domain-a",
+                address="support@example.com",
+                display_name="Support",
+                status="ACTIVE",
+                sending_enabled=True,
+                receiving_enabled=True,
+            ),
+        ]
+    )
     session.commit()
 
 
@@ -72,36 +74,44 @@ def test_webmail_outbound_creates_real_outbox_and_postal_fact_updates_sent_proje
     monkeypatch.setattr(main, "SAFE_MODE", False)
     monkeypatch.setattr(main, "enforce_production_canary", lambda *args, **kwargs: None)
     monkeypatch.setattr(operations, "enforce_tenant_send_gate", lambda *args, **kwargs: None)
-    monkeypatch.setattr(guards, "billing_identity", lambda *args, **kwargs: ("sub-cert", "price-cert"))
+    monkeypatch.setattr(
+        guards, "billing_identity", lambda *args, **kwargs: ("sub-cert", "price-cert")
+    )
 
     with DB() as session:
         seed_webmail_sender(session)
-        result = asyncio.run(send_message(
-            "mailbox-a",
-            ComposeIn(
-                to="recipient@example.net",
-                subject="Controlled Webmail send",
-                text="No external worker execution in this test.",
-            ),
-            owner,
-            None,
-            session,
-            "webmail-outbound-cert-1",
-        ))
+        result = asyncio.run(
+            send_message(
+                "mailbox-a",
+                ComposeIn(
+                    to="recipient@example.net",
+                    subject="Controlled Webmail send",
+                    text="No external worker execution in this test.",
+                ),
+                owner,
+                None,
+                session,
+                "webmail-outbound-cert-1",
+            )
+        )
 
         core_id = result["delivery"]["id"]
-        stored = session.scalar(select(WebmailMessage).where(
-            WebmailMessage.tenant_id == "tenant-a",
-            WebmailMessage.outbound_message_id == core_id,
-        ))
+        stored = session.scalar(
+            select(WebmailMessage).where(
+                WebmailMessage.tenant_id == "tenant-a",
+                WebmailMessage.outbound_message_id == core_id,
+            )
+        )
         assert stored is not None
         assert stored.folder == "SENT"
         assert stored.delivery_status == "QUEUED"
 
-        outbox = session.scalar(select(EmailOutbox).where(
-            EmailOutbox.tenant_id == "tenant-a",
-            EmailOutbox.message_id == core_id,
-        ))
+        outbox = session.scalar(
+            select(EmailOutbox).where(
+                EmailOutbox.tenant_id == "tenant-a",
+                EmailOutbox.message_id == core_id,
+            )
+        )
         assert outbox is not None
         payload = json.loads(outbox.payload)
         assert payload["from"] == "support@example.com"
@@ -179,7 +189,7 @@ def test_inbound_attachment_path_traversal_is_rejected():
         "To: support@example.com\r\n"
         "Subject: Traversal\r\n"
         "MIME-Version: 1.0\r\n"
-        f"Content-Type: multipart/mixed; boundary=\"{boundary}\"\r\n"
+        f'Content-Type: multipart/mixed; boundary="{boundary}"\r\n'
         "\r\n"
         f"--{boundary}\r\n"
         "Content-Type: text/plain; charset=utf-8\r\n"
@@ -187,7 +197,7 @@ def test_inbound_attachment_path_traversal_is_rejected():
         "hello\r\n"
         f"--{boundary}\r\n"
         "Content-Type: application/octet-stream\r\n"
-        "Content-Disposition: attachment; filename=\"../secret.txt\"\r\n"
+        'Content-Disposition: attachment; filename="../secret.txt"\r\n'
         "Content-Transfer-Encoding: base64\r\n"
         "\r\n"
         "c2VjcmV0\r\n"
@@ -199,7 +209,7 @@ def test_inbound_attachment_path_traversal_is_rejected():
     assert denied.value.detail == "unsafe_attachment_filename"
 
 
-def test_transactional_webmail_does_not_require_marketing_consent_but_hard_suppression_still_blocks():
+def test_transactional_webmail_does_not_require_marketing_consent_but_hard_suppression_still_blocks():  # noqa: E501  # descriptive test name
     reset_db()
     with DB() as session:
         session.add(Tenant(id="tenant-a", name="Tenant A", quota=100))
@@ -215,12 +225,14 @@ def test_transactional_webmail_does_not_require_marketing_consent_but_hard_suppr
         )
         assert allowed["stream"] == "transactional"
 
-        session.add(Suppression(
-            id="suppression-hard",
-            tenant_id="tenant-a",
-            email="person@example.net",
-            reason="complaint",
-        ))
+        session.add(
+            Suppression(
+                id="suppression-hard",
+                tenant_id="tenant-a",
+                email="person@example.net",
+                reason="complaint",
+            )
+        )
         session.commit()
         with pytest.raises(HTTPException) as hard_block:
             guards.authorize_send(
@@ -257,25 +269,27 @@ def test_marketing_requires_stored_consent_and_respects_marketing_suppression():
             tenant_id="tenant-a",
             email="person@example.net",
         )
-        session.add_all([
-            profile,
-            Preference(
-                id="pref-a",
-                tenant_id="tenant-a",
-                profile_id=profile.id,
-                topic="marketing",
-                subscribed=True,
-            ),
-            Consent(
-                id="consent-a",
-                tenant_id="tenant-a",
-                profile_id=profile.id,
-                topic="marketing",
-                status="granted",
-                source="certification",
-                version="v1",
-            ),
-        ])
+        session.add_all(
+            [
+                profile,
+                Preference(
+                    id="pref-a",
+                    tenant_id="tenant-a",
+                    profile_id=profile.id,
+                    topic="marketing",
+                    subscribed=True,
+                ),
+                Consent(
+                    id="consent-a",
+                    tenant_id="tenant-a",
+                    profile_id=profile.id,
+                    topic="marketing",
+                    status="granted",
+                    source="certification",
+                    version="v1",
+                ),
+            ]
+        )
         session.commit()
 
         allowed = guards.authorize_send(
@@ -289,12 +303,14 @@ def test_marketing_requires_stored_consent_and_respects_marketing_suppression():
         )
         assert allowed["stream"] == "marketing"
 
-        session.add(Suppression(
-            id="suppression-marketing",
-            tenant_id="tenant-a",
-            email="person@example.net",
-            reason="unsubscribe_marketing",
-        ))
+        session.add(
+            Suppression(
+                id="suppression-marketing",
+                tenant_id="tenant-a",
+                email="person@example.net",
+                reason="unsubscribe_marketing",
+            )
+        )
         session.commit()
         with pytest.raises(HTTPException) as suppressed:
             guards.authorize_send(

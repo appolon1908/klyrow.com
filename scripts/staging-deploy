@@ -4,7 +4,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${1:-$ROOT/deploy/staging/staging.env}"
 [[ "${KLYROW_STAGING_CONFIRM:-}" = "DEPLOY-KLYROW-STAGING" ]] || { echo "Set KLYROW_STAGING_CONFIRM=DEPLOY-KLYROW-STAGING" >&2; exit 2; }
 "$ROOT/scripts/staging-preflight" "$ENV_FILE"
-set -a; source "$ENV_FILE"; set +a
+set -a
+# shellcheck source=/dev/null  # runtime-selected env file
+source "$ENV_FILE"
+set +a
 mkdir -p "$KLYROW_STAGING_EVIDENCE_DIR"
 COMPOSE=(docker compose --env-file "$ENV_FILE" -f "$ROOT/deploy/staging/compose.yml")
 "${COMPOSE[@]}" pull

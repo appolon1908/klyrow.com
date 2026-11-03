@@ -1,4 +1,5 @@
 import os
+import secrets
 import uuid
 from datetime import timedelta
 from urllib.parse import parse_qs, urlparse
@@ -7,11 +8,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from apps.gateway.app import auth_bff
-from apps.gateway.app.auth_bff import BrowserSession, OidcLoginTransaction, SESSION_COOKIE
-from apps.gateway.app.browser_auth_actions import stable_csrf_token
-from apps.gateway.app.main import Base, DB, Tenant, User, engine, ph, sha
+from apps.gateway.app.main import DB, Base, Tenant, User, engine, ph, sha
 from apps.gateway.app.platform import app
+from apps.gateway.app import auth_bff
+from apps.gateway.app.auth_bff import SESSION_COOKIE, BrowserSession, OidcLoginTransaction
 from apps.gateway.app.tenancy import OidcIdentity, TenantInvitation, TenantMember
 
 ISSUER = "https://auth.codestra.co/realms/codestra"
@@ -32,7 +32,7 @@ def _browser_principal_session(*, disable: str | None = None):
     identity_id = f"identity-browser-{suffix}"
     session_id = f"session-browser-{suffix}"
     raw = "browser_" + uuid.uuid4().hex
-    csrf = stable_csrf_token(session_id)
+    csrf = secrets.token_urlsafe(32)
     with DB() as session:
         user = User(
             id=user_id,
@@ -65,6 +65,7 @@ def _browser_principal_session(*, disable: str | None = None):
                 id=session_id,
                 token_hash=sha(raw),
                 csrf_hash=sha(csrf),
+                csrf_ciphertext=auth_bff._encrypt(csrf),
                 identity_id=identity_id,
                 user_id=user_id,
                 tenant_id=tenant_id,
@@ -85,15 +86,13 @@ def _browser_principal_session(*, disable: str | None = None):
 
 
 def test_session_reads_keep_one_csrf_token_until_session_rotation():
-    client, session_id, _csrf = _browser_principal_session()
+    client, _session_id, csrf = _browser_principal_session()
     first = client.get("/auth/session")
     second = client.get("/auth/session")
     assert first.status_code == second.status_code == 200
     assert first.json()["csrf_token"] == second.json()["csrf_token"]
-    assert first.json()["csrf_token"] == stable_csrf_token(session_id)
-    logout = client.post(
-        "/auth/logout", headers={"X-Klyrow-CSRF": first.json()["csrf_token"]}
-    )
+    assert first.json()["csrf_token"] == csrf
+    logout = client.post("/auth/logout", headers={"X-Klyrow-CSRF": first.json()["csrf_token"]})
     assert logout.status_code == 200
 
 
@@ -111,9 +110,7 @@ def test_disabled_principals_are_revoked_before_reads_or_refresh(disabled_record
 
 def test_recovery_uses_supported_keycloak_reset_credentials_flow_without_lookup():
     client = _client()
-    response = client.post(
-        "/auth/actions/recover", json={"email": "unknown@example.com"}
-    )
+    response = client.post("/auth/actions/recover", json={"email": "unknown@example.com"})
     assert response.status_code == 202
     location = response.json()["redirect_to"]
     parsed = urlparse(location)
@@ -139,9 +136,9 @@ def test_password_and_verification_actions_use_keycloak_aia():
     assert parse_qs(urlparse(password.json()["redirect_to"]).query)["kc_action"] == [
         "UPDATE_PASSWORD"
     ]
-    assert parse_qs(urlparse(verification.json()["redirect_to"]).query)[
-        "kc_action"
-    ] == ["VERIFY_EMAIL"]
+    assert parse_qs(urlparse(verification.json()["redirect_to"]).query)["kc_action"] == [
+        "VERIFY_EMAIL"
+    ]
 
 
 def test_cancelled_application_action_never_reaches_success_page():
@@ -177,18 +174,14 @@ def test_invitation_is_bound_to_the_oidc_transaction():
         )
         session.commit()
     valid = client.post("/auth/actions/invitation", json={"token": raw})
-    invalid = client.post(
-        "/auth/actions/invitation", json={"token": "x" * 32}
-    )
+    invalid = client.post("/auth/actions/invitation", json={"token": "x" * 32})
     assert valid.status_code == invalid.status_code == 200
     redirect_to = valid.json()["redirect_to"]
     assert redirect_to.startswith(ISSUER + "/protocol/openid-connect/registrations?")
     state = parse_qs(urlparse(redirect_to).query)["state"][0]
     with DB() as session:
         transaction = session.scalar(
-            select(OidcLoginTransaction).where(
-                OidcLoginTransaction.state_hash == sha(state)
-            )
+            select(OidcLoginTransaction).where(OidcLoginTransaction.state_hash == sha(state))
         )
         assert transaction and transaction.mode == "invite:" + invitation_id
     assert invalid.json() == {"valid": False, "redirect_to": None}
@@ -264,9 +257,7 @@ def test_selected_invitation_wins_when_email_has_multiple_valid_invites(monkeypa
         memberships = session.scalars(
             select(TenantMember).where(TenantMember.user_id == user.id)
         ).all()
-        assert [(row.tenant_id, row.role) for row in memberships] == [
-            (tenant_b, "ADMIN")
-        ]
+        assert [(row.tenant_id, row.role) for row in memberships] == [(tenant_b, "ADMIN")]
         assert session.get(TenantInvitation, invite_b).accepted_at is not None
         assert session.get(TenantInvitation, invite_a).accepted_at is None
 

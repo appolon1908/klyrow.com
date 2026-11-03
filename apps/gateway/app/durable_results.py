@@ -3,6 +3,7 @@
 Legacy JSON remains read-only compatible during an explicit rollout; every new
 control replay/result is encrypted with a dedicated file-backed keyring.
 """
+
 from __future__ import annotations
 
 import base64
@@ -11,7 +12,7 @@ import json
 import os
 import re
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from cryptography.exceptions import InvalidTag
@@ -24,10 +25,38 @@ FORMAT = "klyrow-durable-result.v1"
 MAX_RESULT_BYTES = 65536
 MAX_ENVELOPE_BYTES = 131072
 MAX_DOCUMENT_BYTES = MAX_RESULT_BYTES + 1024
-_SENSITIVE = ("password", "secret", "token", "authorization", "cookie", "credential", "privatekey",
-              "apikey", "accesskey", "signature", "session", "reseturl", "verificationurl")
-_CONTENT = {"body", "raw", "mime", "html", "htmlbody", "textbody", "headers", "url", "uri",
-            "email", "recipient", "recipients", "phone", "cardnumber", "cvv"}
+_SENSITIVE = (
+    "password",
+    "secret",
+    "token",
+    "authorization",
+    "cookie",
+    "credential",
+    "privatekey",
+    "apikey",
+    "accesskey",
+    "signature",
+    "session",
+    "reseturl",
+    "verificationurl",
+)
+_CONTENT = {
+    "body",
+    "raw",
+    "mime",
+    "html",
+    "htmlbody",
+    "textbody",
+    "headers",
+    "url",
+    "uri",
+    "email",
+    "recipient",
+    "recipients",
+    "phone",
+    "cardnumber",
+    "cvv",
+}
 
 
 def _unavailable() -> HTTPException:
@@ -58,6 +87,7 @@ def canonical(value: dict[str, Any], *, limit: int = MAX_RESULT_BYTES) -> bytes:
 
 def redact_result(value: dict[str, Any]) -> dict[str, Any]:
     canonical(value)
+
     def visit(item, depth=0):
         if depth > 12:
             raise ValueError("result_too_deep")
@@ -65,13 +95,18 @@ def redact_result(value: dict[str, Any]) -> dict[str, Any]:
             output = {}
             for name, child in item.items():
                 normalized = re.sub(r"[^a-z0-9]", "", name.lower())
-                output[name] = "[REDACTED]" if any(word in normalized for word in (*_CONTENT, *_SENSITIVE)) else visit(child, depth + 1)
+                output[name] = (
+                    "[REDACTED]"
+                    if any(word in normalized for word in (*_CONTENT, *_SENSITIVE))
+                    else visit(child, depth + 1)
+                )
             return output
         if isinstance(item, list):
             if len(item) > 1000:
                 raise ValueError("result_list_too_large")
             return [visit(child, depth + 1) for child in item]
         return item
+
     return visit(value)
 
 
@@ -87,10 +122,19 @@ def seal(value: dict[str, Any], binding: list[str]) -> str:
         kid = keys.active_key_id
         nonce = secrets.token_bytes(12)
         aad = json.dumps([FORMAT, kid, *binding], separators=(",", ":")).encode()
-        cipher = AESGCM(keys.keys[kid]).encrypt(nonce, canonical(value, limit=MAX_DOCUMENT_BYTES), aad)
-        return json.dumps({"format": FORMAT, "kid": kid,
-                           "nonce": base64.urlsafe_b64encode(nonce).decode(),
-                           "ciphertext": base64.urlsafe_b64encode(cipher).decode()}, separators=(",", ":"), sort_keys=True)
+        cipher = AESGCM(keys.keys[kid]).encrypt(
+            nonce, canonical(value, limit=MAX_DOCUMENT_BYTES), aad
+        )
+        return json.dumps(
+            {
+                "format": FORMAT,
+                "kid": kid,
+                "nonce": base64.urlsafe_b64encode(nonce).decode(),
+                "ciphertext": base64.urlsafe_b64encode(cipher).decode(),
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        )
     except (KeyringError, ValueError, TypeError, OverflowError, RecursionError):
         raise _unavailable() from None
 
@@ -119,16 +163,29 @@ def unseal(raw: str, binding: list[str]) -> dict[str, Any]:
         result = _loads(AESGCM(keys.keys[kid]).decrypt(nonce, ciphertext, aad))
         canonical(result, limit=MAX_DOCUMENT_BYTES)
         return result
-    except (KeyringError, KeyError, ValueError, TypeError, InvalidTag, UnicodeError, RecursionError):
+    except (
+        KeyringError,
+        KeyError,
+        ValueError,
+        TypeError,
+        InvalidTag,
+        UnicodeError,
+        RecursionError,
+    ):
         raise _unavailable() from None
 
 
 def seal_control_response(value, *, tenant_id, storage_key, request_hash, resource_id):
-    return seal(value, _binding("control-replay", tenant_id, storage_key, request_hash, resource_id))
+    return seal(
+        value, _binding("control-replay", tenant_id, storage_key, request_hash, resource_id)
+    )
 
 
 def read_control_response(row):
-    return unseal(row.response_json, _binding("control-replay", row.tenant_id, row.key, row.request_hash, row.resource_id))
+    return unseal(
+        row.response_json,
+        _binding("control-replay", row.tenant_id, row.key, row.request_hash, row.resource_id),
+    )
 
 
 def seal_integration_result(value, *, tenant_id, outbox_id, source, result_key):
@@ -139,17 +196,30 @@ def seal_integration_result(value, *, tenant_id, outbox_id, source, result_key):
 
 def integration_record(row):
     """Authenticate a payload or a retention tombstone in the same context."""
-    value = unseal(row.payload_json, _binding("integration-result", row.tenant_id, row.outbox_id, row.source, row.result_key))
+    value = unseal(
+        row.payload_json,
+        _binding("integration-result", row.tenant_id, row.outbox_id, row.source, row.result_key),
+    )
     envelope = _loads(row.payload_json)
     if envelope.get("format") != FORMAT:
-        return {"schema_version": 1, "request_hash": hashlib.sha256(canonical(value)).hexdigest(),
-                "result": redact_result(value)}
+        return {
+            "schema_version": 1,
+            "request_hash": hashlib.sha256(canonical(value)).hexdigest(),
+            "result": redact_result(value),
+        }
     version = value.get("schema_version")
     if type(version) is not int or version not in (1, 2):
         raise _unavailable()
-    expected = {"schema_version", "request_hash", "result"} if version == 1 else {
-        "schema_version", "request_hash", "purged_at", "policy_sha256"}
-    if set(value) != expected or not isinstance(value.get("request_hash"), str) or not re.fullmatch(r"[0-9a-f]{64}", value["request_hash"]):
+    expected = (
+        {"schema_version", "request_hash", "result"}
+        if version == 1
+        else {"schema_version", "request_hash", "purged_at", "policy_sha256"}
+    )
+    if (
+        set(value) != expected
+        or not isinstance(value.get("request_hash"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", value["request_hash"])
+    ):
         raise _unavailable()
     if version == 1:
         value["result"] = redact_result(value["result"])
@@ -161,7 +231,9 @@ def integration_record(row):
             parsed = datetime.fromisoformat(stamp)
             if parsed.tzinfo is None or parsed.utcoffset() != timedelta(0):
                 raise ValueError
-            if not isinstance(value["policy_sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", value["policy_sha256"]):
+            if not isinstance(value["policy_sha256"], str) or not re.fullmatch(
+                r"[0-9a-f]{64}", value["policy_sha256"]
+            ):
                 raise ValueError
         except (ValueError, TypeError):
             raise _unavailable() from None
@@ -177,12 +249,22 @@ def seal_result_tombstone(row, *, current: datetime, policy_sha256: str) -> str:
     value = integration_record(row)
     if value["schema_version"] == 2:
         return row.payload_json
-    if (not isinstance(current, datetime) or current.tzinfo is None
-            or not isinstance(policy_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", policy_sha256)):
+    if (
+        not isinstance(current, datetime)
+        or current.tzinfo is None
+        or not isinstance(policy_sha256, str)
+        or not re.fullmatch(r"[0-9a-f]{64}", policy_sha256)
+    ):
         raise ValueError("invalid_retention_authority")
-    return seal({"schema_version": 2, "request_hash": value["request_hash"],
-                 "purged_at": current.astimezone(timezone.utc).isoformat(), "policy_sha256": policy_sha256},
-                _binding("integration-result", row.tenant_id, row.outbox_id, row.source, row.result_key))
+    return seal(
+        {
+            "schema_version": 2,
+            "request_hash": value["request_hash"],
+            "purged_at": current.astimezone(UTC).isoformat(),
+            "policy_sha256": policy_sha256,
+        },
+        _binding("integration-result", row.tenant_id, row.outbox_id, row.source, row.result_key),
+    )
 
 
 def result_retention_seconds() -> int:
@@ -193,7 +275,9 @@ def result_retention_seconds() -> int:
 
 
 def result_matches(row, value):
-    return secrets.compare_digest(integration_document(row)[1], hashlib.sha256(canonical(value)).hexdigest())
+    return secrets.compare_digest(
+        integration_document(row)[1], hashlib.sha256(canonical(value)).hexdigest()
+    )
 
 
 def result_readback(row, *, current: datetime | None = None):
@@ -205,14 +289,14 @@ def result_readback(row, *, current: datetime | None = None):
         retention = result_retention_seconds()
         created = row.created_at
         if created.tzinfo is None:
-            created = created.replace(tzinfo=timezone.utc)
+            created = created.replace(tzinfo=UTC)
         expires = created + timedelta(seconds=retention)
         metadata["expires_at"] = expires.isoformat()
         value = integration_record(row)
         if value["schema_version"] == 2:
             metadata.update(availability="PURGED", purged_at=value["purged_at"])
             return {}, metadata
-        if expires <= (current or datetime.now(timezone.utc)):
+        if expires <= (current or datetime.now(UTC)):
             metadata["availability"] = "EXPIRED"
             return {}, metadata
         metadata["availability"] = "AVAILABLE"
@@ -224,5 +308,7 @@ def result_readback(row, *, current: datetime | None = None):
 
 def rewrap_integration_result(row):
     """Preserve the original semantic digest, including fields removed by redaction."""
-    return seal(integration_record(row),
-                _binding("integration-result", row.tenant_id, row.outbox_id, row.source, row.result_key))
+    return seal(
+        integration_record(row),
+        _binding("integration-result", row.tenant_id, row.outbox_id, row.source, row.result_key),
+    )

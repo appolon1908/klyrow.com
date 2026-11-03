@@ -1,12 +1,9 @@
 """Safe browser account actions and hardened browser-session authority."""
+
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
 import os
-from datetime import timezone
-from typing import Optional
+from datetime import UTC
 from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -15,9 +12,9 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .main import Tenant, User, auth_rate, db, sha
 from . import auth_bff
 from .auth_bff import BrowserSession, OidcLoginTransaction
-from .main import SECRET, Tenant, User, auth_rate, db, sha
 from .tenancy import OidcIdentity, TenantInvitation, TenantMember
 
 router = APIRouter(tags=["Browser account actions"])
@@ -36,7 +33,7 @@ class InvitationValidationRequest(BaseModel):
 
 
 def _as_utc(value):
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 def browser_session_idle_seconds() -> int:
@@ -45,36 +42,21 @@ def browser_session_idle_seconds() -> int:
     try:
         configured = int(os.getenv("KLYROW_BROWSER_SESSION_IDLE_SECONDS", "1800"))
     except ValueError as exc:
-        raise RuntimeError(
-            "KLYROW_BROWSER_SESSION_IDLE_SECONDS must be an integer"
-        ) from exc
+        raise RuntimeError("KLYROW_BROWSER_SESSION_IDLE_SECONDS must be an integer") from exc
     return max(300, min(configured, auth_bff._session_ttl()))
-
-
-def stable_csrf_token(session_id: str) -> str:
-    """Derive one unguessable CSRF token for the lifetime of a browser session."""
-
-    digest = hmac.new(
-        SECRET.encode(),
-        ("klyrow-browser-csrf-v1:" + session_id).encode(),
-        hashlib.sha256,
-    ).digest()
-    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
 
 def _aware(value):
     if value is None:
         return None
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 def _idle_timeout_seconds() -> int:
     """Return a bounded inactivity timeout that never exceeds the absolute TTL."""
 
     try:
-        configured = int(
-            os.getenv("KLYROW_BROWSER_SESSION_IDLE_SECONDS", "1800")
-        )
+        configured = int(os.getenv("KLYROW_BROWSER_SESSION_IDLE_SECONDS", "1800"))
     except (TypeError, ValueError):
         configured = 1800
     return max(300, min(configured, auth_bff._session_ttl()))
@@ -154,25 +136,25 @@ def _get_browser_session_with_authority(
     return item
 
 
-def _new_session_with_stable_csrf(
+def _new_session_with_parent_deadline(
     session: Session,
     request: Request,
     identity: OidcIdentity,
     user: User,
     membership: TenantMember,
     tokens: dict,
-    rotated_from_id: Optional[str] = None,
+    rotated_from_id: str | None = None,
 ):
-    """Create/rotate a session without extending its original absolute deadline."""
+    """Create/rotate a session without extending its original absolute deadline.
+
+    The random per-session CSRF token is minted (or inherited from the rotated
+    parent) by ``auth_bff._new_session`` itself; nothing here derives it.
+    """
 
     absolute_deadline = None
     if rotated_from_id:
         prior = session.get(BrowserSession, rotated_from_id, populate_existing=True)
-        if (
-            not prior
-            or prior.user_id != user.id
-            or prior.identity_id != identity.id
-        ):
+        if not prior or prior.user_id != user.id or prior.identity_id != identity.id:
             raise HTTPException(401, "session_rotation_invalid")
         absolute_deadline = _aware(prior.expires_at)
         if not absolute_deadline or absolute_deadline <= auth_bff.now():
@@ -184,7 +166,7 @@ def _new_session_with_stable_csrf(
         user_id=user.id,
         tenant_id=membership.tenant_id,
     )
-    item, raw, _csrf = _ORIGINAL_NEW_SESSION(
+    item, raw, csrf = _ORIGINAL_NEW_SESSION(
         session,
         request,
         identity,
@@ -195,9 +177,7 @@ def _new_session_with_stable_csrf(
     )
     if absolute_deadline and _aware(item.expires_at) > absolute_deadline:
         item.expires_at = absolute_deadline
-    csrf = stable_csrf_token(item.id)
-    item.csrf_hash = sha(csrf)
-    session.commit()
+        session.commit()
     return item, raw, csrf
 
 
@@ -207,7 +187,7 @@ def _identity_action_url(
     *,
     mode: str,
     return_to: str,
-    action: Optional[str] = None,
+    action: str | None = None,
     forgot_credentials: bool = False,
 ) -> str:
     url = auth_bff._authorization_url(request, session, mode, return_to)
@@ -243,13 +223,11 @@ def install_auth_extensions() -> None:
         if getattr(route, "path", "") in replacement_paths:
             auth_bff.router.routes.remove(route)
     auth_bff._get_browser_session = _get_browser_session_with_authority
-    auth_bff._new_session = _new_session_with_stable_csrf
+    auth_bff._new_session = _new_session_with_parent_deadline
     _INSTALLED = True
 
 
-def current_browser_session(
-    request: Request, session: Session = Depends(db)
-) -> BrowserSession:
+def current_browser_session(request: Request, session: Session = Depends(db)) -> BrowserSession:
     return auth_bff._get_browser_session(request, session)
 
 
@@ -257,15 +235,13 @@ def current_browser_session(
 def oidc_callback(
     request: Request,
     state: str,
-    code: Optional[str] = None,
-    kc_action_status: Optional[str] = None,
-    error: Optional[str] = None,
+    code: str | None = None,
+    kc_action_status: str | None = None,
+    error: str | None = None,
     session: Session = Depends(db),
 ):
     transaction = session.scalar(
-        select(OidcLoginTransaction).where(
-            OidcLoginTransaction.state_hash == sha(state)
-        )
+        select(OidcLoginTransaction).where(OidcLoginTransaction.state_hash == sha(state))
     )
     if not transaction or transaction.used_at:
         raise HTTPException(410, "oidc_state_invalid_or_used")
@@ -276,9 +252,7 @@ def oidc_callback(
     session.commit()
 
     # Never turn a cancelled/omitted application-initiated action into success.
-    if error or not code or (
-        transaction.mode in _ACTION_MODES and kc_action_status != "success"
-    ):
+    if error or not code or (transaction.mode in _ACTION_MODES and kc_action_status != "success"):
         return RedirectResponse(
             "/service-error",
             status_code=303,
@@ -300,15 +274,10 @@ def oidc_callback(
         enqueue_postal_provisioning(session, membership.tenant_id)
     else:
         identity, user, membership = auth_bff._identity_context(session, claims)
-    item, raw, _csrf = auth_bff._new_session(
-        session, request, identity, user, membership, tokens
-    )
-    response = RedirectResponse(
-        auth_bff._safe_return_to(transaction.return_url), status_code=303
-    )
+    _item, raw, _csrf = auth_bff._new_session(session, request, identity, user, membership, tokens)
+    response = RedirectResponse(auth_bff._safe_return_to(transaction.return_url), status_code=303)
     auth_bff._set_session_cookie(response, raw)
     response.headers["Cache-Control"] = "no-store"
-    response.headers["X-Klyrow-Session-Id"] = item.id
     return response
 
 
@@ -327,11 +296,7 @@ def session_status(request: Request, session: Session = Depends(db)):
                 headers={"Cache-Control": "no-store"},
             )
         raise
-    csrf = stable_csrf_token(item.id)
-    expected_hash = sha(csrf)
-    if not hmac.compare_digest(item.csrf_hash, expected_hash):
-        item.csrf_hash = expected_hash
-        session.commit()
+    csrf = auth_bff._session_csrf(session, item)
     return JSONResponse(
         auth_bff._session_body(session, item, csrf),
         headers={"Cache-Control": "no-store"},
@@ -458,9 +423,7 @@ def validate_invitation(
 ):
     auth_rate(request, "browser-invitation")
     item = session.scalar(
-        select(TenantInvitation).where(
-            TenantInvitation.token_hash == sha(payload.token)
-        )
+        select(TenantInvitation).where(TenantInvitation.token_hash == sha(payload.token))
     )
     valid = False
     if item and not item.revoked_at and not item.accepted_at:
@@ -469,16 +432,12 @@ def validate_invitation(
     if not valid:
         return {"valid": False, "redirect_to": None}
 
-    redirect_to = auth_bff._authorization_url(
-        request, session, "signup", "/onboarding"
-    )
+    redirect_to = auth_bff._authorization_url(request, session, "signup", "/onboarding")
     state_values = parse_qs(urlsplit(redirect_to).query).get("state", [])
     if len(state_values) != 1:
         raise HTTPException(503, "oidc_invitation_state_unavailable")
     transaction = session.scalar(
-        select(OidcLoginTransaction).where(
-            OidcLoginTransaction.state_hash == sha(state_values[0])
-        )
+        select(OidcLoginTransaction).where(OidcLoginTransaction.state_hash == sha(state_values[0]))
     )
     if transaction is None:
         raise HTTPException(503, "oidc_invitation_state_unavailable")

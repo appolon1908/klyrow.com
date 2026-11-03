@@ -1,4 +1,5 @@
 """Event insert races and old-writer compatibility in disposable PostgreSQL."""
+
 import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -58,15 +59,24 @@ def test_overlapping_event_retries_recover_winner(event_database, conflict):
     def insert(index):
         with RacingSession(event_database) as session:
             try:
-                item = EventIn(profile_id="profile", name="changed" if conflict and index else "created",
-                               idempotency_key="same-key")
-                result, replayed = ingest_event(item, {"tenant": "tenant", "permissions": ["contact.manage"]}, session)
+                item = EventIn(
+                    profile_id="profile",
+                    name="changed" if conflict and index else "created",
+                    idempotency_key="same-key",
+                )
+                result, replayed = ingest_event(
+                    item, {"tenant": "tenant", "permissions": ["contact.manage"]}, session
+                )
                 session.commit()
                 return result.id, replayed
             except HTTPException as error:
                 assert error.status_code == 409
                 # The savepoint kept the surrounding transaction usable.
-                other, _ = ingest_event(EventIn(profile_id="profile", name="unrelated"), {"tenant": "tenant", "permissions": ["contact.manage"]}, session)
+                other, _ = ingest_event(
+                    EventIn(profile_id="profile", name="unrelated"),
+                    {"tenant": "tenant", "permissions": ["contact.manage"]},
+                    session,
+                )
                 session.commit()
                 return "conflict", other.id
 
@@ -78,7 +88,14 @@ def test_overlapping_event_retries_recover_winner(event_database, conflict):
         assert outcomes[0][0] == outcomes[1][0]
         assert sorted(item[1] for item in outcomes) == [False, True]
     with Session(event_database) as session:
-        assert session.scalar(select(func.count()).select_from(CustomerEvent).where(CustomerEvent.idempotency_key == "same-key")) == 1
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(CustomerEvent)
+                .where(CustomerEvent.idempotency_key == "same-key")
+            )
+            == 1
+        )
 
 
 def test_migration_twice_preserves_old_writer_default(event_database):
@@ -86,8 +103,16 @@ def test_migration_twice_preserves_old_writer_default(event_database):
     with event_database.begin() as connection:
         # Model the parent schema before applying the additive migration.
         connection.execute(text("DROP TABLE customer_events"))
-        connection.execute(text("CREATE TABLE customer_events (id VARCHAR PRIMARY KEY, tenant_id VARCHAR, profile_id VARCHAR, name VARCHAR, properties_json TEXT, occurred_at TIMESTAMPTZ NOT NULL)"))
+        connection.execute(
+            text(
+                "CREATE TABLE customer_events (id VARCHAR PRIMARY KEY, tenant_id VARCHAR, profile_id VARCHAR, name VARCHAR, properties_json TEXT, occurred_at TIMESTAMPTZ NOT NULL)"  # noqa: E501  # SQL fixture statement
+            )
+        )
         connection.exec_driver_sql(migration)
         connection.exec_driver_sql(migration)
-        received = connection.execute(text("INSERT INTO customer_events (id, tenant_id, profile_id, name, properties_json, occurred_at) VALUES ('old-writer','tenant','profile','old','{}',now()) RETURNING received_at")).scalar_one()
+        received = connection.execute(
+            text(
+                "INSERT INTO customer_events (id, tenant_id, profile_id, name, properties_json, occurred_at) VALUES ('old-writer','tenant','profile','old','{}',now()) RETURNING received_at"  # noqa: E501  # SQL fixture statement
+            )
+        ).scalar_one()
         assert received is not None

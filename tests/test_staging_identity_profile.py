@@ -1,13 +1,17 @@
 import pytest
 from fastapi import HTTPException
-from apps.gateway.app.identity_profile import canonical_issuer, identity_authority
+
 from apps.gateway.app import auth_bff
+from apps.gateway.app.identity_profile import canonical_issuer, identity_authority
 
 
-@pytest.mark.parametrize("profile,issuer,origin", [
-    ("production", "https://auth.codestra.co/realms/codestra", "https://app.klyrow.com"),
-    ("staging", "https://auth.codestra.co/realms/codestra", "https://staging.klyrow.com"),
-])
+@pytest.mark.parametrize(
+    "profile,issuer,origin",
+    [
+        ("production", "https://auth.codestra.co/realms/codestra", "https://app.klyrow.com"),
+        ("staging", "https://auth.codestra.co/realms/codestra", "https://staging.klyrow.com"),
+    ],
+)
 def test_hardened_identity_profiles(monkeypatch, profile, issuer, origin):
     monkeypatch.setenv("KLYROW_ENV", "production")
     monkeypatch.setenv("KLYROW_IDENTITY_PROFILE", profile)

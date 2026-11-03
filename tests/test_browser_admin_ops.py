@@ -1,12 +1,13 @@
-from datetime import datetime, timezone
-from types import SimpleNamespace
 import uuid
+from datetime import UTC, datetime
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 from fastapi.routing import APIRoute
 from sqlalchemy import delete
 
+from apps.gateway.app.main import DB, Audit, Base, Tenant, User, engine
 from apps.gateway.app.platform import app
 from apps.gateway.app.browser_admin_ops import (
     AbuseAlertStateIn,
@@ -22,8 +23,6 @@ from apps.gateway.app.browser_admin_ops import (
     router,
 )
 from apps.gateway.app.delivery_controls import AbuseAlert, AbuseIn, ResourceSuspension
-from apps.gateway.app.main import Audit, Base, DB, Tenant, User, engine
-
 
 EXPECTED_ROUTES = {
     ("/app/api/admin/abuse", "GET"),
@@ -55,9 +54,7 @@ def _routes(source):
 def test_admin_browser_surface_is_exact_and_registered():
     assert _routes(router.routes) == EXPECTED_ROUTES
     effective = {
-        (path, method)
-        for path, method in _routes(app.routes)
-        if (path, method) in EXPECTED_ROUTES
+        (path, method) for path, method in _routes(app.routes) if (path, method) in EXPECTED_ROUTES
     }
     assert effective == EXPECTED_ROUTES
 
@@ -79,14 +76,18 @@ def test_every_admin_browser_success_response_has_typed_json_schema():
     schema = app.openapi()
     for path, method in EXPECTED_ROUTES:
         operation = schema["paths"][path][method.lower()]
-        status = "201" if method == "POST" and path in {
-            "/app/api/admin/abuse/evaluate",
-            "/app/api/admin/abuse/suspensions",
-            "/app/api/admin/reconciliation",
-        } else "200"
-        response_schema = (
-            operation["responses"][status]["content"]["application/json"]["schema"]
+        status = (
+            "201"
+            if method == "POST"
+            and path
+            in {
+                "/app/api/admin/abuse/evaluate",
+                "/app/api/admin/abuse/suspensions",
+                "/app/api/admin/reconciliation",
+            }
+            else "200"
         )
+        response_schema = operation["responses"][status]["content"]["application/json"]["schema"]
         assert response_schema, (method, path)
         assert response_schema != {}, (method, path)
 
@@ -96,8 +97,7 @@ def test_every_admin_browser_route_requires_browser_context():
         if not isinstance(route, APIRoute):
             continue
         dependency_names = {
-            getattr(dependency.call, "__name__", "")
-            for dependency in route.dependant.dependencies
+            getattr(dependency.call, "__name__", "") for dependency in route.dependant.dependencies
         }
         assert "admin_browser_context" in dependency_names, route.path
 
@@ -111,9 +111,12 @@ def test_platform_admin_db_authority_is_required():
             return self.user
 
     ctx = {"sub": "owner"}
-    assert _require_platform_admin(
-        ctx, FakeSession(SimpleNamespace(enabled=True, role="platform_admin"))
-    ) == ctx
+    assert (
+        _require_platform_admin(
+            ctx, FakeSession(SimpleNamespace(enabled=True, role="platform_admin"))
+        )
+        == ctx
+    )
     for user in (
         None,
         SimpleNamespace(enabled=False, role="platform_admin"),
@@ -131,7 +134,7 @@ def test_audit_cursor_round_trip_is_stable_and_opaque():
         tenant_id="tenant-a",
         actor="operator-a",
         action="billing.reconciled",
-        created_at=datetime(2026, 9, 21, 19, 45, tzinfo=timezone.utc),
+        created_at=datetime(2026, 9, 21, 19, 45, tzinfo=UTC),
     )
     cursor = _encode_audit_cursor(item)
     assert "audit-123" not in cursor

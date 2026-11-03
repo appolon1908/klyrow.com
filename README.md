@@ -30,6 +30,17 @@ Delivery remains forced safe unless the independent `KLYROW_PRODUCTION_GATE_APPR
 
 Public traffic is terminated by the existing host Nginx. The gateway, Mautic and Grafana bind only to `127.0.0.1`; databases and RabbitMQ have no host ports. Copy `docker/proxy/klyrow.conf` only after backing up and reviewing the shared Nginx configuration. The canonical host split and atomic authentication gate are documented in [browser edge and authentication](docs/EDGE_ROUTING_AUTH.md).
 
+### Quality gates
+
+Ruff and mypy run in `quality-python.yml`, eslint/vue-tsc/vitest in `quality-web.yml`, and pytest in `ci.yml`, on every pull request and on pushes to `main`. Run them locally before pushing:
+
+```bash
+pip install -r requirements-dev.txt
+ruff check . && ruff format --check .   # blocking in CI
+mypy                                    # advisory in CI (non-blocking)
+pytest
+```
+
 ## Components
 
 - `app.klyrow.com`: client/admin portal; Mautic under `/mautic`; Grafana under authenticated `/ops`.

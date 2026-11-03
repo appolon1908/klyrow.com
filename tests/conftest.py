@@ -19,12 +19,14 @@ def isolate_klyrow_public_origin(monkeypatch, request) -> None:
 @pytest.fixture(autouse=True)
 def isolated_durable_result_keyring(tmp_path, monkeypatch):
     from apps.gateway.app.durable_keys import KEYRING_ENV, new_keyring_document
+
     path = tmp_path / "durable-result-keyring.json"
     path.write_text(new_keyring_document())
     path.chmod(0o600)
     monkeypatch.setenv(KEYRING_ENV, str(path))
     monkeypatch.setenv("KLYROW_DURABLE_RESULT_LEGACY_READ_ENABLED", "true")
     return path
+
 
 @pytest.fixture
 def canonical_api_owner(monkeypatch, request):
@@ -53,8 +55,11 @@ def canonical_api_owner(monkeypatch, request):
     monkeypatch.setenv("KLYROW_PLATFORM_OWNER_ACR_MFA_EVIDENCE_APPROVED", "false")
     monkeypatch.delenv("KLYROW_TENANT_RESOLVER_URL", raising=False)
     monkeypatch.setitem(
-        main._jwks_clients, CANONICAL_ISSUER,
-        SimpleNamespace(get_signing_key_from_jwt=lambda _raw: SimpleNamespace(key=key.public_key())),
+        main._jwks_clients,
+        CANONICAL_ISSUER,
+        SimpleNamespace(
+            get_signing_key_from_jwt=lambda _raw: SimpleNamespace(key=key.public_key())
+        ),
     )
 
     def headers(**claim_updates):
@@ -68,26 +73,44 @@ def canonical_api_owner(monkeypatch, request):
                 )
             )
             if identity is None:
-                session.add(OidcIdentity(
-                    id="owner-api-fixture-identity", issuer=CANONICAL_ISSUER,
-                    subject=subject, user_id=user.id, default_tenant_id=user.tenant_id,
-                    identity_type="HUMAN", enabled=True,
-                ))
-            member = session.scalar(select(TenantMember).where(
-                TenantMember.tenant_id == user.tenant_id, TenantMember.user_id == user.id,
-            ))
+                session.add(
+                    OidcIdentity(
+                        id="owner-api-fixture-identity",
+                        issuer=CANONICAL_ISSUER,
+                        subject=subject,
+                        user_id=user.id,
+                        default_tenant_id=user.tenant_id,
+                        identity_type="HUMAN",
+                        enabled=True,
+                    )
+                )
+            member = session.scalar(
+                select(TenantMember).where(
+                    TenantMember.tenant_id == user.tenant_id,
+                    TenantMember.user_id == user.id,
+                )
+            )
             if member is None:
-                session.add(TenantMember(
-                    id="owner-api-fixture-member", tenant_id=user.tenant_id,
-                    user_id=user.id, role="platform_admin", active=True,
-                ))
+                session.add(
+                    TenantMember(
+                        id="owner-api-fixture-member",
+                        tenant_id=user.tenant_id,
+                        user_id=user.id,
+                        role="platform_admin",
+                        active=True,
+                    )
+                )
             session.commit()
         now = int(time.time())
         claims = {
-            "iss": CANONICAL_ISSUER, "sub": subject,
+            "iss": CANONICAL_ISSUER,
+            "sub": subject,
             "aud": main.os.getenv("KLYROW_OIDC_AUDIENCE", "klyrow-api"),
-            "iat": now, "exp": now + 300, "auth_time": now,
-            "email": "root@example.com", "email_verified": True,
+            "iat": now,
+            "exp": now + 300,
+            "auth_time": now,
+            "email": "root@example.com",
+            "email_verified": True,
             "amr": ["pwd", "otp"],
         }
         claims.update(claim_updates)
@@ -111,9 +134,13 @@ def canonical_api_owner(monkeypatch, request):
         original = getattr(module, name)
 
         def owner_or_original(*args, **kwargs):
-            user = args[0] if args else next(
-                (kwargs[k] for k in ("email", "user", "n") if k in kwargs),
-                default_user,
+            user = (
+                args[0]
+                if args
+                else next(
+                    (kwargs[k] for k in ("email", "user", "n") if k in kwargs),
+                    default_user,
+                )
             )
             if user in {"root", "root@example.com"}:
                 return headers()

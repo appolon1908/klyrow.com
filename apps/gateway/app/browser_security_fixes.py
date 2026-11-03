@@ -15,8 +15,7 @@ import json
 import os
 import secrets
 import uuid
-from datetime import timedelta, timezone
-from typing import Optional
+from datetime import UTC, timedelta
 from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -24,13 +23,13 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from .main import SECRET, MailIn, Tenant, User, audit, auth_rate, db, ph, sha
 from . import (
     auth_bff,
     browser_auth_actions,
     invitation_flow,
     platform_owner,
     postal_provisioning,
-    tenancy,
     tenancy_onboarding,
 )
 from .auth_bff import (
@@ -39,11 +38,10 @@ from .auth_bff import (
     browser_context,
     csrf_guard,
 )
-from .main import MailIn, SECRET, Tenant, User, audit, auth_rate, db, ph, sha
 from .saas import Onboarding
 from .tenancy import (
-    OidcIdentity,
     ROLE_PERMISSIONS,
+    OidcIdentity,
     TenantInvitation,
     TenantMember,
 )
@@ -58,14 +56,13 @@ browser_router = APIRouter(
     tags=["Browser flow security"],
     dependencies=[Depends(auth_bff._canonical_browser_request)],
 )
-legacy_router = APIRouter(tags=["Tenant authority"])
 _INSTALLED = False
 
 
 def _as_utc(value):
     if value is None:
         return None
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 def flow_binding(state: str) -> str:
@@ -81,18 +78,14 @@ def flow_binding(state: str) -> str:
 def authorization_state(url: str) -> str:
     """Return the one state parameter from a generated authorization URL."""
 
-    values = parse_qs(urlsplit(url).query, keep_blank_values=True).get(
-        "state", []
-    )
+    values = parse_qs(urlsplit(url).query, keep_blank_values=True).get("state", [])
     if len(values) != 1 or not values[0]:
         raise HTTPException(503, "oidc_state_unavailable")
     return values[0]
 
 
 def _valid_binding(value: str) -> bool:
-    return len(value) == 64 and all(
-        character in "0123456789abcdef" for character in value
-    )
+    return len(value) == 64 and all(character in "0123456789abcdef" for character in value)
 
 
 def parse_flow_cookie(raw: str) -> list[str]:
@@ -147,11 +140,7 @@ def set_flow_cookie(response, request: Request, state: str) -> None:
 
     bindings = parse_flow_cookie(request.cookies.get(FLOW_COOKIE, ""))
     expected = flow_binding(state)
-    bindings = [
-        binding
-        for binding in bindings
-        if not hmac.compare_digest(binding, expected)
-    ]
+    bindings = [binding for binding in bindings if not hmac.compare_digest(binding, expected)]
     bindings.append(expected)
     _set_flow_cookie_value(response, bindings)
 
@@ -241,9 +230,7 @@ def _load_transaction(
     state: str,
 ) -> OidcLoginTransaction:
     transaction = session.scalar(
-        select(OidcLoginTransaction).where(
-            OidcLoginTransaction.state_hash == sha(state)
-        )
+        select(OidcLoginTransaction).where(OidcLoginTransaction.state_hash == sha(state))
     )
     if transaction is None or transaction.used_at is not None:
         raise HTTPException(
@@ -297,39 +284,31 @@ def _stage_new_session(
     user: User,
     membership: TenantMember,
     tokens: dict,
-    rotated_from_id: Optional[str] = None,
+    rotated_from_id: str | None = None,
 ) -> tuple[BrowserSession, str, str]:
     """Stage a browser session without crossing the callback commit boundary."""
 
     raw = secrets.token_urlsafe(48)
-    csrf = secrets.token_urlsafe(32)
+    csrf = auth_bff._inherited_csrf(session, rotated_from_id) or secrets.token_urlsafe(32)
     item = BrowserSession(
         id=str(uuid.uuid4()),
         token_hash=sha(raw),
         csrf_hash=sha(csrf),
+        csrf_ciphertext=auth_bff._encrypt(csrf),
         identity_id=identity.id,
         user_id=user.id,
         tenant_id=membership.tenant_id,
         role=membership.role,
         refresh_ciphertext=(
-            auth_bff._encrypt(tokens["refresh_token"])
-            if tokens.get("refresh_token")
-            else None
+            auth_bff._encrypt(tokens["refresh_token"]) if tokens.get("refresh_token") else None
         ),
         id_token_ciphertext=(
-            auth_bff._encrypt(tokens["id_token"])
-            if tokens.get("id_token")
-            else None
+            auth_bff._encrypt(tokens["id_token"]) if tokens.get("id_token") else None
         ),
-        expires_at=auth_bff.now()
-        + timedelta(seconds=auth_bff._session_ttl()),
+        expires_at=auth_bff.now() + timedelta(seconds=auth_bff._session_ttl()),
         rotated_from_id=rotated_from_id,
-        user_agent_hash=auth_bff._metadata_hash(
-            request.headers.get("user-agent", "")
-        ),
-        ip_hash=auth_bff._metadata_hash(
-            request.client.host if request.client else ""
-        ),
+        user_agent_hash=auth_bff._metadata_hash(request.headers.get("user-agent", "")),
+        ip_hash=auth_bff._metadata_hash(request.client.host if request.client else ""),
     )
     session.add(item)
     return item, raw, csrf
@@ -351,13 +330,8 @@ def _stage_postal_provisioning(
     if mapping and mapping.state == postal_provisioning.READY:
         existing = session.scalar(
             select(postal_provisioning.PostalProvisioningOutbox)
-            .where(
-                postal_provisioning.PostalProvisioningOutbox.tenant_id
-                == tenant_id
-            )
-            .order_by(
-                postal_provisioning.PostalProvisioningOutbox.created_at.desc()
-            )
+            .where(postal_provisioning.PostalProvisioningOutbox.tenant_id == tenant_id)
+            .order_by(postal_provisioning.PostalProvisioningOutbox.created_at.desc())
         )
         if existing is not None:
             return existing
@@ -591,7 +565,7 @@ def _begin_authorization(
     session: Session,
     *,
     mode: str,
-    return_to: Optional[str],
+    return_to: str | None,
 ) -> RedirectResponse:
     url = auth_bff._authorization_url(
         request,
@@ -605,7 +579,7 @@ def _begin_authorization(
 @browser_router.get("/auth/login")
 def login_start(
     request: Request,
-    return_to: Optional[str] = None,
+    return_to: str | None = None,
     session: Session = Depends(db),
 ):
     return _begin_authorization(
@@ -619,7 +593,7 @@ def login_start(
 @browser_router.get("/auth/signup")
 def signup_start(
     request: Request,
-    return_to: Optional[str] = None,
+    return_to: str | None = None,
     session: Session = Depends(db),
 ):
     return _begin_authorization(
@@ -633,7 +607,7 @@ def signup_start(
 @browser_router.get("/auth/google")
 def google_start(
     request: Request,
-    return_to: Optional[str] = None,
+    return_to: str | None = None,
     session: Session = Depends(db),
 ):
     return _begin_authorization(
@@ -651,9 +625,7 @@ def _step_up_identity_context(
 ):
     old_session_id = transaction.mode.split(":", 1)[1]
     old_session = session.scalar(
-        select(BrowserSession)
-        .where(BrowserSession.id == old_session_id)
-        .with_for_update()
+        select(BrowserSession).where(BrowserSession.id == old_session_id).with_for_update()
     )
     if old_session is None or old_session.revoked_at is not None:
         raise HTTPException(401, "step_up_session_invalid")
@@ -678,18 +650,15 @@ def _step_up_identity_context(
 def oidc_callback(
     request: Request,
     state: str,
-    code: Optional[str] = None,
-    kc_action_status: Optional[str] = None,
-    error: Optional[str] = None,
+    code: str | None = None,
+    kc_action_status: str | None = None,
+    error: str | None = None,
     session: Session = Depends(db),
 ):
     transaction = _load_transaction(session, state)
     require_flow_cookie(request, state)
 
-    if error or not code or (
-        transaction.mode in ACTION_MODES
-        and kc_action_status != "success"
-    ):
+    if error or not code or (transaction.mode in ACTION_MODES and kc_action_status != "success"):
         try:
             _claim_transaction(session, transaction)
             session.commit()
@@ -706,36 +675,30 @@ def oidc_callback(
     try:
         _claim_transaction(session, transaction)
 
-        rotated_from_id: Optional[str] = None
-        old_session: Optional[BrowserSession] = None
+        rotated_from_id: str | None = None
+        old_session: BrowserSession | None = None
         if transaction.mode.startswith("invite:"):
             invitation_id = transaction.mode.split(":", 1)[1]
-            identity, user, membership = (
-                _resolve_selected_identity_context_uncommitted(
-                    session,
-                    claims,
-                    invitation_id,
-                )
+            identity, user, membership = _resolve_selected_identity_context_uncommitted(
+                session,
+                claims,
+                invitation_id,
             )
         elif transaction.mode.startswith("step-up:"):
-            old_session, identity, user, membership = (
-                _step_up_identity_context(
-                    session,
-                    transaction,
-                    claims,
-                )
+            old_session, identity, user, membership = _step_up_identity_context(
+                session,
+                transaction,
+                claims,
             )
             rotated_from_id = old_session.id
         else:
-            identity, user, membership = (
-                _resolve_identity_context_uncommitted(
-                    session,
-                    claims,
-                )
+            identity, user, membership = _resolve_identity_context_uncommitted(
+                session,
+                claims,
             )
 
         _stage_postal_provisioning(session, membership.tenant_id)
-        item, raw, _csrf = _stage_new_session(
+        _item, raw, _csrf = _stage_new_session(
             session,
             request,
             identity,
@@ -758,7 +721,6 @@ def oidc_callback(
     auth_bff._set_session_cookie(response, raw)
     remove_flow_cookie(response, request, state)
     response.headers["Cache-Control"] = "no-store"
-    response.headers["X-Klyrow-Session-Id"] = item.id
     return response
 
 
@@ -838,16 +800,10 @@ def validate_invitation(
 ):
     auth_rate(request, "browser-invitation")
     invitation = session.scalar(
-        select(TenantInvitation).where(
-            TenantInvitation.token_hash == sha(payload.token)
-        )
+        select(TenantInvitation).where(TenantInvitation.token_hash == sha(payload.token))
     )
     valid = False
-    if (
-        invitation is not None
-        and invitation.revoked_at is None
-        and invitation.accepted_at is None
-    ):
+    if invitation is not None and invitation.revoked_at is None and invitation.accepted_at is None:
         expiry = _as_utc(invitation.expires_at)
         valid = bool(expiry and expiry > auth_bff.now())
     if not valid:
@@ -864,9 +820,7 @@ def validate_invitation(
     )
     state = authorization_state(redirect_to)
     transaction = session.scalar(
-        select(OidcLoginTransaction).where(
-            OidcLoginTransaction.state_hash == sha(state)
-        )
+        select(OidcLoginTransaction).where(OidcLoginTransaction.state_hash == sha(state))
     )
     if transaction is None:
         raise HTTPException(503, "oidc_invitation_state_unavailable")
@@ -928,7 +882,7 @@ async def browser_send(
     ctx: dict = Depends(browser_context),
     _session: BrowserSession = Depends(csrf_guard),
     session: Session = Depends(db),
-    idempotency_key: Optional[str] = Header(
+    idempotency_key: str | None = Header(
         default=None,
         alias="Idempotency-Key",
     ),
@@ -946,9 +900,9 @@ async def browser_send(
 def _locked_valid_invitation(
     session: Session,
     *,
-    invitation_id: Optional[str] = None,
-    token_hash: Optional[str] = None,
-    email: Optional[str] = None,
+    invitation_id: str | None = None,
+    token_hash: str | None = None,
+    email: str | None = None,
 ) -> TenantInvitation:
     statement = select(TenantInvitation)
     if invitation_id is not None:
@@ -1065,42 +1019,11 @@ def accept_selected_invitation(
     return membership
 
 
-@legacy_router.post("/v1/team/invitations/accept", status_code=201)
-def accept_legacy_invitation(
-    payload: tenancy.AcceptIn,
-    session: Session = Depends(db),
-):
-    invitation = _locked_valid_invitation(
-        session,
-        token_hash=sha(payload.token),
-    )
-    user = session.scalar(select(User).where(User.email == invitation.email))
-    if user is None or not user.enabled:
-        raise HTTPException(409, "keycloak_user_link_required")
-    membership = _membership_for_invitation(
-        session,
-        invitation,
-        user,
-    )
-    invitation.accepted_at = auth_bff.now()
-    audit(
-        session,
-        {"tenant": invitation.tenant_id, "sub": user.id},
-        "tenant.invitation.accepted",
-    )
-    session.commit()
-    return {
-        "tenant_id": invitation.tenant_id,
-        "role": membership.role,
-        "user_id": user.id,
-    }
-
-
 def _remove_route(
     routes: list,
     *,
     path: str,
-    method: Optional[str] = None,
+    method: str | None = None,
 ) -> int:
     removed = 0
     for route in list(routes):
@@ -1121,7 +1044,12 @@ def install_browser_security_fixes(app) -> None:
     if _INSTALLED:
         return
 
-    for path in ("/auth/login", "/auth/signup", "/auth/google"):
+    # Every GET endpoint this module hardens is removed from ``auth_bff.router``
+    # here, explicitly. ``/auth/callback`` was previously dropped only as a
+    # side effect of ``browser_auth_actions.install_auth_extensions``; the
+    # un-hardened callback (no flow-cookie binding) must never depend on
+    # another installer or on router registration order in ``platform.py``.
+    for path in ("/auth/login", "/auth/signup", "/auth/google", "/auth/callback"):
         _remove_route(auth_bff.router.routes, path=path, method="GET")
     _remove_route(
         browser_auth_actions.router.routes,
@@ -1149,11 +1077,6 @@ def install_browser_security_fixes(app) -> None:
         path="/app/api/email/send",
         method="POST",
     )
-    _remove_route(
-        app.router.routes,
-        path="/v1/team/invitations/accept",
-        method="POST",
-    )
 
     auth_bff.FLOW_COOKIE = FLOW_COOKIE
     auth_bff._flow_binding = flow_binding
@@ -1179,7 +1102,6 @@ __all__ = [
     "encode_flow_cookie",
     "flow_binding",
     "install_browser_security_fixes",
-    "legacy_router",
     "parse_flow_cookie",
     "remove_flow_cookie",
     "require_flow_cookie",

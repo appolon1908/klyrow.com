@@ -7,16 +7,16 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from apps.gateway.app import smtp_relay
 from apps.gateway.app.main import (
+    DB,
     AllowedSender,
     Base,
-    DB,
     Domain,
     Tenant,
     app,
     engine,
 )
+from apps.gateway.app import smtp_relay
 from apps.gateway.app.provider import (
     ProviderDomain,
     ProviderMessage,
@@ -24,7 +24,6 @@ from apps.gateway.app.provider import (
     SmtpCredential,
     TenantMailPolicy,
 )
-
 
 TENANT_ID = "mail-parity"
 CONTEXT = {

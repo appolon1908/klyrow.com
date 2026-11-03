@@ -49,8 +49,10 @@ const healthLabel = (value: string) => value === 'critical' ? 'Critical' : value
 
 <template>
   <div>
-    <PageHeader title="Webmail & Postal" eyebrow="Observability"
-      description="Production operations for mail flow, delivery health and reconciliation. Read-only telemetry; cross-system effects remain Middleware-owned.">
+    <PageHeader
+      title="Webmail & Postal" eyebrow="Observability"
+      description="Production operations for mail flow, delivery health and reconciliation. Read-only telemetry; cross-system effects remain Middleware-owned."
+    >
       <button type="button" class="kp-button" :disabled="page.status.value === 'loading'" @click="page.reload">Refresh</button>
     </PageHeader>
 

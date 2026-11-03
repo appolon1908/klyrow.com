@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Render a private, authenticated Prometheus alert route for operator deployment."""
+
 import argparse
 import ipaddress
 import json
@@ -24,27 +25,41 @@ def render(config, target, server_name, environment):
         raise ValueError("environment_required")
     config = json.loads(json.dumps(config))
     config.setdefault("global", {}).setdefault("external_labels", {}).update(
-        environment=environment, application="klyrow.com", service="gateway")
-    config["alerting"] = {"alertmanagers": [{
-        "scheme": "https", "api_version": "v2", "timeout": "10s",
-        "tls_config": {"ca_file": "/run/secrets/alertmanager-ca.crt",
-                       "cert_file": "/run/secrets/alertmanager-client.crt",
-                       "key_file": "/run/secrets/alertmanager-client.key",
-                       "server_name": server_name, "insecure_skip_verify": False},
-        "static_configs": [{"targets": [target]}],
-    }]}
+        environment=environment, application="klyrow.com", service="gateway"
+    )
+    config["alerting"] = {
+        "alertmanagers": [
+            {
+                "scheme": "https",
+                "api_version": "v2",
+                "timeout": "10s",
+                "tls_config": {
+                    "ca_file": "/run/secrets/alertmanager-ca.crt",
+                    "cert_file": "/run/secrets/alertmanager-client.crt",
+                    "key_file": "/run/secrets/alertmanager-client.key",
+                    "server_name": server_name,
+                    "insecure_skip_verify": False,
+                },
+                "static_configs": [{"targets": [target]}],
+            }
+        ]
+    }
     return config
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=Path("config/prometheus.yml"))
-    parser.add_argument("--target", required=True, help="Reviewed private IPv4:port of the mTLS listener")
+    parser.add_argument(
+        "--target", required=True, help="Reviewed private IPv4:port of the mTLS listener"
+    )
     parser.add_argument("--server-name", default="aler.codestra.media")
     parser.add_argument("--environment", required=True)
     args = parser.parse_args()
     try:
-        output = render(yaml.safe_load(args.source.read_text()), args.target, args.server_name, args.environment)
+        output = render(
+            yaml.safe_load(args.source.read_text()), args.target, args.server_name, args.environment
+        )
     except (OSError, ValueError, TypeError, AttributeError, yaml.YAMLError):
         parser.exit(2, "Alert routing configuration is invalid\n")
     print(json.dumps(output, indent=2))

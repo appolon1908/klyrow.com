@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Validate rendered Compose against protected and rollback image evidence."""
+
 import json
 import re
 import sys
-
 
 compose = json.load(sys.stdin)
 with open(sys.argv[1], encoding="utf-8") as stream:

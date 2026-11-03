@@ -1,4 +1,5 @@
 """Same-origin OIDC BFF and opaque browser-session authority for Klyrow."""
+
 from __future__ import annotations
 
 import base64
@@ -6,15 +7,15 @@ import hashlib
 import hmac
 import os
 import secrets
-import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode, urlsplit
 
 import httpx
 import jwt
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -25,16 +26,15 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from .db_base import Base
 from .tenancy import ROLE_PERMISSIONS, OidcIdentity, TenantMember
 
+if TYPE_CHECKING:
+    from .main import User
+
+
 def _main_module():
 
     from . import main
 
-
-
     return main
-
-
-
 
 
 def db():
@@ -42,15 +42,9 @@ def db():
     yield from _main_module().db()
 
 
-
-
-
 def sha(value: str) -> str:
 
     return _main_module().sha(value)
-
-
-
 
 
 def bind_tenant_rls(s: Session, tenant_id: str) -> None:
@@ -58,15 +52,9 @@ def bind_tenant_rls(s: Session, tenant_id: str) -> None:
     _main_module().bind_tenant_rls(s, tenant_id)
 
 
-
-
-
 def _secret_value() -> str:
 
     return _main_module().SECRET
-
-
-
 
 
 def _user_model():
@@ -74,15 +62,9 @@ def _user_model():
     return _main_module().User
 
 
-
-
-
 def _tenant_model():
 
     return _main_module().Tenant
-
-
-
 
 
 SESSION_COOKIE = "__Host-klyrow_session"
@@ -91,7 +73,7 @@ from .identity_profile import canonical_issuer, identity_authority
 ISSUER = "https://auth.codestra.co/realms/codestra"
 CANONICAL_APP_ORIGIN = "https://app.klyrow.com"
 _jwks_clients: dict[str, PyJWKClient] = {}
-now = lambda: datetime.now(timezone.utc)
+now = lambda: datetime.now(UTC)
 
 
 def _is_production() -> bool:
@@ -127,7 +109,9 @@ def _canonical_browser_request(request: Request) -> None:
         raise HTTPException(421, "canonical_app_host_required")
 
 
-router = APIRouter(tags=["Browser authentication"], dependencies=[Depends(_canonical_browser_request)])
+router = APIRouter(
+    tags=["Browser authentication"], dependencies=[Depends(_canonical_browser_request)]
+)
 
 
 class OidcLoginTransaction(Base):
@@ -140,7 +124,7 @@ class OidcLoginTransaction(Base):
     mode: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class BrowserSession(Base):
@@ -148,19 +132,20 @@ class BrowserSession(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     token_hash: Mapped[str] = mapped_column(String, unique=True, index=True)
     csrf_hash: Mapped[str] = mapped_column(String)
+    csrf_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
     identity_id: Mapped[str] = mapped_column(String, index=True)
     user_id: Mapped[str] = mapped_column(String, index=True)
     tenant_id: Mapped[str] = mapped_column(String, index=True)
     role: Mapped[str] = mapped_column(String)
-    refresh_ciphertext: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    id_token_ciphertext: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    refresh_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
+    id_token_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    rotated_from_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    user_agent_hash: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    ip_hash: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    rotated_from_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    user_agent_hash: Mapped[str | None] = mapped_column(String, nullable=True)
+    ip_hash: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 def _canonical_issuer() -> str:
@@ -171,7 +156,7 @@ def _client_id() -> str:
     return os.getenv("KLYROW_OIDC_CLIENT_ID", "klyrow-portal")
 
 
-def _client_secret() -> Optional[str]:
+def _client_secret() -> str | None:
     path = os.getenv("KLYROW_OIDC_CLIENT_SECRET_FILE", "").strip()
     if not path:
         return None
@@ -185,7 +170,9 @@ def _client_secret() -> Optional[str]:
 def _redirect_uri(request: Request) -> str:
     configured = os.getenv("KLYROW_OIDC_REDIRECT_URI", "").strip()
     if not configured:
-        configured = (_public_origin() if _is_production() else str(request.base_url).rstrip("/")) + "/auth/callback"
+        configured = (
+            _public_origin() if _is_production() else str(request.base_url).rstrip("/")
+        ) + "/auth/callback"
     parsed = urlsplit(configured)
     valid = (
         parsed.scheme in ({"https"} if _is_production() else {"http", "https"})
@@ -226,15 +213,21 @@ def _decrypt(value: str) -> str:
     return AESGCM(_key()).decrypt(payload[:12], payload[12:], b"klyrow-bff-v1").decode()
 
 
-def _metadata_hash(value: str) -> Optional[str]:
+def _metadata_hash(value: str) -> str | None:
     if not value:
         return None
     return hmac.new(_secret_value().encode(), value.encode(), hashlib.sha256).hexdigest()[:32]
 
 
-def _safe_return_to(value: Optional[str], default: str = "/app") -> str:
+def _safe_return_to(value: str | None, default: str = "/app") -> str:
     candidate = value or default
-    if not candidate.startswith("/") or candidate.startswith("//") or "\\" in candidate or "\r" in candidate or "\n" in candidate:
+    if (
+        not candidate.startswith("/")
+        or candidate.startswith("//")
+        or "\\" in candidate
+        or "\r" in candidate
+        or "\n" in candidate
+    ):
         return default
     return candidate
 
@@ -244,7 +237,7 @@ def _pkce_challenge(verifier: str) -> str:
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
 
-def _authorization_url(request: Request, s: Session, mode: str, return_to: Optional[str]) -> str:
+def _authorization_url(request: Request, s: Session, mode: str, return_to: str | None) -> str:
     redirect_uri = _redirect_uri(request)
     state = secrets.token_urlsafe(32)
     nonce = secrets.token_urlsafe(32)
@@ -261,7 +254,11 @@ def _authorization_url(request: Request, s: Session, mode: str, return_to: Optio
     s.add(tx)
     s.commit()
     issuer = _canonical_issuer()
-    endpoint = issuer + ("/protocol/openid-connect/registrations" if mode == "signup" else "/protocol/openid-connect/auth")
+    endpoint = issuer + (
+        "/protocol/openid-connect/registrations"
+        if mode == "signup"
+        else "/protocol/openid-connect/auth"
+    )
     params = {
         "client_id": _client_id(),
         "redirect_uri": redirect_uri,
@@ -279,8 +276,11 @@ def _authorization_url(request: Request, s: Session, mode: str, return_to: Optio
 
 def _post_oidc_token(data: dict) -> dict:
     response = httpx.post(
-        _canonical_issuer() + "/protocol/openid-connect/token", data=data,
-        timeout=8, follow_redirects=False, trust_env=False,
+        _canonical_issuer() + "/protocol/openid-connect/token",
+        data=data,
+        timeout=8,
+        follow_redirects=False,
+        trust_env=False,
     )
     response.raise_for_status()
     payload = response.json()
@@ -309,10 +309,13 @@ def _exchange_code(code: str, verifier: str, request: Request) -> dict:
     return payload
 
 
-def _validate_id_token(raw: str, expected_nonce: Optional[str] = None) -> dict:
+def _validate_id_token(raw: str, expected_nonce: str | None = None) -> dict:
     issuer = _canonical_issuer()
     try:
-        client = _jwks_clients.setdefault(issuer, PyJWKClient(issuer + "/protocol/openid-connect/certs", cache_keys=True, lifespan=300))
+        client = _jwks_clients.setdefault(
+            issuer,
+            PyJWKClient(issuer + "/protocol/openid-connect/certs", cache_keys=True, lifespan=300),
+        )
         signing_key = client.get_signing_key_from_jwt(raw)
         claims = jwt.decode(
             raw,
@@ -327,7 +330,9 @@ def _validate_id_token(raw: str, expected_nonce: Optional[str] = None) -> dict:
     azp = claims.get("azp")
     if azp and azp != _client_id():
         raise HTTPException(401, "invalid_oidc_authorized_party")
-    if expected_nonce is not None and not hmac.compare_digest(str(claims.get("nonce", "")), expected_nonce):
+    if expected_nonce is not None and not hmac.compare_digest(
+        str(claims.get("nonce", "")), expected_nonce
+    ):
         raise HTTPException(401, "invalid_oidc_nonce")
     return claims
 
@@ -356,7 +361,9 @@ def _identity_context(s: Session, claims: dict) -> tuple[OidcIdentity, User, Ten
         )
     if not membership:
         membership = s.scalar(
-            select(TenantMember).where(TenantMember.user_id == user.id, TenantMember.active == True).order_by(TenantMember.created_at)
+            select(TenantMember)
+            .where(TenantMember.user_id == user.id, TenantMember.active == True)
+            .order_by(TenantMember.created_at)
         )
     if not membership:
         raise HTTPException(409, "workspace_onboarding_required")
@@ -366,6 +373,37 @@ def _identity_context(s: Session, claims: dict) -> tuple[OidcIdentity, User, Ten
     return identity, user, membership
 
 
+def _inherited_csrf(s: Session, rotated_from_id: str | None) -> str | None:
+    """Return the parent's random CSRF token so it survives session rotation."""
+
+    if not rotated_from_id:
+        return None
+    parent = s.get(BrowserSession, rotated_from_id)
+    if parent is None or not parent.csrf_ciphertext:
+        return None
+    try:
+        return _decrypt(parent.csrf_ciphertext)
+    except (ValueError, InvalidTag):
+        return None
+
+
+def _session_csrf(s: Session, item: BrowserSession) -> str:
+    """Return the session's stored random CSRF token, minting one for legacy rows."""
+
+    if item.csrf_ciphertext:
+        try:
+            csrf = _decrypt(item.csrf_ciphertext)
+        except (ValueError, InvalidTag):
+            csrf = None
+        if csrf and hmac.compare_digest(item.csrf_hash, sha(csrf)):
+            return csrf
+    csrf = secrets.token_urlsafe(32)
+    item.csrf_hash = sha(csrf)
+    item.csrf_ciphertext = _encrypt(csrf)
+    s.commit()
+    return csrf
+
+
 def _new_session(
     s: Session,
     request: Request,
@@ -373,19 +411,22 @@ def _new_session(
     user: User,
     membership: TenantMember,
     tokens: dict,
-    rotated_from_id: Optional[str] = None,
+    rotated_from_id: str | None = None,
 ) -> tuple[BrowserSession, str, str]:
     raw = secrets.token_urlsafe(48)
-    csrf = secrets.token_urlsafe(32)
+    csrf = _inherited_csrf(s, rotated_from_id) or secrets.token_urlsafe(32)
     item = BrowserSession(
         id=str(uuid.uuid4()),
         token_hash=sha(raw),
         csrf_hash=sha(csrf),
+        csrf_ciphertext=_encrypt(csrf),
         identity_id=identity.id,
         user_id=user.id,
         tenant_id=membership.tenant_id,
         role=membership.role,
-        refresh_ciphertext=_encrypt(tokens["refresh_token"]) if tokens.get("refresh_token") else None,
+        refresh_ciphertext=_encrypt(tokens["refresh_token"])
+        if tokens.get("refresh_token")
+        else None,
         id_token_ciphertext=_encrypt(tokens["id_token"]) if tokens.get("id_token") else None,
         expires_at=now() + timedelta(seconds=_session_ttl()),
         rotated_from_id=rotated_from_id,
@@ -420,7 +461,7 @@ def _get_browser_session(request: Request, s: Session, touch: bool = True) -> Br
     item = s.scalar(select(BrowserSession).where(BrowserSession.token_hash == sha(raw)))
     if not item or item.revoked_at:
         raise HTTPException(401, "session_revoked")
-    expiry = item.expires_at if item.expires_at.tzinfo else item.expires_at.replace(tzinfo=timezone.utc)
+    expiry = item.expires_at if item.expires_at.tzinfo else item.expires_at.replace(tzinfo=UTC)
     if expiry <= now():
         item.revoked_at = now()
         s.commit()
@@ -465,10 +506,12 @@ def csrf_guard(
     return item
 
 
-def _session_body(s: Session, item: BrowserSession, csrf: Optional[str] = None) -> dict:
+def _session_body(s: Session, item: BrowserSession, csrf: str | None = None) -> dict:
     user = s.get(_user_model(), item.user_id)
     memberships = s.scalars(
-        select(TenantMember).where(TenantMember.user_id == item.user_id, TenantMember.active == True).order_by(TenantMember.created_at)
+        select(TenantMember)
+        .where(TenantMember.user_id == item.user_id, TenantMember.active == True)
+        .order_by(TenantMember.created_at)
     ).all()
     body = {
         "authenticated": True,
@@ -479,9 +522,7 @@ def _session_body(s: Session, item: BrowserSession, csrf: Optional[str] = None) 
         "tenant_id": item.tenant_id,
         "role": item.role,
         "expires_at": (
-            item.expires_at
-            if item.expires_at.tzinfo
-            else item.expires_at.replace(tzinfo=timezone.utc)
+            item.expires_at if item.expires_at.tzinfo else item.expires_at.replace(tzinfo=UTC)
         ).isoformat(),
         "capabilities": sorted(ROLE_PERMISSIONS.get(str(item.role or "").upper(), set())),
         "workspaces": [{"tenant_id": row.tenant_id, "role": row.role} for row in memberships],
@@ -492,17 +533,17 @@ def _session_body(s: Session, item: BrowserSession, csrf: Optional[str] = None) 
 
 
 @router.get("/auth/login")
-def login_start(request: Request, return_to: Optional[str] = None, s: Session = Depends(db)):
+def login_start(request: Request, return_to: str | None = None, s: Session = Depends(db)):
     return RedirectResponse(_authorization_url(request, s, "login", return_to), status_code=302)
 
 
 @router.get("/auth/signup")
-def signup_start(request: Request, return_to: Optional[str] = None, s: Session = Depends(db)):
+def signup_start(request: Request, return_to: str | None = None, s: Session = Depends(db)):
     return RedirectResponse(_authorization_url(request, s, "signup", return_to), status_code=302)
 
 
 @router.get("/auth/google")
-def google_start(request: Request, return_to: Optional[str] = None, s: Session = Depends(db)):
+def google_start(request: Request, return_to: str | None = None, s: Session = Depends(db)):
     return RedirectResponse(_authorization_url(request, s, "google", return_to), status_code=302)
 
 
@@ -511,7 +552,7 @@ def oidc_callback(request: Request, code: str, state: str, s: Session = Depends(
     tx = s.scalar(select(OidcLoginTransaction).where(OidcLoginTransaction.state_hash == sha(state)))
     if not tx or tx.used_at:
         raise HTTPException(410, "oidc_state_invalid_or_used")
-    expiry = tx.expires_at if tx.expires_at.tzinfo else tx.expires_at.replace(tzinfo=timezone.utc)
+    expiry = tx.expires_at if tx.expires_at.tzinfo else tx.expires_at.replace(tzinfo=UTC)
     if expiry <= now():
         raise HTTPException(410, "oidc_state_expired")
     tx.used_at = now()
@@ -525,7 +566,6 @@ def oidc_callback(request: Request, code: str, state: str, s: Session = Depends(
     response = RedirectResponse(_safe_return_to(tx.return_url), status_code=303)
     _set_session_cookie(response, raw)
     response.headers["Cache-Control"] = "no-store"
-    response.headers["X-Klyrow-Session-Id"] = item.id
     return response
 
 
@@ -535,20 +575,26 @@ def session_status(request: Request, s: Session = Depends(db)):
         item = _get_browser_session(request, s)
     except HTTPException as exc:
         if exc.status_code == 401:
-            return JSONResponse({"authenticated": False}, status_code=200, headers={"Cache-Control": "no-store"})
+            return JSONResponse(
+                {"authenticated": False}, status_code=200, headers={"Cache-Control": "no-store"}
+            )
         raise
-    csrf = secrets.token_urlsafe(32)
-    item.csrf_hash = sha(csrf)
-    s.commit()
+    csrf = _session_csrf(s, item)
     return JSONResponse(_session_body(s, item, csrf), headers={"Cache-Control": "no-store"})
 
 
 @router.post("/auth/refresh")
-def refresh_session(request: Request, current: BrowserSession = Depends(csrf_guard), s: Session = Depends(db)):
+def refresh_session(
+    request: Request, current: BrowserSession = Depends(csrf_guard), s: Session = Depends(db)
+):
     if not current.refresh_ciphertext:
         raise HTTPException(409, "refresh_not_available")
     refresh_token = _decrypt(current.refresh_ciphertext)
-    data = {"grant_type": "refresh_token", "client_id": _client_id(), "refresh_token": refresh_token}
+    data = {
+        "grant_type": "refresh_token",
+        "client_id": _client_id(),
+        "refresh_token": refresh_token,
+    }
     secret = _client_secret()
     if secret:
         data["client_secret"] = secret
@@ -566,16 +612,26 @@ def refresh_session(request: Request, current: BrowserSession = Depends(csrf_gua
             s.commit()
             raise HTTPException(401, "refresh_identity_mismatch")
     else:
-        tokens["id_token"] = _decrypt(current.id_token_ciphertext) if current.id_token_ciphertext else ""
+        tokens["id_token"] = (
+            _decrypt(current.id_token_ciphertext) if current.id_token_ciphertext else ""
+        )
     tokens.setdefault("refresh_token", refresh_token)
     identity = s.get(OidcIdentity, current.identity_id)
     user = s.get(_user_model(), current.user_id)
-    membership = s.scalar(select(TenantMember).where(TenantMember.tenant_id == current.tenant_id, TenantMember.user_id == current.user_id, TenantMember.active == True))
+    membership = s.scalar(
+        select(TenantMember).where(
+            TenantMember.tenant_id == current.tenant_id,
+            TenantMember.user_id == current.user_id,
+            TenantMember.active == True,
+        )
+    )
     if not identity or not user or not membership:
         raise HTTPException(403, "workspace_access_denied")
     current.revoked_at = now()
     s.commit()
-    item, raw, csrf = _new_session(s, request, identity, user, membership, tokens, rotated_from_id=current.id)
+    item, raw, csrf = _new_session(
+        s, request, identity, user, membership, tokens, rotated_from_id=current.id
+    )
     response = JSONResponse(_session_body(s, item, csrf), headers={"Cache-Control": "no-store"})
     _set_session_cookie(response, raw)
     return response
@@ -584,7 +640,11 @@ def refresh_session(request: Request, current: BrowserSession = Depends(csrf_gua
 @router.get("/auth/sessions")
 def list_sessions(request: Request, ctx: dict = Depends(browser_context), s: Session = Depends(db)):
     current = _get_browser_session(request, s, touch=False)
-    rows = s.scalars(select(BrowserSession).where(BrowserSession.identity_id == ctx["identity_id"]).order_by(BrowserSession.created_at.desc())).all()
+    rows = s.scalars(
+        select(BrowserSession)
+        .where(BrowserSession.identity_id == ctx["identity_id"])
+        .order_by(BrowserSession.created_at.desc())
+    ).all()
     return [
         {
             "id": row.id,
@@ -601,7 +661,12 @@ def list_sessions(request: Request, ctx: dict = Depends(browser_context), s: Ses
 
 
 @router.delete("/auth/sessions/{session_id}", status_code=204)
-def revoke_session(session_id: str, request: Request, current: BrowserSession = Depends(csrf_guard), s: Session = Depends(db)):
+def revoke_session(
+    session_id: str,
+    request: Request,
+    current: BrowserSession = Depends(csrf_guard),
+    s: Session = Depends(db),
+):
     item = s.get(BrowserSession, session_id)
     if not item or item.identity_id != current.identity_id:
         raise HTTPException(404, "session_not_found")
@@ -610,25 +675,44 @@ def revoke_session(session_id: str, request: Request, current: BrowserSession = 
 
 
 @router.post("/auth/logout")
-def logout(request: Request, current: BrowserSession = Depends(csrf_guard), s: Session = Depends(db)):
+def logout(
+    request: Request, current: BrowserSession = Depends(csrf_guard), s: Session = Depends(db)
+):
     current.revoked_at = now()
-    end_session = _canonical_issuer() + "/protocol/openid-connect/logout?" + urlencode(
-        {"client_id": _client_id(), "post_logout_redirect_uri": _public_origin() + "/logged-out"}
+    end_session = (
+        _canonical_issuer()
+        + "/protocol/openid-connect/logout?"
+        + urlencode(
+            {
+                "client_id": _client_id(),
+                "post_logout_redirect_uri": _public_origin() + "/logged-out",
+            }
+        )
     )
     if current.id_token_ciphertext:
         end_session += "&" + urlencode({"id_token_hint": _decrypt(current.id_token_ciphertext)})
     s.commit()
-    response = JSONResponse({"logged_out": True, "end_session_url": end_session}, headers={"Cache-Control": "no-store"})
+    response = JSONResponse(
+        {"logged_out": True, "end_session_url": end_session}, headers={"Cache-Control": "no-store"}
+    )
     _clear_session_cookie(response)
     return response
 
 
 @router.post("/auth/logout-all")
-def logout_all(request: Request, current: BrowserSession = Depends(csrf_guard), s: Session = Depends(db)):
-    rows = s.scalars(select(BrowserSession).where(BrowserSession.identity_id == current.identity_id, BrowserSession.revoked_at.is_(None))).all()
+def logout_all(
+    request: Request, current: BrowserSession = Depends(csrf_guard), s: Session = Depends(db)
+):
+    rows = s.scalars(
+        select(BrowserSession).where(
+            BrowserSession.identity_id == current.identity_id, BrowserSession.revoked_at.is_(None)
+        )
+    ).all()
     for item in rows:
         item.revoked_at = now()
     s.commit()
-    response = JSONResponse({"logged_out": True, "revoked_sessions": len(rows)}, headers={"Cache-Control": "no-store"})
+    response = JSONResponse(
+        {"logged_out": True, "revoked_sessions": len(rows)}, headers={"Cache-Control": "no-store"}
+    )
     _clear_session_cookie(response)
     return response

@@ -1,4 +1,5 @@
 """Isolated file/GPG rehearsals only. No Mautic, Docker or provider is invoked."""
+
 from __future__ import annotations
 
 import copy
@@ -6,12 +7,11 @@ import hashlib
 import importlib.machinery
 import importlib.util
 import io
-import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import tarfile
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -40,15 +40,28 @@ def sample(tmp_path):
     backups.mkdir(mode=0o700)
     target = tmp_path / "targets"
     target.mkdir(mode=0o700)
-    return SimpleNamespace(source=source, destination=target / "split", backup_file=backups / "snapshot.gpg",
-                           source_sha="a" * 40, source_image="ghcr.io/example/mautic@sha256:" + "b" * 64,
-                           target_image="ghcr.io/example/mautic@sha256:" + "c" * 64,
-                           apply=False, confirm=None, recipient_file=None, recipient_fingerprint=None)
+    return SimpleNamespace(
+        source=source,
+        destination=target / "split",
+        backup_file=backups / "snapshot.gpg",
+        source_sha="a" * 40,
+        source_image="ghcr.io/example/mautic@sha256:" + "b" * 64,
+        target_image="ghcr.io/example/mautic@sha256:" + "c" * 64,
+        apply=False,
+        confirm=None,
+        recipient_file=None,
+        recipient_fingerprint=None,
+    )
 
 
 def document(sample):
-    return {"schema": m.SCHEMA, "source_sha": sample.source_sha, "source_image": sample.source_image,
-            "target_image": sample.target_image, "entries": m.inventory(sample.source)}
+    return {
+        "schema": m.SCHEMA,
+        "source_sha": sample.source_sha,
+        "source_image": sample.source_image,
+        "target_image": sample.target_image,
+        "entries": m.inventory(sample.source),
+    }
 
 
 @pytest.fixture
@@ -66,15 +79,38 @@ def recipient(tmp_path_factory):
     home = root / "private"
     home.mkdir(mode=0o700)
     args = m.gpg_args(home)
-    subprocess.run(args + ["--pinentry-mode", "loopback", "--passphrase", "", "--quick-generate-key",
-                          "Synthetic Mautic Rehearsal <mautic@example.invalid>", "rsa2048", "encr", "1d"],
-                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
-    listing = subprocess.check_output(args + ["--with-colons", "--list-keys"], stderr=subprocess.DEVNULL).decode()
-    fingerprint = next(line.split(":")[9] for line in listing.splitlines() if line.startswith("fpr:"))
+    subprocess.run(
+        args
+        + [
+            "--pinentry-mode",
+            "loopback",
+            "--passphrase",
+            "",
+            "--quick-generate-key",
+            "Synthetic Mautic Rehearsal <mautic@example.invalid>",
+            "rsa2048",
+            "encr",
+            "1d",
+        ],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=30,
+    )
+    listing = subprocess.check_output(
+        args + ["--with-colons", "--list-keys"], stderr=subprocess.DEVNULL
+    ).decode()
+    fingerprint = next(
+        line.split(":")[9] for line in listing.splitlines() if line.startswith("fpr:")
+    )
     public = root / "recipient.asc"
     public.write_bytes(subprocess.check_output(args + ["--armor", "--export", fingerprint]))
     yield SimpleNamespace(home=home, public=public, fingerprint=fingerprint)
-    subprocess.run(["gpgconf", "--homedir", str(home), "--kill", "all"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(
+        ["gpgconf", "--homedir", str(home), "--kill", "all"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 def apply_args(sample, recipient):
@@ -84,8 +120,14 @@ def apply_args(sample, recipient):
 
 
 def restore_args(sample, recipient, destination):
-    return SimpleNamespace(backup_file=sample.backup_file, backup_sha256=m.digest_file(sample.backup_file),
-                           gpg_home=recipient.home, destination=destination, apply=False, confirm=None)
+    return SimpleNamespace(
+        backup_file=sample.backup_file,
+        backup_sha256=m.digest_file(sample.backup_file),
+        gpg_home=recipient.home,
+        destination=destination,
+        apply=False,
+        confirm=None,
+    )
 
 
 def test_plain_readwrite_source_is_refused(sample):
@@ -99,7 +141,10 @@ def test_plan_is_readonly_and_excludes_old_code(sample, offline):
     result = m.migrate(sample)
     assert result["state"] == "DRY_RUN" and not result["cutover_performed"]
     assert result["entries"] == 8
-    assert before == (set(sample.destination.parent.iterdir()), set(sample.backup_file.parent.iterdir()))
+    assert before == (
+        set(sample.destination.parent.iterdir()),
+        set(sample.backup_file.parent.iterdir()),
+    )
     assert b"vendor" not in m.canonical(document(sample))
 
 
@@ -128,8 +173,15 @@ def test_missing_persistent_directory_is_rejected(sample):
         m.inventory(sample.source)
 
 
-@pytest.mark.parametrize("field,value", [("source_sha", "main"), ("source_image", "mautic:latest"),
-                                         ("target_image", "mautic:latest"), ("schema", "wrong")])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("source_sha", "main"),
+        ("source_image", "mautic:latest"),
+        ("target_image", "mautic:latest"),
+        ("schema", "wrong"),
+    ],
+)
 def test_declared_release_tuple_requires_immutable_syntax(sample, field, value):
     manifest = document(sample)
     manifest[field] = value
@@ -137,7 +189,17 @@ def test_declared_release_tuple_requires_immutable_syntax(sample, field, value):
         m.validate_manifest(manifest)
 
 
-@pytest.mark.parametrize("name", ["../escape", "/config/escape", "config/../escape", "vendor/old.php", "config//double", "config/./dot"])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "../escape",
+        "/config/escape",
+        "config/../escape",
+        "vendor/old.php",
+        "config//double",
+        "config/./dot",
+    ],
+)
 def test_archive_paths_cannot_escape_or_add_code(sample, name):
     manifest = document(sample)
     manifest["entries"][1]["path"] = name
@@ -145,8 +207,18 @@ def test_archive_paths_cannot_escape_or_add_code(sample, name):
         m.validate_manifest(manifest)
 
 
-@pytest.mark.parametrize("field,value", [("kind", "symlink"), ("mode", 0o4777), ("uid", -1), ("gid", True),
-                                         ("size", -1), ("mtime_ns", -1), ("sha256", "not-a-digest")])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("kind", "symlink"),
+        ("mode", 0o4777),
+        ("uid", -1),
+        ("gid", True),
+        ("size", -1),
+        ("mtime_ns", -1),
+        ("sha256", "not-a-digest"),
+    ],
+)
 def test_archive_metadata_is_bounded_and_typed(sample, field, value):
     manifest = document(sample)
     manifest["entries"][1][field] = value
@@ -207,7 +279,10 @@ def test_encrypted_roundtrip_idempotence_and_restore(sample, offline, recipient)
     assert b"synthetic-data" not in sample.backup_file.read_bytes()
     previous = sample.backup_file.read_bytes(), (sample.destination / "migration.json").read_bytes()
     assert m.migrate(sample)["state"] == "ALREADY_VERIFIED"
-    assert previous == (sample.backup_file.read_bytes(), (sample.destination / "migration.json").read_bytes())
+    assert previous == (
+        sample.backup_file.read_bytes(),
+        (sample.destination / "migration.json").read_bytes(),
+    )
     restored = sample.destination.parent / "restored"
     args = restore_args(sample, recipient, restored)
     assert m.restore(args)["state"] == "RESTORE_DRY_RUN"
@@ -239,9 +314,11 @@ def test_wrong_recipient_and_encryption_failure_leave_no_destination(sample, off
 
 def test_source_change_during_copy_is_refused(sample, offline, recipient, monkeypatch):
     original = m.restore_metadata
+
     def change_source(stage, entries):
         original(stage, entries)
         (sample.source / "config/sample.txt").write_bytes(b"concurrent-writer")
+
     monkeypatch.setattr(m, "restore_metadata", change_source)
     with pytest.raises(m.Blocked, match="source_changed"):
         m.migrate(apply_args(sample, recipient))
@@ -293,11 +370,17 @@ def checkpoint_bytes(sample, *, mutation=None):
 def test_restore_rejects_modified_archive_members(sample, tmp_path, attack):
     def mutate(info):
         if info.name == "config/sample.txt":
-            if attack == "path": info.name = "../escaped"
-            elif attack == "symlink": info.type, info.linkname, info.size = tarfile.SYMTYPE, "/etc/passwd", 0
-            elif attack == "device": info.type, info.size = tarfile.CHRTYPE, 0
-            elif attack == "uid": info.uid += 1
-            else: info.mode |= 0o4000
+            if attack == "path":
+                info.name = "../escaped"
+            elif attack == "symlink":
+                info.type, info.linkname, info.size = tarfile.SYMTYPE, "/etc/passwd", 0
+            elif attack == "device":
+                info.type, info.size = tarfile.CHRTYPE, 0
+            elif attack == "uid":
+                info.uid += 1
+            else:
+                info.mode |= 0o4000
+
     stage = tmp_path / "stage"
     stage.mkdir(mode=0o700)
     with pytest.raises(m.Blocked):
@@ -316,15 +399,32 @@ def test_checksum_mismatch_is_rejected_before_decryption(sample, offline, recipi
 
 def test_root_requirement_and_sanitized_errors(sample, monkeypatch, capsys):
     monkeypatch.setattr(m.os, "geteuid", lambda: 1234)
-    result = m.main(["migrate", "--source", str(sample.source), "--destination", str(sample.destination),
-                     "--backup-file", str(sample.backup_file), "--source-sha", sample.source_sha,
-                     "--source-image", sample.source_image, "--target-image", sample.target_image])
+    result = m.main(
+        [
+            "migrate",
+            "--source",
+            str(sample.source),
+            "--destination",
+            str(sample.destination),
+            "--backup-file",
+            str(sample.backup_file),
+            "--source-sha",
+            sample.source_sha,
+            "--source-image",
+            sample.source_image,
+            "--target-image",
+            sample.target_image,
+        ]
+    )
     assert result == 1
     output = capsys.readouterr()
     assert output.out == "" and output.err == "MAUTIC_DATA_MIGRATION=BLOCKED\n"
 
 
-@pytest.mark.skipif(os.getenv("KLYROW_MAUTIC_MOUNT_REHEARSAL") != "1", reason="explicit isolated root mount rehearsal only")
+@pytest.mark.skipif(
+    os.getenv("KLYROW_MAUTIC_MOUNT_REHEARSAL") != "1",
+    reason="explicit isolated root mount rehearsal only",
+)
 def test_real_readonly_mount_and_root_cli(sample, recipient, tmp_path):
     assert os.geteuid() == 0
     mountpoint = tmp_path / "readonly"
@@ -332,10 +432,25 @@ def test_real_readonly_mount_and_root_cli(sample, recipient, tmp_path):
     subprocess.run(["mount", "--bind", str(sample.source), str(mountpoint)], check=True)
     try:
         subprocess.run(["mount", "-o", "remount,bind,ro", str(mountpoint)], check=True)
-        args = ["migrate", "--source", str(mountpoint), "--destination", str(sample.destination),
-                "--backup-file", str(sample.backup_file), "--source-sha", sample.source_sha,
-                "--source-image", sample.source_image, "--target-image", sample.target_image,
-                "--recipient-file", str(recipient.public), "--recipient-fingerprint", recipient.fingerprint]
+        args = [
+            "migrate",
+            "--source",
+            str(mountpoint),
+            "--destination",
+            str(sample.destination),
+            "--backup-file",
+            str(sample.backup_file),
+            "--source-sha",
+            sample.source_sha,
+            "--source-image",
+            sample.source_image,
+            "--target-image",
+            sample.target_image,
+            "--recipient-file",
+            str(recipient.public),
+            "--recipient-fingerprint",
+            recipient.fingerprint,
+        ]
         assert m.main(args) == 0 and not sample.destination.exists()
         assert m.main(args + ["--apply", "--confirm", m.CONFIRM]) == 0
         assert m.main(args + ["--apply", "--confirm", m.CONFIRM]) == 0
@@ -351,10 +466,12 @@ def test_real_readonly_mount_and_root_cli(sample, recipient, tmp_path):
 def test_growing_stream_cannot_expand_copy_or_hash_budget(size):
     class Endless:
         consumed = 0
+
         def read(self, count):
             assert 0 < count <= 1024**2
             self.consumed += count
             return b"x" * count
+
     for output in (None, io.BytesIO()):
         stream = Endless()
         with pytest.raises(m.Blocked, match="source_changed"):
@@ -376,8 +493,12 @@ def test_short_reads_still_copy_exact_content():
     class ShortReader(io.BytesIO):
         def read(self, count):
             return super().read(min(count, 2))
+
     output = io.BytesIO()
-    assert m.bounded_content(ShortReader(b"correct"), 7, output) == hashlib.sha256(b"correct").hexdigest()
+    assert (
+        m.bounded_content(ShortReader(b"correct"), 7, output)
+        == hashlib.sha256(b"correct").hexdigest()
+    )
     assert output.getvalue() == b"correct"
 
 
@@ -385,16 +506,20 @@ def test_short_writes_are_rejected():
     class ShortWriter:
         def write(self, value):
             return len(value) - 1
+
     with pytest.raises(m.Blocked, match="copy_failed"):
         m.bounded_content(io.BytesIO(b"correct"), 7, ShortWriter())
 
 
 @pytest.mark.parametrize("change", ["append", "truncate", "replace-content"])
-def test_copy_rejects_inflight_change_before_checkpoint(sample, offline, recipient, monkeypatch, change):
+def test_copy_rejects_inflight_change_before_checkpoint(
+    sample, offline, recipient, monkeypatch, change
+):
     original = m.bounded_content
     source = sample.source / "config/sample.txt"
     expected_size = source.stat().st_size
     observed = []
+
     def mutate(stream, size, output=None):
         if output is not None and not observed:
             if change == "append":
@@ -409,6 +534,7 @@ def test_copy_rejects_inflight_change_before_checkpoint(sample, offline, recipie
             finally:
                 observed.append(output.tell())
         return original(stream, size, output)
+
     monkeypatch.setattr(m, "bounded_content", mutate)
     with pytest.raises(m.Blocked, match="source_changed"):
         m.migrate(apply_args(sample, recipient))
@@ -422,6 +548,7 @@ def test_inventory_hashing_is_also_bounded_on_inflight_append(sample, monkeypatc
     source = sample.source / "config/sample.txt"
     expected_size = source.stat().st_size
     observed = []
+
     def grow(stream, size, output=None):
         with source.open("ab") as writer:
             writer.write(b"unexpected-growth")
@@ -429,6 +556,7 @@ def test_inventory_hashing_is_also_bounded_on_inflight_append(sample, monkeypatc
             return original(stream, size, output)
         finally:
             observed.append(stream.tell())
+
     monkeypatch.setattr(m, "bounded_content", grow)
     with pytest.raises(m.Blocked, match="source_changed"):
         m.inventory(sample.source)
@@ -440,32 +568,46 @@ def test_descriptor_mount_identity_rejects_same_device_mounts(sample, monkeypatc
     original = m.mount_id
     nested_inode = (sample.source / relative).stat().st_ino
     assert (sample.source / relative).stat().st_dev == sample.source.stat().st_dev
+
     def nested(descriptor):
         return original(descriptor) + (1 if os.fstat(descriptor).st_ino == nested_inode else 0)
+
     monkeypatch.setattr(m, "mount_id", nested)
     with pytest.raises(m.Blocked, match="nested_mount_rejected"):
         m.inventory(sample.source)
 
 
 def test_copy_rechecks_mount_identity_after_inventory(sample, monkeypatch, tmp_path):
-    entry = next(item for item in document(sample)["entries"] if item["path"] == "config/sample.txt")
+    entry = next(
+        item for item in document(sample)["entries"] if item["path"] == "config/sample.txt"
+    )
     original = m.mount_id
     ancestor_inode = (sample.source / "config").stat().st_ino
-    monkeypatch.setattr(m, "mount_id", lambda fd: original(fd) + (os.fstat(fd).st_ino == ancestor_inode))
+    monkeypatch.setattr(
+        m, "mount_id", lambda fd: original(fd) + (os.fstat(fd).st_ino == ancestor_inode)
+    )
     target = tmp_path / "copy"
-    with m.tree_root(sample.source) as descriptor, pytest.raises(m.Blocked, match="nested_mount_rejected"):
+    with (
+        m.tree_root(sample.source) as descriptor,
+        pytest.raises(m.Blocked, match="nested_mount_rejected"),
+    ):
         m.copy_entry(descriptor, "config/sample.txt", entry, target)
     assert not target.exists()
 
 
-@pytest.mark.parametrize("raw", [b"pos:\t0\n", b"mnt_id:\t123\nmnt_id:\t123\n", b"mnt_id:\t-1\n", b"x" * 8193])
+@pytest.mark.parametrize(
+    "raw", [b"pos:\t0\n", b"mnt_id:\t123\nmnt_id:\t123\n", b"mnt_id:\t-1\n", b"x" * 8193]
+)
 def test_missing_or_malformed_kernel_mount_identity_fails_closed(monkeypatch, raw):
     monkeypatch.setattr(m, "open", lambda *args, **kwargs: io.BytesIO(raw), raising=False)
     with pytest.raises(m.Blocked, match="mount_identity_unavailable"):
         m.mount_id(100)
 
 
-@pytest.mark.skipif(os.getenv("KLYROW_MAUTIC_MOUNT_REHEARSAL") != "1", reason="explicit isolated root mount rehearsal only")
+@pytest.mark.skipif(
+    os.getenv("KLYROW_MAUTIC_MOUNT_REHEARSAL") != "1",
+    reason="explicit isolated root mount rehearsal only",
+)
 @pytest.mark.parametrize("relative", ["config", "var", "docroot/media", "config/sample.txt"])
 def test_real_same_filesystem_nested_bind_mount_is_rejected(sample, tmp_path, relative):
     assert os.geteuid() == 0

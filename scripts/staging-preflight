@@ -3,7 +3,10 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${1:-$ROOT/deploy/staging/staging.env}"
 [[ -f "$ENV_FILE" ]] || { echo "Missing staging environment file: $ENV_FILE" >&2; exit 2; }
-set -a; source "$ENV_FILE"; set +a
+set -a
+# shellcheck source=/dev/null  # runtime-selected env file
+source "$ENV_FILE"
+set +a
 
 fail() { echo "staging-preflight: $*" >&2; exit 2; }
 for name in KLYROW_GATEWAY_IMAGE KLYROW_WEB_IMAGE KLYROW_MIGRATE_IMAGE KLYROW_SEARCH_IMAGE KLYROW_CADDY_IMAGE KLYROW_POSTGRES_IMAGE KLYROW_PROMETHEUS_IMAGE KLYROW_GRAFANA_IMAGE KLYROW_NODE_EXPORTER_IMAGE; do

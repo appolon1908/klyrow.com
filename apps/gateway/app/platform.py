@@ -3,53 +3,65 @@
 The browser SPA shell is composed here, never inside an API router. Starlette
 uses first-match routing, so catch-all shell routes must be registered last.
 """
+
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
 
 from .main import AUTH_WEB_DIST, app
 from . import auth_bff
 from .auth_bff import router as auth_bff_router
+from .browser_admin_ops import router as browser_admin_ops_router
 from .browser_auth_actions import (
     install_auth_extensions,
+)
+from .browser_auth_actions import (
     router as browser_auth_actions_router,
 )
-from .tenancy_onboarding import router as tenancy_onboarding_router
-from .invitation_flow import (
-    install_invitation_extensions,
-    router as invitation_flow_router,
-)
 from .browser_email_setup import router as browser_email_setup_router
-from .browser_profiles_suppressions import router as browser_profiles_suppressions_router
-from .browser_admin_ops import router as browser_admin_ops_router
-from .support_center import router as support_center_router
-from .platform_owner import (
-    install_platform_owner_guard,
-    router as platform_owner_router,
-)
-from .browser_observability import router as browser_observability_router
-from .postal_callback_attribution import (
-    install_postal_callback_extension,
-    router as postal_callback_router,
-)
-from .postal_provisioning import (
-    resolve_identity_context_with_provisioning,
-    router as postal_provisioning_router,
-)
-from .webmail import router as webmail_router
-from .browser_security_fixes import (
-    browser_router as browser_security_router,
-    install_browser_security_fixes,
-    legacy_router as legacy_security_router,
-)
 from .browser_flow_cookie_authority import (
     install_per_flow_cookie_authority,
 )
-from .browser_step_up_identity import (
-    install_existing_step_up_identity_guard,
+from .browser_observability import router as browser_observability_router
+from .browser_profiles_suppressions import router as browser_profiles_suppressions_router
+from .browser_security_fixes import (
+    browser_router as browser_security_router,
+)
+from .browser_security_fixes import (
+    install_browser_security_fixes,
 )
 from .browser_step_up_deadline import (
     install_step_up_deadline_guard,
 )
+from .browser_step_up_identity import (
+    install_existing_step_up_identity_guard,
+)
+from .invitation_flow import (
+    install_invitation_extensions,
+)
+from .invitation_flow import (
+    router as invitation_flow_router,
+)
+from .platform_owner import (
+    install_platform_owner_guard,
+)
+from .platform_owner import (
+    router as platform_owner_router,
+)
+from .postal_callback_attribution import (
+    install_postal_callback_extension,
+)
+from .postal_callback_attribution import (
+    router as postal_callback_router,
+)
+from .postal_provisioning import (
+    resolve_identity_context_with_provisioning,
+)
+from .postal_provisioning import (
+    router as postal_provisioning_router,
+)
+from .support_center import router as support_center_router
+from .tenancy_onboarding import router as tenancy_onboarding_router
+from .webmail import router as webmail_router
 
 SHELL_PATHS = {"/app", "/onboarding", "/app/{path:path}"}
 
@@ -75,12 +87,9 @@ for route in list(tenancy_onboarding_router.routes):
     if getattr(route, "path", "") in SHELL_PATHS:
         tenancy_onboarding_router.routes.remove(route)
 
-# Remove legacy/product shell routes that may already exist on the core app.
+# Remove product shell routes that may already exist on the core app.
 for route in list(app.router.routes):
-    if getattr(route, "path", "") in SHELL_PATHS or (
-        getattr(route, "path", "") == "/admin"
-        and getattr(route, "name", "") == "admin_portal"
-    ):
+    if getattr(route, "path", "") in SHELL_PATHS:
         app.router.routes.remove(route)
 
 if not getattr(app.state, "klyrow_postal_callback_route_registered", False):
@@ -94,7 +103,6 @@ if not getattr(app.state, "klyrow_browser_api_routes_registered", False):
     auth_bff._identity_context = resolve_identity_context_with_provisioning
     for platform_router in (
         browser_security_router,
-        legacy_security_router,
         auth_bff_router,
         platform_owner_router,
         browser_auth_actions_router,
@@ -124,8 +132,8 @@ from .runtime_authority_fixes import install_runtime_authority_fixes
 
 install_runtime_authority_fixes()
 
-from .usage_history import router as usage_history_router
 from .account_api import router as account_router
+from .usage_history import router as usage_history_router
 
 if not getattr(app.state, "klyrow_usage_history_registered", False):
     app.include_router(usage_history_router)
@@ -143,9 +151,7 @@ def _ui_index():
     index = AUTH_WEB_DIST / "index.html"
     if not index.exists():
         raise HTTPException(503, "application_ui_not_built")
-    return FileResponse(
-        index, media_type="text/html", headers={"Cache-Control": "no-store"}
-    )
+    return FileResponse(index, media_type="text/html", headers={"Cache-Control": "no-store"})
 
 
 # Remove platform-owned shell routes too if this module is explicitly reloaded.
@@ -174,6 +180,13 @@ def product_app_ui(path: str = ""):
 from .openapi_authority import install_openapi_authority
 
 install_openapi_authority(app)
+
+# Structural guard (security finding M3): first-match routing would let a
+# shadowed duplicate silently win if the registration order above changed.
+# Fail composition outright when any (path, method) has more than one APIRoute.
+from .routing_guards import assert_unique_api_routes
+
+assert_unique_api_routes(app.router.routes)
 
 
 __all__ = ["app"]

@@ -3,20 +3,23 @@
 This module exposes bounded, operator-safe browser contracts and reuses the
 existing platform authorities directly in-process.
 """
+
 from __future__ import annotations
 
 import base64
 import json
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
+from .main import Audit, Tenant, User, audit, bind_tenant_rls, db
+from .auth_bff import browser_context
 from .billing import (
     BillingPlan,
     BillingPrice,
@@ -26,6 +29,8 @@ from .billing import (
     Invoice,
     Payment,
     Refund,
+)
+from .billing import (
     _run_dunning as run_dunning,
 )
 from .billing_config import BillingConfigError, load_billing_settings
@@ -39,9 +44,8 @@ from .delivery_controls import (
     release_resource,
     suspend_resource,
 )
-from .main import Audit, Tenant, User, audit, bind_tenant_rls, db
-from .operations import ReconciliationRun, reconcile as run_platform_reconciliation
-from .auth_bff import browser_context
+from .operations import ReconciliationRun
+from .operations import reconcile as run_platform_reconciliation
 
 router = APIRouter(tags=["Browser platform administration"])
 
@@ -80,7 +84,7 @@ class AdminAbuseSummaryOut(BaseModel):
 class AdminAbuseAlertOut(BaseModel):
     id: str
     tenant_id: str
-    tenant_name: Optional[str] = None
+    tenant_name: str | None = None
     kind: str
     severity: str
     state: str
@@ -91,7 +95,7 @@ class AdminAbuseAlertOut(BaseModel):
 class AdminSuspensionOut(BaseModel):
     id: str
     tenant_id: str
-    tenant_name: Optional[str] = None
+    tenant_name: str | None = None
     resource_type: str
     resource_id: str
     reason: str
@@ -107,7 +111,7 @@ class AdminAbuseStateOut(BaseModel):
 
 
 class AdminAbuseEvaluationOut(BaseModel):
-    id: Optional[str] = None
+    id: str | None = None
     state: str
     suspended: bool
 
@@ -130,13 +134,13 @@ class AdminAlertStateOut(BaseModel):
 
 class AdminReconciliationRunOut(BaseModel):
     id: str
-    tenant_id: Optional[str] = None
+    tenant_id: str | None = None
     kind: str
     state: str
     drift_count: int
     detail_count: int
     started_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
 
 
 class AdminReconciliationListOut(BaseModel):
@@ -157,12 +161,12 @@ class AdminReconciliationExecutionOut(BaseModel):
 class AdminBillingIssueOut(BaseModel):
     code: str
     tenant_id: str
-    resource_id: Optional[str] = None
+    resource_id: str | None = None
     details: dict[str, Any]
 
 
 class AdminBillingReconciliationOut(BaseModel):
-    tenant_id: Optional[str] = None
+    tenant_id: str | None = None
     status: str
     issue_count: int
     issues: list[AdminBillingIssueOut]
@@ -171,7 +175,7 @@ class AdminBillingReconciliationOut(BaseModel):
 
 class AdminBillingConfigurationOut(BaseModel):
     valid: bool
-    error: Optional[str] = None
+    error: str | None = None
     enabled: bool
     live_charging_enabled: bool
     dunning_enabled: bool
@@ -188,8 +192,8 @@ class AdminBillingDriftOut(BaseModel):
 class AdminActivePriceOut(BaseModel):
     price_id: str
     plan_id: str
-    plan_code: Optional[str] = None
-    plan_name: Optional[str] = None
+    plan_code: str | None = None
+    plan_name: str | None = None
     version: int
     currency: str
     billing_cycle: str
@@ -203,7 +207,7 @@ class AdminBillingInvoiceOut(BaseModel):
     id: str
     number: str
     tenant_id: str
-    tenant_name: Optional[str] = None
+    tenant_name: str | None = None
     status: str
     total: str
     currency: str
@@ -222,15 +226,15 @@ class AdminBillingOverviewOut(BaseModel):
 class AdminBillingSubscriptionOut(BaseModel):
     id: str
     tenant_id: str
-    tenant_name: Optional[str] = None
+    tenant_name: str | None = None
     status: str
-    plan_code: Optional[str] = None
-    plan_name: Optional[str] = None
-    billing_cycle: Optional[str] = None
-    currency: Optional[str] = None
+    plan_code: str | None = None
+    plan_name: str | None = None
+    billing_cycle: str | None = None
+    currency: str | None = None
     period_start: datetime
     period_end: datetime
-    trial_end: Optional[datetime] = None
+    trial_end: datetime | None = None
     cancel_at_period_end: bool
     version: int
     open_invoice_count: int
@@ -250,7 +254,7 @@ class AdminDunningOut(BaseModel):
 class AdminAuditEntryOut(BaseModel):
     id: str
     tenant_id: str
-    tenant_name: Optional[str] = None
+    tenant_name: str | None = None
     actor: str
     action: str
     created_at: datetime
@@ -258,16 +262,12 @@ class AdminAuditEntryOut(BaseModel):
 
 class AdminAuditPageOut(BaseModel):
     items: list[AdminAuditEntryOut]
-    next_cursor: Optional[str] = None
+    next_cursor: str | None = None
 
 
 def _require_platform_admin(ctx: dict, session: Session) -> dict:
     user = session.get(User, ctx.get("sub"))
-    if (
-        user is None
-        or not user.enabled
-        or str(user.role or "").lower() != "platform_admin"
-    ):
+    if user is None or not user.enabled or str(user.role or "").lower() != "platform_admin":
         raise HTTPException(403, "platform_admin_required")
     return ctx
 
@@ -281,8 +281,11 @@ def _tenant_name(session: Session, tenant_id: str | None) -> str | None:
 
 @contextmanager
 def _platform_billing_scopes(
-    ctx: dict, request_session: Session, tenant_id: str | None = None,
-    *, candidate_tenant_ids: set[str] | None = None,
+    ctx: dict,
+    request_session: Session,
+    tenant_id: str | None = None,
+    *,
+    candidate_tenant_ids: set[str] | None = None,
 ):
     """Authorized tenant scopes on a private, atomic runtime transaction.
 
@@ -299,10 +302,12 @@ def _platform_billing_scopes(
         query = query.where(Tenant.id.in_(candidate_tenant_ids))
     tenant_ids = request_session.scalars(query).all()
     with request_session.get_bind().engine.begin() as connection:
+
         def scopes():
             for trusted_tenant_id in tenant_ids:
                 with Session(
-                    bind=connection, expire_on_commit=False,
+                    bind=connection,
+                    expire_on_commit=False,
                     join_transaction_mode="rollback_only",
                 ) as scoped:
                     bind_tenant_rls(scoped, trusted_tenant_id)
@@ -333,8 +338,10 @@ def _safe_json_list(raw: str | None) -> list[Any]:
 
 def _count_by(session: Session, model, field, tenant_id: str) -> dict[str, int]:
     rows = session.execute(
-        select(field, func.count()).select_from(model)
-        .where(model.tenant_id == tenant_id).group_by(field)
+        select(field, func.count())
+        .select_from(model)
+        .where(model.tenant_id == tenant_id)
+        .group_by(field)
     ).all()
     return {str(key or "UNKNOWN"): int(count or 0) for key, count in rows}
 
@@ -371,8 +378,8 @@ def _billing_configuration() -> dict[str, Any]:
 
 @router.get("/app/api/admin/abuse", response_model=AdminAbuseStateOut)
 def browser_admin_abuse(
-    state: Optional[str] = Query(default=None, min_length=1, max_length=40),
-    tenant_id: Optional[str] = Query(default=None, min_length=1, max_length=200),
+    state: str | None = Query(default=None, min_length=1, max_length=40),
+    tenant_id: str | None = Query(default=None, min_length=1, max_length=200),
     limit: int = Query(default=100, ge=1, le=200),
     ctx: dict = Depends(admin_browser_context),
     session: Session = Depends(db),
@@ -396,19 +403,28 @@ def browser_admin_abuse(
         ).limit(limit)
     ).all()
 
-    open_alerts = session.scalar(
-        select(func.count()).select_from(AbuseAlert).where(AbuseAlert.state == "OPEN")
-    ) or 0
-    critical_open = session.scalar(
-        select(func.count()).select_from(AbuseAlert).where(
-            AbuseAlert.state == "OPEN", AbuseAlert.severity == "CRITICAL"
+    open_alerts = (
+        session.scalar(
+            select(func.count()).select_from(AbuseAlert).where(AbuseAlert.state == "OPEN")
         )
-    ) or 0
-    active_suspensions = session.scalar(
-        select(func.count()).select_from(ResourceSuspension).where(
-            ResourceSuspension.active == True
+        or 0
+    )
+    critical_open = (
+        session.scalar(
+            select(func.count())
+            .select_from(AbuseAlert)
+            .where(AbuseAlert.state == "OPEN", AbuseAlert.severity == "CRITICAL")
         )
-    ) or 0
+        or 0
+    )
+    active_suspensions = (
+        session.scalar(
+            select(func.count())
+            .select_from(ResourceSuspension)
+            .where(ResourceSuspension.active == True)
+        )
+        or 0
+    )
 
     return {
         "summary": {
@@ -446,7 +462,9 @@ def browser_admin_abuse(
     }
 
 
-@router.post("/app/api/admin/abuse/evaluate", status_code=201, response_model=AdminAbuseEvaluationOut)
+@router.post(
+    "/app/api/admin/abuse/evaluate", status_code=201, response_model=AdminAbuseEvaluationOut
+)
 def browser_admin_abuse_evaluate(
     payload: AbuseIn,
     ctx: dict = Depends(admin_browser_context),
@@ -457,7 +475,9 @@ def browser_admin_abuse_evaluate(
     return evaluate_abuse(payload, ctx=ctx, s=session)
 
 
-@router.post("/app/api/admin/abuse/suspensions", status_code=201, response_model=AdminSuspensionCreateOut)
+@router.post(
+    "/app/api/admin/abuse/suspensions", status_code=201, response_model=AdminSuspensionCreateOut
+)
 def browser_admin_abuse_suspend(
     payload: SuspendIn,
     ctx: dict = Depends(admin_browser_context),
@@ -468,7 +488,9 @@ def browser_admin_abuse_suspend(
     return suspend_resource(payload, ctx=ctx, s=session)
 
 
-@router.post("/app/api/admin/abuse/suspensions/{item_id}/release", response_model=AdminSuspensionReleaseOut)
+@router.post(
+    "/app/api/admin/abuse/suspensions/{item_id}/release", response_model=AdminSuspensionReleaseOut
+)
 def browser_admin_abuse_release(
     item_id: str,
     ctx: dict = Depends(admin_browser_context),
@@ -538,7 +560,7 @@ def browser_admin_reconciliation(
 
 @router.get("/app/api/admin/reconciliation/billing", response_model=AdminBillingReconciliationOut)
 def browser_admin_billing_reconciliation(
-    tenant_id: Optional[str] = Query(default=None, min_length=1, max_length=200),
+    tenant_id: str | None = Query(default=None, min_length=1, max_length=200),
     ctx: dict = Depends(admin_browser_context),
     session: Session = Depends(db),
 ):
@@ -569,7 +591,9 @@ def browser_admin_reconciliation_detail(
     return {**_run_summary(item), "details": _safe_json_list(item.details_json)}
 
 
-@router.post("/app/api/admin/reconciliation", status_code=201, response_model=AdminReconciliationExecutionOut)
+@router.post(
+    "/app/api/admin/reconciliation", status_code=201, response_model=AdminReconciliationExecutionOut
+)
 def browser_admin_reconciliation_run(
     ctx: dict = Depends(admin_browser_context),
     _browser_session=Depends(admin_csrf_guard),
@@ -591,10 +615,14 @@ def browser_admin_billing_overview(
     with _platform_billing_scopes(ctx, session) as scopes:
         for tenant_id, scoped in scopes:
             drift.extend(reconcile_billing(scoped, tenant_id=tenant_id))
-            recent_invoices.extend(scoped.scalars(
-                select(Invoice).where(Invoice.tenant_id == tenant_id)
-                .order_by(Invoice.created_at.desc(), Invoice.id.desc()).limit(25)
-            ).all())
+            recent_invoices.extend(
+                scoped.scalars(
+                    select(Invoice)
+                    .where(Invoice.tenant_id == tenant_id)
+                    .order_by(Invoice.created_at.desc(), Invoice.id.desc())
+                    .limit(25)
+                ).all()
+            )
             for key, model, field in (
                 ("subscriptions", BillingSubscription, BillingSubscription.status),
                 ("invoices", Invoice, Invoice.status),
@@ -653,10 +681,12 @@ def browser_admin_billing_overview(
     }
 
 
-@router.get("/app/api/admin/billing/subscriptions", response_model=list[AdminBillingSubscriptionOut])
+@router.get(
+    "/app/api/admin/billing/subscriptions", response_model=list[AdminBillingSubscriptionOut]
+)
 def browser_admin_billing_subscriptions(
-    status: Optional[str] = Query(default=None, min_length=1, max_length=40),
-    tenant_id: Optional[str] = Query(default=None, min_length=1, max_length=200),
+    status: str | None = Query(default=None, min_length=1, max_length=40),
+    tenant_id: str | None = Query(default=None, min_length=1, max_length=200),
     limit: int = Query(default=100, ge=1, le=200),
     ctx: dict = Depends(admin_browser_context),
     session: Session = Depends(db),
@@ -668,19 +698,29 @@ def browser_admin_billing_subscriptions(
     if tenant_id:
         query = query.where(BillingSubscription.tenant_id == tenant_id)
     rows = session.scalars(
-        query.order_by(BillingSubscription.period_end.asc(), BillingSubscription.id.asc()).limit(limit)
+        query.order_by(BillingSubscription.period_end.asc(), BillingSubscription.id.asc()).limit(
+            limit
+        )
     ).all()
     open_invoice_counts = {}
     with _platform_billing_scopes(
-        ctx, session, tenant_id, candidate_tenant_ids={item.tenant_id for item in rows},
+        ctx,
+        session,
+        tenant_id,
+        candidate_tenant_ids={item.tenant_id for item in rows},
     ) as scopes:
         for trusted_tenant_id, scoped in scopes:
-            open_invoice_counts[trusted_tenant_id] = scoped.scalar(
-                select(func.count()).select_from(Invoice).where(
-                    Invoice.tenant_id == trusted_tenant_id,
-                    Invoice.status.in_(("OPEN", "PAST_DUE", "PARTIALLY_PAID")),
+            open_invoice_counts[trusted_tenant_id] = (
+                scoped.scalar(
+                    select(func.count())
+                    .select_from(Invoice)
+                    .where(
+                        Invoice.tenant_id == trusted_tenant_id,
+                        Invoice.status.in_(("OPEN", "PAST_DUE", "PARTIALLY_PAID")),
+                    )
                 )
-            ) or 0
+                or 0
+            )
     result = []
     for item in rows:
         plan = session.get(BillingPlan, item.plan_id)
@@ -728,7 +768,9 @@ def browser_admin_billing_dunning(
         for tenant_id, scoped in scopes:
             result = run_dunning(
                 DunningIn(grace_days=payload.grace_days, suspend_days=payload.suspend_days),
-                ctx={**ctx, "tenant": tenant_id}, s=scoped, tenant_id=tenant_id,
+                ctx={**ctx, "tenant": tenant_id},
+                s=scoped,
+                tenant_id=tenant_id,
             )
             items.extend(result["items"])
     return {"processed": len(items), "items": items, "login_disabled": False}
@@ -737,9 +779,9 @@ def browser_admin_billing_dunning(
 def _encode_audit_cursor(item: Audit) -> str:
     created = item.created_at
     if created.tzinfo is None:
-        created = created.replace(tzinfo=timezone.utc)
+        created = created.replace(tzinfo=UTC)
     raw = json.dumps(
-        {"created_at": created.astimezone(timezone.utc).isoformat(), "id": item.id},
+        {"created_at": created.astimezone(UTC).isoformat(), "id": item.id},
         separators=(",", ":"),
         sort_keys=True,
     ).encode()
@@ -752,21 +794,21 @@ def _decode_audit_cursor(value: str) -> tuple[datetime, str]:
         decoded = json.loads(base64.urlsafe_b64decode(value + padding))
         created = datetime.fromisoformat(str(decoded["created_at"]).replace("Z", "+00:00"))
         if created.tzinfo is None:
-            created = created.replace(tzinfo=timezone.utc)
+            created = created.replace(tzinfo=UTC)
         item_id = str(decoded["id"])
         if not item_id:
             raise ValueError
-        return created.astimezone(timezone.utc), item_id
+        return created.astimezone(UTC), item_id
     except (ValueError, TypeError, KeyError, json.JSONDecodeError):
         raise HTTPException(422, "invalid_audit_cursor") from None
 
 
 @router.get("/app/api/admin/audit", response_model=AdminAuditPageOut)
 def browser_admin_audit(
-    tenant_id: Optional[str] = Query(default=None, min_length=1, max_length=200),
-    actor: Optional[str] = Query(default=None, min_length=1, max_length=200),
-    action_prefix: Optional[str] = Query(default=None, min_length=1, max_length=160),
-    cursor: Optional[str] = Query(default=None, min_length=1, max_length=1000),
+    tenant_id: str | None = Query(default=None, min_length=1, max_length=200),
+    actor: str | None = Query(default=None, min_length=1, max_length=200),
+    action_prefix: str | None = Query(default=None, min_length=1, max_length=160),
+    cursor: str | None = Query(default=None, min_length=1, max_length=1000),
     limit: int = Query(default=100, ge=1, le=200),
     ctx: dict = Depends(admin_browser_context),
     session: Session = Depends(db),

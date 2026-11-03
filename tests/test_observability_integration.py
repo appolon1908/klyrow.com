@@ -25,11 +25,10 @@ os.environ.setdefault("KLYROW_ENV", "test")
 
 # Main registers the observability router; import it before the module alias.
 from apps.gateway.app.main import Base, Tenant
-from apps.gateway.app.operations import IntegrationOutbox
 from apps.gateway.app.platform import app
-from apps.gateway.app.production_api import _authorize_operation_mutation
 from apps.gateway.app import observability
-
+from apps.gateway.app.operations import IntegrationOutbox
+from apps.gateway.app.production_api import _authorize_operation_mutation
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "monitoring/kyyow-observability-sync-v1.json"
@@ -137,19 +136,19 @@ def test_observability_routes_are_unique_and_openapi_classified() -> None:
     }
     assert actual == expected
     for method, path in expected:
-        assert sum(
-            method in (route.methods or set()) and route.path == path
-            for route in effective_routes
-        ) == 1
+        assert (
+            sum(
+                method in (route.methods or set()) and route.path == path
+                for route in effective_routes
+            )
+            == 1
+        )
 
     schema = app.openapi()
     for method, path in expected:
         operation = schema["paths"][path][method.lower()]
         assert operation["security"] == [{"serviceBearer": []}]
-        assert (
-            operation["x-klyrow-auth-model"]
-            == "DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE"
-        )
+        assert operation["x-klyrow-auth-model"] == "DEDICATED_SERVICE_BEARER_ON_PRIVATE_ROUTE"
         assert operation["x-klyrow-audience"] == "INTERNAL"
     assert "/v1/internal/integrations/odoo/reconcile" not in schema["paths"]
 
@@ -169,9 +168,7 @@ def test_observability_posts_reject_payloads_over_64_kib_before_auth() -> None:
 
 def test_projection_hash_matches_pinned_middleware_utf8_canonicalizer() -> None:
     document = {"summary": "queue stalled – café"}
-    assert observability._canonical_json(document) == (
-        '{"summary":"queue stalled – café"}'
-    )
+    assert observability._canonical_json(document) == ('{"summary":"queue stalled – café"}')
     assert observability._with_projection_hash(document)["projection_hash"] == (
         "sha256:714d7f40faad7cfcc8faa492102a03d027b451ea4fc38f05c91f7b096acfc142"
     )
@@ -186,9 +183,7 @@ def test_labels_and_identifiers_fail_closed_before_enqueue() -> None:
         observability._normalize_labels({"unknown_dimension": "value"})
     assert exc.value.status_code == 422
 
-    assert observability._normalize_labels({"service": "x" * 256}) == {
-        "service": "x" * 256
-    }
+    assert observability._normalize_labels({"service": "x" * 256}) == {"service": "x" * 256}
     with pytest.raises(HTTPException) as exc:
         observability._normalize_labels(
             {"service": "x" * 129},
@@ -296,9 +291,7 @@ def test_alert_state_projects_exact_incident_contract(isolated_session) -> None:
     assert completed["accepted"] == 1
 
     rows = isolated_session.scalars(
-        select(IntegrationOutbox).where(
-            IntegrationOutbox.target == observability.MIDDLEWARE_TARGET
-        )
+        select(IntegrationOutbox).where(IntegrationOutbox.target == observability.MIDDLEWARE_TARGET)
     ).all()
     assert len(rows) == 2
     assert {row.event_type for row in rows} == {observability.INCIDENT_OPERATION}
@@ -368,9 +361,7 @@ def test_kpi_snapshot_projects_exact_contract_and_is_idempotent(
     assert response["direct_odoo_database_write"] is False
 
     row = isolated_session.scalar(
-        select(IntegrationOutbox).where(
-            IntegrationOutbox.id == response["operation_id"]
-        )
+        select(IntegrationOutbox).where(IntegrationOutbox.id == response["operation_id"])
     )
     assert row is not None
     assert row.target == observability.MIDDLEWARE_TARGET
@@ -474,10 +465,7 @@ def test_worker_posts_unchanged_projection_to_canonical_middleware(
 
 
 def test_transport_rejects_redirect_ack(monkeypatch) -> None:
-    payload = {
-        key: None
-        for key in _contract()["schemas"]["kpi_snapshot"]["required"]
-    }
+    payload = {key: None for key in _contract()["schemas"]["kpi_snapshot"]["required"]}
     payload.update(
         {
             "event_id": "event-redirect",
@@ -527,9 +515,7 @@ def test_cross_repository_contract_and_worker_are_pinned() -> None:
     boundary = json.loads(BOUNDARY_PATH.read_text(encoding="utf-8"))
     canonical = boundary["canonical_projection"]
     raw = CONTRACT_PATH.read_bytes()
-    git_blob = hashlib.sha1(
-        f"blob {len(raw)}\0".encode("ascii") + raw
-    ).hexdigest()
+    git_blob = hashlib.sha1(f"blob {len(raw)}\0".encode("ascii") + raw).hexdigest()
 
     assert canonical["source_repository"] == "appolon1908-hue/Middleware-"
     assert canonical["source_ref"] == "main"
@@ -546,24 +532,18 @@ def test_cross_repository_contract_and_worker_are_pinned() -> None:
         observability.INCIDENT_OPERATION,
     }
     assert {
-        entry["operation"]
-        for entry in contract["odoo_endpoints"]
-        if entry["method"] == "POST"
+        entry["operation"] for entry in contract["odoo_endpoints"] if entry["method"] == "POST"
     } == {
         "odoo.observability.kpis.create",
         "odoo.observability.incidents.upsert",
     }
 
-    worker = (ROOT / "apps/gateway/app/service_worker.py").read_text(
-        encoding="utf-8"
-    )
-    overlay = (ROOT / "deploy/docker-compose.observability.yml").read_text(
-        encoding="utf-8"
-    )
+    worker = (ROOT / "apps/gateway/app/service_worker.py").read_text(encoding="utf-8")
+    overlay = (ROOT / "deploy/docker-compose.observability.yml").read_text(encoding="utf-8")
     assert 'elif ROLE == "observability":' in worker
     assert "await dispatch_observability_outbox()" in worker
     assert "KLYROW_WORKER_ROLE: observability" in overlay
-    assert 'KLYROW_OBSERVABILITY_DELIVERY_ENABLED:-false' in overlay
+    assert "KLYROW_OBSERVABILITY_DELIVERY_ENABLED:-false" in overlay
 
 
 def test_observability_operation_recovery_requires_target_permission() -> None:
@@ -608,7 +588,4 @@ def test_status_summaries_are_partitioned_by_tenant(isolated_session) -> None:
         SERVICE_CONTEXT,
         isolated_session,
     )
-    assert [
-        (item["state"], item["count"])
-        for item in checkpoints["items"]
-    ] == [("PENDING", 1)]
+    assert [(item["state"], item["count"]) for item in checkpoints["items"]] == [("PENDING", 1)]

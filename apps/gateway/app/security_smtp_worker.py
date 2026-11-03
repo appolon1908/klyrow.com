@@ -264,9 +264,7 @@ def _mark_failed(snapshot: dict[str, Any], error_name: str) -> None:
             return
         exhausted = item.attempts >= MAX_ATTEMPTS
         item.status = "DEAD_LETTER" if exhausted else "DEFERRED"
-        item.available_at = now() + timedelta(
-            seconds=min(300, 2 ** max(item.attempts, 1))
-        )
+        item.available_at = now() + timedelta(seconds=min(300, 2 ** max(item.attempts, 1)))
         item.lease_expires_at = None
         item.last_error = error_name[:120]
         if exhausted:
@@ -296,14 +294,26 @@ def _mark_indeterminate(snapshot: dict[str, Any], error_name: str) -> None:
         item = session.get(ProviderMessage, snapshot["id"])
         if not item or item.status != "PROCESSING":
             return
-        if not reconcile_before_retry(state=INDETERMINATE, provider_message_id=item.provider_message_id, provider_absence_confirmed=False):
+        if not reconcile_before_retry(
+            state=INDETERMINATE,
+            provider_message_id=item.provider_message_id,
+            provider_absence_confirmed=False,
+        ):
             item.status = INDETERMINATE
             item.lease_expires_at = None
             item.last_error = error_name[:120]
             item.updated_at = now()
-            session.add(ProviderAudit(id=str(uuid.uuid4()), tenant_id=item.tenant_id,
-                actor="worker:klyrow-security-smtp", action="smtp.security.message.indeterminate",
-                outcome="reconciliation_required", correlation_id=item.correlation_id, resource_id=item.id))
+            session.add(
+                ProviderAudit(
+                    id=str(uuid.uuid4()),
+                    tenant_id=item.tenant_id,
+                    actor="worker:klyrow-security-smtp",
+                    action="smtp.security.message.indeterminate",
+                    outcome="reconciliation_required",
+                    correlation_id=item.correlation_id,
+                    resource_id=item.id,
+                )
+            )
             session.commit()
 
 
@@ -337,9 +347,7 @@ async def process_one_security_message() -> bool:
             )
             response.raise_for_status()
             body = response.json()
-        provider_message_id = str(
-            body.get("data", {}).get("message_id") or snapshot["id"]
-        )
+        provider_message_id = str(body.get("data", {}).get("message_id") or snapshot["id"])
         _mark_submitted(snapshot, provider_message_id)
         return True
     except Exception as exc:  # noqa: BLE001 - error type only is persisted/logged

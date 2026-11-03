@@ -4,7 +4,6 @@ from collections.abc import Mapping
 
 from .delivery_safety import DISABLED_EMAIL_CONTROLS, LIVE_EMAIL_CONTROLS, email_activation_status
 
-
 EMAIL_COMPONENTS = ("gateway", "worker", "smtp-relay", "postal-web", "postal-worker", "postal-smtp")
 RUNTIME_NAMES = {"klyrow-" + name + "-1": name for name in EMAIL_COMPONENTS}
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Exact repository/ref identities for the local readiness signer."""
+
 import os
 import re
 

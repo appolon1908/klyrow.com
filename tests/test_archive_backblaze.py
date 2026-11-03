@@ -1,13 +1,15 @@
 import hashlib
 import importlib.util
 import json
-from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-SPEC = importlib.util.spec_from_file_location("archive_b2", Path(__file__).parents[1] / "scripts/archive-backblaze.py")
+SPEC = importlib.util.spec_from_file_location(
+    "archive_b2", Path(__file__).parents[1] / "scripts/archive-backblaze.py"
+)
 B2 = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(B2)
 
@@ -23,7 +25,13 @@ class BackblazeTests(unittest.TestCase):
         self.checksum.write_text(f"{B2.digest(self.file)}  {self.file.name}\n")
         self.objects = {}
         self.calls = []
-        self.config = ("https://s3.us-east-005.backblazeb2.com", "Codestra", "codestra/klyrow", "a" * 40, {})
+        self.config = (
+            "https://s3.us-east-005.backblazeb2.com",
+            "Codestra",
+            "codestra/klyrow",
+            "a" * 40,
+            {},
+        )
 
     def fake_aws(self, endpoint, env, action, *args):
         self.calls.append((action, args))
@@ -54,6 +62,7 @@ class BackblazeTests(unittest.TestCase):
             if args[2] == "get-object":
                 Path(args[-1]).write_bytes(b"corrupt")
             return result
+
         with self.assertRaisesRegex(B2.BackupError, "b2_readback_mismatch"):
             self.run_archive(corrupt)
         self.assertFalse(Path(str(self.file) + ".receipt.json").exists())
@@ -64,11 +73,13 @@ class BackblazeTests(unittest.TestCase):
 
     def test_wrong_version_or_encryption_is_rejected(self):
         for field, value in (("VersionId", "wrong"), ("ServerSideEncryption", "none")):
-            def wrong(*args):
+
+            def wrong(*args, field=field, value=value):
                 result = self.fake_aws(*args)
                 if args[2] == "get-object":
                     result[field] = value
                 return result
+
             with self.assertRaisesRegex(B2.BackupError, "b2_readback_mismatch"):
                 self.run_archive(wrong)
 
@@ -91,6 +102,7 @@ class BackblazeTests(unittest.TestCase):
             if args[2] == "get-object":
                 self.file.write_bytes(b"\x85changed")
             return result
+
         with self.assertRaisesRegex(B2.BackupError, "archive_changed"):
             self.run_archive(mutate)
 
@@ -101,12 +113,21 @@ class BackblazeTests(unittest.TestCase):
                 B2.aws("https://s3.us-east-005.backblazeb2.com", {}, "list-objects-v2")
 
     def test_credentials_are_file_only_and_ambient_auth_is_discarded(self):
-        values = {"b2-access-key-id": "test-id", "b2-secret-access-key": "test-secret",
-                  "b2-region": "us-east-005", "b2-bucket": "Codestra",
-                  "b2-endpoint": "https://s3.us-east-005.backblazeb2.com"}
+        values = {
+            "b2-access-key-id": "test-id",
+            "b2-secret-access-key": "test-secret",
+            "b2-region": "us-east-005",
+            "b2-bucket": "Codestra",
+            "b2-endpoint": "https://s3.us-east-005.backblazeb2.com",
+        }
         with patch.object(B2, "private_value", side_effect=lambda p: values[p.name]):
-            config = B2.settings({"KLYROW_RELEASE_SHA": "a" * 40,
-                                  "HTTPS_PROXY": "https://proxy.invalid", "AWS_PROFILE": "wrong"})
+            config = B2.settings(
+                {
+                    "KLYROW_RELEASE_SHA": "a" * 40,
+                    "HTTPS_PROXY": "https://proxy.invalid",
+                    "AWS_PROFILE": "wrong",
+                }
+            )
             self.assertNotIn("HTTPS_PROXY", config[-1])
             self.assertNotIn("AWS_PROFILE", config[-1])
             self.assertEqual(config[-1]["AWS_SECRET_ACCESS_KEY"], "test-secret")

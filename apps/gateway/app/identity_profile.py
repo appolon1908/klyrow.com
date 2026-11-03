@@ -1,5 +1,7 @@
 """Closed identity authorities for hardened production and isolated staging."""
+
 import os
+
 from fastapi import HTTPException
 
 PROFILES = {

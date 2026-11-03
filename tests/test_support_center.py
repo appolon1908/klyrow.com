@@ -1,4 +1,5 @@
 import os
+import secrets
 import uuid
 from datetime import timedelta
 from pathlib import Path
@@ -6,11 +7,10 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from apps.gateway.app import auth_bff
-from apps.gateway.app.auth_bff import BrowserSession, SESSION_COOKIE
-from apps.gateway.app.browser_auth_actions import stable_csrf_token
-from apps.gateway.app.main import Base, DB, Tenant, User, engine, ph, sha
+from apps.gateway.app.main import DB, Base, Tenant, User, engine, ph, sha
 from apps.gateway.app.platform import app
+from apps.gateway.app import auth_bff
+from apps.gateway.app.auth_bff import SESSION_COOKIE, BrowserSession
 from apps.gateway.app.support_center import SupportTicket, SupportTicketMessage
 from apps.gateway.app.tenancy import OidcIdentity, TenantMember
 
@@ -28,7 +28,7 @@ def _principal(label: str):
     identity_id = f"identity-support-{label}-{suffix}"
     session_id = f"session-support-{label}-{suffix}"
     raw = "browser_" + uuid.uuid4().hex
-    csrf = stable_csrf_token(session_id)
+    csrf = secrets.token_urlsafe(32)
     with DB() as session:
         session.add(Tenant(id=tenant_id, name=f"Support {label}", quota=100))
         session.add(
@@ -63,6 +63,7 @@ def _principal(label: str):
                 id=session_id,
                 token_hash=sha(raw),
                 csrf_hash=sha(csrf),
+                csrf_ciphertext=auth_bff._encrypt(csrf),
                 identity_id=identity_id,
                 user_id=user_id,
                 tenant_id=tenant_id,
@@ -172,7 +173,9 @@ def test_support_ticket_lifecycle_is_csrf_protected_idempotent_and_tenant_scoped
 
 def test_support_contract_has_no_provider_dispatch_boundary():
     source = (ROOT / "apps/gateway/app/support_center.py").read_text(encoding="utf-8")
-    migration = (ROOT / "migrations/2026092601_client_portal_support.sql").read_text(encoding="utf-8")
+    migration = (ROOT / "migrations/2026092601_client_portal_support.sql").read_text(
+        encoding="utf-8"
+    )
     for forbidden in ("httpx.", "requests.", "postal_url", "telnexa", "smtp", "send_email"):
         assert forbidden not in source.lower()
     assert "ENABLE ROW LEVEL SECURITY" in migration
@@ -189,9 +192,7 @@ def test_support_browser_routes_are_in_openapi_and_anonymous_requests_hit_auth_b
         ("/app/api/support/tickets/{ticket_id}/messages", "post"),
     }
     actual = {
-        (path, method)
-        for path, operations in schema["paths"].items()
-        for method in operations
+        (path, method) for path, operations in schema["paths"].items() for method in operations
     }
     assert expected <= actual
 

@@ -23,9 +23,9 @@ os.environ.setdefault("KLYROW_SANDBOX_DOMAIN", "klyrow-sink.test")
 # follows this order, and importing the provider first would enter its expected
 # back-reference to ``main`` before the provider module has finished loading.
 from apps.gateway.app.main import (
+    SMTP_EVENT_MAP,
     Base,
     InboundRouteConfig,
-    SMTP_EVENT_MAP,
     Tenant,
 )
 from apps.gateway.app import provider
@@ -88,14 +88,9 @@ def test_installer_patches_live_provider_globals() -> None:
     install_provider_reconciliation_fixes()
     assert provider.middleware_destination_kind is middleware_destination_kind
     assert provider.middleware_inbound_eligible is middleware_inbound_eligible
-    assert (
-        provider.reconcile_provider_outbox_dead_letters
-        is reconcile_provider_outbox_dead_letters
-    )
+    assert provider.reconcile_provider_outbox_dead_letters is reconcile_provider_outbox_dead_letters
 
-    source = Path("apps/gateway/app/runtime_authority_fixes.py").read_text(
-        encoding="utf-8"
-    )
+    source = Path("apps/gateway/app/runtime_authority_fixes.py").read_text(encoding="utf-8")
     assert "install_provider_reconciliation_fixes" in source
     assert "install_provider_reconciliation_fixes()" in source
 
@@ -149,9 +144,7 @@ def test_legacy_odoo_event_is_replayable_not_skipped(isolated_session) -> None:
     isolated_session.add_all([route, inbound, event])
     isolated_session.flush()
 
-    decision, payload = provider._upgrade_legacy_inbound_event(
-        isolated_session, event
-    )
+    decision, payload = provider._upgrade_legacy_inbound_event(isolated_session, event)
 
     assert decision == "requeue"
     assert payload is not None
@@ -310,8 +303,7 @@ def test_reconciliation_advances_past_more_than_one_full_blocked_page(
     )
     assert all(
         isolated_session.get(ProviderEvent, item.id).state == "DEAD_LETTER"
-        and isolated_session.get(ProviderEvent, item.id).last_error
-        == BLOCKED_RECONCILIATION_MARKER
+        and isolated_session.get(ProviderEvent, item.id).last_error == BLOCKED_RECONCILIATION_MARKER
         for item in blocked
     )
 

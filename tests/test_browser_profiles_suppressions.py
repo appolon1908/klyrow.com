@@ -26,7 +26,8 @@ def test_m1a_browser_surface_is_tenant_scoped_and_complete():
         for route in app.routes
         if isinstance(route, APIRoute)
         for method in route.methods or ()
-        if route.path.startswith("/app/api/profiles") or route.path.startswith("/app/api/suppressions")
+        if route.path.startswith("/app/api/profiles")
+        or route.path.startswith("/app/api/suppressions")
     }
     assert effective == _routes()
 

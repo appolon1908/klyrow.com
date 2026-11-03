@@ -7,22 +7,22 @@ user selects another Keycloak identity at the prompt.
 
 from __future__ import annotations
 
-from datetime import timezone
+from datetime import UTC
 
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .main import Tenant, User
 from . import auth_bff, browser_security_fixes
 from .auth_bff import BrowserSession, OidcLoginTransaction
-from .main import Tenant, User
 from .tenancy import OidcIdentity, TenantMember
 
 
 def _as_utc(value):
     if value is None:
         return None
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 def resolve_existing_step_up_identity(
@@ -37,9 +37,7 @@ def resolve_existing_step_up_identity(
         raise HTTPException(401, "step_up_session_invalid")
 
     old_session = session.scalar(
-        select(BrowserSession)
-        .where(BrowserSession.id == old_session_id)
-        .with_for_update()
+        select(BrowserSession).where(BrowserSession.id == old_session_id).with_for_update()
     )
     expiry = _as_utc(old_session.expires_at) if old_session else None
     if (
@@ -99,9 +97,7 @@ def install_existing_step_up_identity_guard(app) -> None:
         False,
     ):
         return
-    browser_security_fixes._step_up_identity_context = (
-        resolve_existing_step_up_identity
-    )
+    browser_security_fixes._step_up_identity_context = resolve_existing_step_up_identity
     app.state.klyrow_existing_step_up_identity_guard_installed = True
 
 

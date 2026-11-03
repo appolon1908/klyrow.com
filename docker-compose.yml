@@ -44,6 +44,8 @@ services:
       KLYROW_SAFE_MODE: "true"
       KLYROW_PRODUCTION_GATE_APPROVED: "false"
       KLYROW_REQUIRE_LEAST_PRIVILEGE_DB: "true"
+      # Proxies whose X-Forwarded-* headers uvicorn honours (see .env.example).
+      KLYROW_FORWARDED_ALLOW_IPS: "${KLYROW_FORWARDED_ALLOW_IPS:-127.0.0.1,${KLYROW_FRONTEND_SUBNET:-172.28.0.0/24}}"
       LIVE_SMS_DELIVERY: "false"
       LIVE_EMAIL_DELIVERY: "false"
       EXTERNAL_SMS_DELIVERY: "false"
@@ -466,7 +468,12 @@ services:
       timeout: 5s
       retries: 5
 networks:
-  frontend: {}
+  # Pinned so KLYROW_FORWARDED_ALLOW_IPS can trust exactly this subnet (the
+  # web container and the host Nginx both reach the gateway through it).
+  frontend:
+    ipam:
+      config:
+        - subnet: "${KLYROW_FRONTEND_SUBNET:-172.28.0.0/24}"
   backend: {internal: true}
 volumes:
   postgres_data: {}

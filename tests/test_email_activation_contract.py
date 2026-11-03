@@ -1,16 +1,15 @@
 import json
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
-from fastapi.testclient import TestClient
 import pytest
 import yaml
+from fastapi.testclient import TestClient
 
 from apps.gateway.app import main, service_worker
 from apps.gateway.app.delivery_safety import DISABLED_EMAIL_CONTROLS, LIVE_EMAIL_CONTROLS
 from apps.gateway.app.email_activation_contract import EMAIL_COMPONENTS, validate_email_activation
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,7 +24,14 @@ def compose(live=False):
 
 
 def runtime(live=False):
-    return [{"Name": "/klyrow-" + name + "-1", "Config": {"Env": [k + "=" + v for k, v in environment(live).items()]}, "State": {"Status": "running"}} for name in EMAIL_COMPONENTS]
+    return [
+        {
+            "Name": "/klyrow-" + name + "-1",
+            "Config": {"Env": [k + "=" + v for k, v in environment(live).items()]},
+            "State": {"Status": "running"},
+        }
+        for name in EMAIL_COMPONENTS
+    ]
 
 
 @pytest.mark.parametrize("live", [False, True])
@@ -118,21 +124,35 @@ def test_shared_overlay_updates_every_component_and_preserves_unrelated_settings
     assert base["services"]["gateway"]["environment"]["LIVE_SMS_DELIVERY"] == "false"
 
 
-@pytest.mark.parametrize("document,code", [(compose(), 0), (compose(True), 0), ({"services": {}}, 1)])
+@pytest.mark.parametrize(
+    "document,code", [(compose(), 0), (compose(True), 0), ({"services": {}}, 1)]
+)
 def test_cli_returns_machine_readable_result(document, code):
-    result = subprocess.run([sys.executable, str(ROOT / "scripts/verify-email-activation")], input=json.dumps(document), capture_output=True, text=True)
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/verify-email-activation")],
+        input=json.dumps(document),
+        capture_output=True,
+        text=True,
+    )
     assert result.returncode == code, result.stderr
     assert json.loads(result.stdout)["configuration_consistent"] == (code == 0)
 
 
 def test_cli_does_not_echo_malformed_sensitive_input():
-    result = subprocess.run([sys.executable, str(ROOT / "scripts/verify-email-activation")], input='{"secret": "PRIVATE', capture_output=True, text=True)
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/verify-email-activation")],
+        input='{"secret": "PRIVATE',
+        capture_output=True,
+        text=True,
+    )
     assert result.returncode == 2
     assert "PRIVATE" not in result.stdout + result.stderr
 
 
 def test_activation_api_requires_platform_admin(monkeypatch):
-    monkeypatch.setattr(main.app, "dependency_overrides", {main.auth: lambda: {"role": "tenant_admin"}})
+    monkeypatch.setattr(
+        main.app, "dependency_overrides", {main.auth: lambda: {"role": "tenant_admin"}}
+    )
     client = TestClient(main.app)
     assert client.get("/v1/admin/delivery/activation").status_code == 403
     main.app.dependency_overrides[main.auth] = lambda: {"role": "platform_admin"}
@@ -167,10 +187,13 @@ def test_worker_health_reports_its_own_activation_without_sending_mail(monkeypat
     class Writer:
         def write(self, value):
             self.value = value
+
         async def drain(self):
             pass
+
         def close(self):
             pass
+
         async def wait_closed(self):
             pass
 

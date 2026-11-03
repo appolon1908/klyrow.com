@@ -1,4 +1,5 @@
 """Durable, idempotent dunning schedule decisions."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,7 +23,9 @@ class DunningDecision:
     event_key: str
 
 
-def decide(*, invoice_id: str, due_at: datetime, now: datetime, attempt: int, policy: DunningPolicy) -> DunningDecision:
+def decide(
+    *, invoice_id: str, due_at: datetime, now: datetime, attempt: int, policy: DunningPolicy
+) -> DunningDecision:
     overdue_days = max(0, (now - due_at).days)
     if overdue_days >= policy.suspend_days:
         state = "SUSPENDED"
@@ -31,4 +34,8 @@ def decide(*, invoice_id: str, due_at: datetime, now: datetime, attempt: int, po
     else:
         state = "PAST_DUE"
     next_attempt_at = None if state == "SUSPENDED" else now + timedelta(days=max(1, attempt))
-    return DunningDecision(state=state, next_attempt_at=next_attempt_at, event_key=f"dunning:{invoice_id}:{state}:{attempt}")
+    return DunningDecision(
+        state=state,
+        next_attempt_at=next_attempt_at,
+        event_key=f"dunning:{invoice_id}:{state}:{attempt}",
+    )

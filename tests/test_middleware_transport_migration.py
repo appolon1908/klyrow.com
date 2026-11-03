@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).parents[1]
 CANONICAL = "https://middleware-email-events.internal.codestra.agency:18080"
 OVERLAY = "deploy/docker-compose.middleware-mtls.yml"
@@ -60,18 +59,14 @@ def test_every_standard_compose_path_applies_the_mtls_overlay():
 
     overlay = (ROOT / OVERLAY).read_text(encoding="utf-8")
     assert overlay.count(f"KLYROW_MIDDLEWARE_URL: {CANONICAL}") == 2
-    assert overlay.count(
-        f"KLYROW_EMAIL_EVENT_URL: {CANONICAL}/internal/provider-events/klyrow"
-    ) == 2
-    assert overlay.count(
-        '"middleware-email-events.internal.codestra.agency:10.40.0.1"'
-    ) == 2
+    assert (
+        overlay.count(f"KLYROW_EMAIL_EVENT_URL: {CANONICAL}/internal/provider-events/klyrow") == 2
+    )
+    assert overlay.count('"middleware-email-events.internal.codestra.agency:10.40.0.1"') == 2
 
 
 def test_systemd_delegates_to_the_governed_launchers():
-    service = (ROOT / "config/systemd/klyrow-stack.service").read_text(
-        encoding="utf-8"
-    )
+    service = (ROOT / "config/systemd/klyrow-stack.service").read_text(encoding="utf-8")
     assert "ExecStart=/root/klyrow.com/scripts/start" in service
     assert "ExecStop=/root/klyrow.com/scripts/stop" in service
     assert "docker compose" not in service

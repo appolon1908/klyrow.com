@@ -1,10 +1,11 @@
 """Explicit invitation selection and one-time invitation delivery for browser users."""
+
 from __future__ import annotations
 
 import os
 import secrets
 import uuid
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,11 +13,17 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .main import Tenant, User, audit, db, ph
 from . import auth_bff, tenancy_onboarding
 from .auth_bff import BrowserSession, browser_context, csrf_guard
-from .main import Tenant, User, audit, db, ph
 from .saas import Onboarding
-from .tenancy import OidcIdentity, TenantInvitation, TenantMember, validate_role
+from .tenancy import (
+    OidcIdentity,
+    TenantInvitation,
+    TenantMember,
+    assert_role_assignable,
+    validate_role,
+)
 
 router = APIRouter(tags=["Browser invitations"])
 _INSTALLED = False
@@ -29,9 +36,8 @@ def install_invitation_extensions() -> None:
     if _INSTALLED:
         return
     for route in list(tenancy_onboarding.router.routes):
-        if (
-            getattr(route, "path", "") == "/app/api/team/invitations"
-            and "POST" in getattr(route, "methods", set())
+        if getattr(route, "path", "") == "/app/api/team/invitations" and "POST" in getattr(
+            route, "methods", set()
         ):
             tenancy_onboarding.router.routes.remove(route)
     _INSTALLED = True
@@ -55,7 +61,7 @@ def _valid_selected_invitation(
         raise HTTPException(410, "invitation_invalid_or_expired")
     expiry = invitation.expires_at
     if expiry.tzinfo is None:
-        expiry = expiry.replace(tzinfo=timezone.utc)
+        expiry = expiry.replace(tzinfo=UTC)
     if expiry <= tenancy_onboarding.now():
         raise HTTPException(410, "invitation_invalid_or_expired")
     tenant = session.get(Tenant, invitation.tenant_id)
@@ -136,9 +142,7 @@ def resolve_selected_identity_context(
         if not user or not user.enabled:
             raise HTTPException(403, "account_disabled")
         tenancy_onboarding._profile(session, identity, claims)
-        membership = _accept_selected_invitation(
-            session, identity, user, claims, invitation_id
-        )
+        membership = _accept_selected_invitation(session, identity, user, claims, invitation_id)
         audit(
             session,
             {"tenant": membership.tenant_id, "sub": user.id},
@@ -176,9 +180,7 @@ def resolve_selected_identity_context(
     session.add_all([placeholder_tenant, user, identity])
     session.flush()
     tenancy_onboarding._profile(session, identity, claims)
-    membership = _accept_selected_invitation(
-        session, identity, user, claims, invitation_id
-    )
+    membership = _accept_selected_invitation(session, identity, user, claims, invitation_id)
     session.delete(placeholder_tenant)
     audit(
         session,
@@ -200,6 +202,7 @@ def browser_invite(
 
     tenancy_onboarding._require_management(ctx)
     role = validate_role(payload.role)
+    assert_role_assignable(ctx["role"], role)
     raw = secrets.token_urlsafe(32)
     item = TenantInvitation(
         id=str(uuid.uuid4()),
@@ -207,8 +210,7 @@ def browser_invite(
         email=payload.email.lower(),
         role=role,
         token_hash=auth_bff.sha(raw),
-        expires_at=tenancy_onboarding.now()
-        + timedelta(hours=payload.expires_hours),
+        expires_at=tenancy_onboarding.now() + timedelta(hours=payload.expires_hours),
         created_by=ctx["sub"],
     )
     session.add(item)

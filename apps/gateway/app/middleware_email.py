@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -34,7 +34,7 @@ class EmailCommandBinding(core.Base):
     request_hash: Mapped[str] = mapped_column(String)
     correlation_id: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
 
@@ -82,12 +82,20 @@ def _read(binding: EmailCommandBinding, ctx: dict, session: Session) -> dict:
     key = core.scoped_idempotency_key(
         ctx, _message_key(binding), action="message.send", resource="messages"
     )
-    prior = session.scalar(select(core.Idempotency).where(
-        core.Idempotency.key == key, core.Idempotency.tenant_id == ctx["tenant"]
-    ))
-    message = session.scalar(select(core.Message).where(
-        core.Message.id == prior.resource_id, core.Message.tenant_id == ctx["tenant"]
-    )) if prior else None
+    prior = session.scalar(
+        select(core.Idempotency).where(
+            core.Idempotency.key == key, core.Idempotency.tenant_id == ctx["tenant"]
+        )
+    )
+    message = (
+        session.scalar(
+            select(core.Message).where(
+                core.Message.id == prior.resource_id, core.Message.tenant_id == ctx["tenant"]
+            )
+        )
+        if prior
+        else None
+    )
     if message is None:
         raise HTTPException(503, "email_command_result_unavailable")
     return {
@@ -103,10 +111,13 @@ def _read(binding: EmailCommandBinding, ctx: dict, session: Session) -> dict:
 
 
 @router.post(
-    "/v1/email/messages", status_code=202,
-    openapi_extra={"requestBody": {"content": {"application/json": {
-        "schema": EmailCommand.model_json_schema()
-    }}}},
+    "/v1/email/messages",
+    status_code=202,
+    openapi_extra={
+        "requestBody": {
+            "content": {"application/json": {"schema": EmailCommand.model_json_schema()}}
+        }
+    },
 )
 async def submit(
     payload: dict[str, Any],
@@ -155,33 +166,46 @@ async def submit(
 
     # The tenant lock serializes duplicate command/key reservations and is held
     # until _send commits the binding, message, usage and native idempotency row.
-    tenant = session.scalar(select(core.Tenant).where(
-        core.Tenant.id == ctx["tenant"]
-    ).with_for_update())
+    tenant = session.scalar(
+        select(core.Tenant).where(core.Tenant.id == ctx["tenant"]).with_for_update()
+    )
     if not tenant or not tenant.enabled:
         raise HTTPException(403, "tenant_suspended")
     identity = _identity(ctx, command.message_id, "middleware.email.command")
     idem = _identity(ctx, idempotency_key, "middleware.email.idempotency")
-    digest = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
     binding = session.get(EmailCommandBinding, identity)
-    reused_key = session.scalar(select(EmailCommandBinding).where(
-        EmailCommandBinding.idempotency_identity == idem
-    ))
+    reused_key = session.scalar(
+        select(EmailCommandBinding).where(EmailCommandBinding.idempotency_identity == idem)
+    )
     if binding or reused_key:
         if (
-            binding is None or reused_key is None or binding.id != reused_key.id
-            or binding.request_hash != digest or binding.correlation_id != x_correlation_id
+            binding is None
+            or reused_key is None
+            or binding.id != reused_key.id
+            or binding.request_hash != digest
+            or binding.correlation_id != x_correlation_id
         ):
             raise HTTPException(409, "email_command_identity_conflict")
         return _read(binding, ctx, session)
 
     binding = EmailCommandBinding(
-        id=identity, tenant_id=ctx["tenant"], command_id=command.message_id,
-        idempotency_identity=idem, request_hash=digest, correlation_id=x_correlation_id,
+        id=identity,
+        tenant_id=ctx["tenant"],
+        command_id=command.message_id,
+        idempotency_identity=idem,
+        request_hash=digest,
+        correlation_id=x_correlation_id,
     )
     message = core.MailIn(
-        sender=command.sender, to=command.recipients[0], reply_to=command.reply_to,
-        subject=command.subject, text=command.text, html=command.html or "",
+        sender=command.sender,
+        to=command.recipients[0],
+        reply_to=command.reply_to,
+        subject=command.subject,
+        text=command.text,
+        html=command.html or "",
         stream="system" if command.stream == "operational" else "transactional",
         callback_metadata={"operation_id": command.message_id, "correlation_id": x_correlation_id},
     )
@@ -211,7 +235,9 @@ def readback(
     session: Session = Depends(core.db),
 ) -> dict:
     _authorize(ctx, read=True)
-    binding = session.get(EmailCommandBinding, _identity(ctx, command_id, "middleware.email.command"))
+    binding = session.get(
+        EmailCommandBinding, _identity(ctx, command_id, "middleware.email.command")
+    )
     if binding is None or binding.tenant_id != ctx["tenant"]:
         raise HTTPException(404, "not_found")
     return _read(binding, ctx, session)

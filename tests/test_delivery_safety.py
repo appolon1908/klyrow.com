@@ -17,33 +17,25 @@ def set_controls(monkeypatch, *, safe_mode, approved, live_delivery):
 
 
 def test_safe_mode_blocks_delivery_even_with_other_controls_enabled(monkeypatch):
-    set_controls(
-        monkeypatch, safe_mode="true", approved="true", live_delivery="true"
-    )
+    set_controls(monkeypatch, safe_mode="true", approved="true", live_delivery="true")
     assert safe_mode_enabled() is True
     assert live_email_delivery_enabled() is False
 
 
 def test_disabled_delivery_flag_blocks_delivery(monkeypatch):
-    set_controls(
-        monkeypatch, safe_mode="false", approved="true", live_delivery="false"
-    )
+    set_controls(monkeypatch, safe_mode="false", approved="true", live_delivery="false")
     assert safe_mode_enabled() is True
     assert live_email_delivery_enabled() is False
 
 
 def test_gate_approval_alone_cannot_open_delivery(monkeypatch):
-    set_controls(
-        monkeypatch, safe_mode="true", approved="true", live_delivery="false"
-    )
+    set_controls(monkeypatch, safe_mode="true", approved="true", live_delivery="false")
     assert safe_mode_enabled() is True
     assert live_email_delivery_enabled() is False
 
 
 def test_delivery_requires_all_five_explicit_controls(monkeypatch):
-    set_controls(
-        monkeypatch, safe_mode="false", approved="true", live_delivery="true"
-    )
+    set_controls(monkeypatch, safe_mode="false", approved="true", live_delivery="true")
     assert safe_mode_enabled() is False
     assert live_email_delivery_enabled() is True
 
@@ -57,13 +49,17 @@ def test_each_control_can_close_the_live_gate(monkeypatch, name, value):
         monkeypatch.delenv(name)
     else:
         # For the inverse SAFE_MODE switch, true is the blocking value.
-        monkeypatch.setenv(name, "true" if name == "KLYROW_SAFE_MODE" and value == "false" else value)
+        monkeypatch.setenv(
+            name, "true" if name == "KLYROW_SAFE_MODE" and value == "false" else value
+        )
     assert live_email_delivery_enabled() is False
     assert safe_mode_enabled() is True
 
 
 def test_normalized_controls_and_unrelated_environment_never_leak():
-    env = {name: "  " + str(expected).upper() + "  " for name, expected in LIVE_EMAIL_CONTROLS.items()}
+    env = {
+        name: "  " + str(expected).upper() + "  " for name, expected in LIVE_EMAIL_CONTROLS.items()
+    }
     env["SECRET_TOKEN"] = "do-not-report-this-value"
     result = email_activation_status(env)
     assert result["live_delivery_enabled"] is True

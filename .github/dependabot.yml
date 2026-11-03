@@ -1,0 +1,128 @@
+# Dependabot configuration (M0-05).
+# Weekly runs on Monday 06:00 America/La_Paz, minor+patch grouped per ecosystem,
+# conventional "chore(deps)" commit prefix. See docs/operations/dependency-updates.md.
+version: 2
+updates:
+  # --- pip: gateway runtime closure --------------------------------------
+  # apps/gateway/requirements.txt pins the FULL transitive closure and the
+  # image installs it with `pip install --no-deps`. Any Dependabot PR here must
+  # re-run `pip check` and keep the closure complete (add/bump transitive pins
+  # the new version requires); otherwise the CI image build fails.
+  - package-ecosystem: "pip"
+    directory: "/apps/gateway"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/La_Paz"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      gateway-pip-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # --- pip: repo-level dev tooling (requirements-dev.txt, added by M0-01) --
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/La_Paz"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      dev-pip-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # --- npm: web app (pnpm lockfile) ---------------------------------------
+  - package-ecosystem: "npm"
+    directory: "/apps/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/La_Paz"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      web-npm-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # --- npm: contract validation tooling (npm lockfile) --------------------
+  - package-ecosystem: "npm"
+    directory: "/tools/contracts"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/La_Paz"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      contracts-npm-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # --- docker: base images (digest-pinned) --------------------------------
+  # Dependabot matches Dockerfile, *.Dockerfile and Dockerfile.* in each listed
+  # directory (no recursion), so /docker is listed explicitly.
+  - package-ecosystem: "docker"
+    directory: "/apps/gateway"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/La_Paz"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      gateway-docker-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "docker"
+    directory: "/apps/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/La_Paz"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      web-docker-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/La_Paz"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      docker-dir-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # --- github-actions: workflow actions (SHA-pinned) ----------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "America/La_Paz"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
