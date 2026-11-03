@@ -1,4 +1,5 @@
 """Leased and fenced delivery of immutable Klyrow events to Middleware."""
+
 from __future__ import annotations
 
 import email.utils
@@ -10,8 +11,8 @@ import random
 import ssl
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Literal, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Literal
 from urllib.parse import urlsplit
 
 import httpx
@@ -19,26 +20,56 @@ from prometheus_client import Counter, Gauge
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import func, select
 
-from .business_events import BusinessEventOutbox, EventEnvelope, utcnow
 from .main import platform_metric
+from .business_events import BusinessEventOutbox, EventEnvelope, utcnow
 from .telemetry import traced
 
-
-PUBLISH_TOTAL = platform_metric(Counter(
-    "klyrow_business_event_publish_total",
-    "Klyrow business event publication outcomes",
-    ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "outcome"],
-))
-OUTBOX_READY = platform_metric(Gauge(
-    "klyrow_business_event_outbox_ready",
-    "Klyrow business events ready to publish",
-    ["codestra_business", "application", "service", "environment", "server", "region", "deployment"],
-))
-OUTBOX_DEAD = platform_metric(Gauge(
-    "klyrow_business_event_outbox_dead_letter",
-    "Klyrow business events in durable dead-letter state",
-    ["codestra_business", "application", "service", "environment", "server", "region", "deployment"],
-))
+PUBLISH_TOTAL = platform_metric(
+    Counter(
+        "klyrow_business_event_publish_total",
+        "Klyrow business event publication outcomes",
+        [
+            "codestra_business",
+            "application",
+            "service",
+            "environment",
+            "server",
+            "region",
+            "deployment",
+            "outcome",
+        ],
+    )
+)
+OUTBOX_READY = platform_metric(
+    Gauge(
+        "klyrow_business_event_outbox_ready",
+        "Klyrow business events ready to publish",
+        [
+            "codestra_business",
+            "application",
+            "service",
+            "environment",
+            "server",
+            "region",
+            "deployment",
+        ],
+    )
+)
+OUTBOX_DEAD = platform_metric(
+    Gauge(
+        "klyrow_business_event_outbox_dead_letter",
+        "Klyrow business events in durable dead-letter state",
+        [
+            "codestra_business",
+            "application",
+            "service",
+            "environment",
+            "server",
+            "region",
+            "deployment",
+        ],
+    )
+)
 
 RETRYABLE_STATUSES = frozenset({408, 429, 500, 502, 503, 504})
 
@@ -53,8 +84,8 @@ class MiddlewareAccepted(BaseModel):
 class DeliveryResult:
     accepted: bool
     retryable: bool
-    error: Optional[str] = None
-    retry_after_seconds: Optional[float] = None
+    error: str | None = None
+    retry_after_seconds: float | None = None
 
 
 @dataclass(frozen=True)
@@ -106,17 +137,14 @@ def _tls_context() -> ssl.SSLContext:
     private_key = os.getenv("KLYROW_BUSINESS_EVENTS_CLIENT_KEY_FILE")
     if bool(certificate) != bool(private_key):
         raise ValueError("business_events_mtls_pair_required")
-    if (
-        os.getenv("KLYROW_ENV", "development").strip().lower() == "production"
-        and not certificate
-    ):
+    if os.getenv("KLYROW_ENV", "development").strip().lower() == "production" and not certificate:
         raise ValueError("business_events_production_mtls_required")
     if certificate:
         context.load_cert_chain(certificate, private_key)
     return context
 
 
-def retry_after_seconds(value: Optional[str], now: Optional[datetime] = None) -> Optional[float]:
+def retry_after_seconds(value: str | None, now: datetime | None = None) -> float | None:
     if not value:
         return None
     value = value.strip()
@@ -127,11 +155,11 @@ def retry_after_seconds(value: Optional[str], now: Optional[datetime] = None) ->
     except (TypeError, ValueError, OverflowError):
         return None
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
     return min(max(0.0, (parsed - (now or utcnow())).total_seconds()), 86_400.0)
 
 
-def backoff_seconds(attempt_count: int, retry_after: Optional[float] = None) -> float:
+def backoff_seconds(attempt_count: int, retry_after: float | None = None) -> float:
     base = _integer_setting("KLYROW_BUSINESS_EVENTS_BACKOFF_BASE_SECONDS", 2, 1, 300)
     cap = _integer_setting("KLYROW_BUSINESS_EVENTS_BACKOFF_CAP_SECONDS", 900, base, 86_400)
     exponential = min(float(cap), float(base * (2 ** max(0, attempt_count - 1))))
@@ -140,7 +168,7 @@ def backoff_seconds(attempt_count: int, retry_after: Optional[float] = None) -> 
 
 
 def operation_id_for_event(event_id: str) -> str:
-    digest = hashlib.sha256(f"klyrow\0{event_id}".encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(f"klyrow\0{event_id}".encode()).hexdigest()
     return "op_" + digest[:32]
 
 
@@ -148,7 +176,7 @@ def classify_response(
     response: httpx.Response,
     *,
     expected_operation_id: str,
-    now: Optional[datetime] = None,
+    now: datetime | None = None,
 ) -> DeliveryResult:
     retry_after = retry_after_seconds(response.headers.get("Retry-After"), now)
     if response.status_code in RETRYABLE_STATUSES:
@@ -171,10 +199,18 @@ def _claim(limit: int, now: datetime, lease_seconds: int, max_attempts: int) -> 
     from .main import DB
 
     with DB() as session:
-        expired = list(session.scalars(select(BusinessEventOutbox).where(
-            BusinessEventOutbox.state == "LEASED",
-            BusinessEventOutbox.lease_expires_at < now,
-        ).order_by(BusinessEventOutbox.created_at).with_for_update(skip_locked=True).limit(limit)))
+        expired = list(
+            session.scalars(
+                select(BusinessEventOutbox)
+                .where(
+                    BusinessEventOutbox.state == "LEASED",
+                    BusinessEventOutbox.lease_expires_at < now,
+                )
+                .order_by(BusinessEventOutbox.created_at)
+                .with_for_update(skip_locked=True)
+                .limit(limit)
+            )
+        )
         for item in expired:
             item.state = "DEAD_LETTER" if item.attempt_count >= max_attempts else "RETRYING"
             item.next_attempt_at = now
@@ -183,11 +219,18 @@ def _claim(limit: int, now: datetime, lease_seconds: int, max_attempts: int) -> 
             item.last_error = "business_event_lease_expired"
         session.flush()
 
-        candidates = list(session.scalars(select(BusinessEventOutbox).where(
-            BusinessEventOutbox.state.in_(("PENDING", "RETRYING")),
-            BusinessEventOutbox.next_attempt_at <= now,
-        ).order_by(BusinessEventOutbox.created_at, BusinessEventOutbox.id)
-          .with_for_update(skip_locked=True).limit(limit)))
+        candidates = list(
+            session.scalars(
+                select(BusinessEventOutbox)
+                .where(
+                    BusinessEventOutbox.state.in_(("PENDING", "RETRYING")),
+                    BusinessEventOutbox.next_attempt_at <= now,
+                )
+                .order_by(BusinessEventOutbox.created_at, BusinessEventOutbox.id)
+                .with_for_update(skip_locked=True)
+                .limit(limit)
+            )
+        )
         leases: list[Lease] = []
         for item in candidates:
             owner = "bev_" + uuid.uuid4().hex
@@ -196,18 +239,20 @@ def _claim(limit: int, now: datetime, lease_seconds: int, max_attempts: int) -> 
             item.attempt_count += 1
             item.lease_owner = owner
             item.lease_expires_at = expires
-            leases.append(Lease(
-                row_id=item.id,
-                event_id=item.event_id,
-                tenant_id=item.tenant_id,
-                payload=item.payload,
-                payload_hash=item.payload_hash,
-                correlation_id=item.correlation_id,
-                trace_context=item.trace_context,
-                attempt_count=item.attempt_count,
-                lease_owner=owner,
-                lease_expires_at=expires,
-            ))
+            leases.append(
+                Lease(
+                    row_id=item.id,
+                    event_id=item.event_id,
+                    tenant_id=item.tenant_id,
+                    payload=item.payload,
+                    payload_hash=item.payload_hash,
+                    correlation_id=item.correlation_id,
+                    trace_context=item.trace_context,
+                    attempt_count=item.attempt_count,
+                    lease_owner=owner,
+                    lease_expires_at=expires,
+                )
+            )
         session.commit()
     return leases
 
@@ -218,14 +263,18 @@ def _complete(lease: Lease, result: DeliveryResult, max_attempts: int) -> bool:
 
     completed_at = utcnow()
     with DB() as session:
-        item = session.scalar(select(BusinessEventOutbox).where(
-            BusinessEventOutbox.id == lease.row_id,
-            BusinessEventOutbox.state == "LEASED",
-            BusinessEventOutbox.lease_owner == lease.lease_owner,
-            BusinessEventOutbox.attempt_count == lease.attempt_count,
-            BusinessEventOutbox.lease_expires_at == lease.lease_expires_at,
-            BusinessEventOutbox.lease_expires_at > completed_at,
-        ).with_for_update())
+        item = session.scalar(
+            select(BusinessEventOutbox)
+            .where(
+                BusinessEventOutbox.id == lease.row_id,
+                BusinessEventOutbox.state == "LEASED",
+                BusinessEventOutbox.lease_owner == lease.lease_owner,
+                BusinessEventOutbox.attempt_count == lease.attempt_count,
+                BusinessEventOutbox.lease_expires_at == lease.lease_expires_at,
+                BusinessEventOutbox.lease_expires_at > completed_at,
+            )
+            .with_for_update()
+        )
         if item is None:
             PUBLISH_TOTAL.labels("fenced").inc()
             return False
@@ -273,7 +322,7 @@ async def _deliver(
         return DeliveryResult(False, False, "business_event_payload_invalid")
     body = lease.payload.encode("utf-8")
     timestamp = str(int(utcnow().timestamp()))
-    canonical = f"{timestamp}\n{event.id}\nklyrow\n".encode("utf-8") + body
+    canonical = f"{timestamp}\n{event.id}\nklyrow\n".encode() + body
     signature = hmac.new(hmac_secret, canonical, hashlib.sha256).hexdigest()
     headers = {
         "Authorization": "Bearer " + credential,
@@ -283,10 +332,13 @@ async def _deliver(
         "X-Correlation-Id": event.correlation_id,
         "Idempotency-Key": event.id,
     }
-    headers.update({
-        key: value for key, value in stored_trace.items()
-        if key.lower() in {"traceparent", "tracestate"} and isinstance(value, str)
-    })
+    headers.update(
+        {
+            key: value
+            for key, value in stored_trace.items()
+            if key.lower() in {"traceparent", "tracestate"} and isinstance(value, str)
+        }
+    )
     try:
         with traced("business event publish", stored_trace):
             async with httpx.AsyncClient(
@@ -295,10 +347,14 @@ async def _deliver(
                 trust_env=False,
                 verify=tls,
             ) as client:
-                response = await client.post(endpoint, content=body, headers={
-                    **headers,
-                    "Content-Type": "application/json",
-                })
+                response = await client.post(
+                    endpoint,
+                    content=body,
+                    headers={
+                        **headers,
+                        "Content-Type": "application/json",
+                    },
+                )
         return classify_response(
             response,
             expected_operation_id=operation_id_for_event(event.id),
@@ -311,12 +367,16 @@ def refresh_metrics() -> None:
     from .main import DB
 
     with DB() as session:
-        ready = session.scalar(select(func.count()).select_from(BusinessEventOutbox).where(
-            BusinessEventOutbox.state.in_(("PENDING", "RETRYING"))
-        ))
-        dead = session.scalar(select(func.count()).select_from(BusinessEventOutbox).where(
-            BusinessEventOutbox.state == "DEAD_LETTER"
-        ))
+        ready = session.scalar(
+            select(func.count())
+            .select_from(BusinessEventOutbox)
+            .where(BusinessEventOutbox.state.in_(("PENDING", "RETRYING")))
+        )
+        dead = session.scalar(
+            select(func.count())
+            .select_from(BusinessEventOutbox)
+            .where(BusinessEventOutbox.state == "DEAD_LETTER")
+        )
     OUTBOX_READY.set(int(ready or 0))
     OUTBOX_DEAD.set(int(dead or 0))
 

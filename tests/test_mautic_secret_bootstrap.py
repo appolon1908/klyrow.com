@@ -1,8 +1,6 @@
-import os
 from pathlib import Path
 
 import pytest
-
 from test_middleware_transport_migration import _migration_module
 
 
@@ -16,23 +14,33 @@ def migration(tmp_path, monkeypatch):
     monkeypatch.setattr(module.os, "geteuid", lambda: 0)
     # Non-root CI cannot chown; assert requested ownership without changing it.
     ownership = []
-    monkeypatch.setattr(module.os, "chown", lambda path, uid, gid: ownership.append((Path(path), uid, gid)))
+    monkeypatch.setattr(
+        module.os, "chown", lambda path, uid, gid: ownership.append((Path(path), uid, gid))
+    )
     return module, tmp_path, ownership
 
 
 @pytest.mark.parametrize("provided", [False, True])
 def test_mautic_bootstrap_is_private_silent_and_idempotent(migration, capsys, provided):
     module, root, ownership = migration
-    values = {"KLYROW_MAUTIC_API_CLIENT_ID": "synthetic-client-id",
-              "KLYROW_MAUTIC_API_CLIENT_SECRET": "synthetic-client-secret"} if provided else {}
+    values = (
+        {
+            "KLYROW_MAUTIC_API_CLIENT_ID": "synthetic-client-id",
+            "KLYROW_MAUTIC_API_CLIENT_SECRET": "synthetic-client-secret",
+        }
+        if provided
+        else {}
+    )
     env = root / ".env"
     env.write_text("\n".join(f"{key}={value}" for key, value in values.items()) + "\n")
     module.main()
     first = env.read_bytes()
     module.main()
     assert env.read_bytes() == first
-    for name, basename in (("KLYROW_MAUTIC_API_CLIENT_ID", "mautic-api-client-id"),
-                           ("KLYROW_MAUTIC_API_CLIENT_SECRET", "mautic-api-client-secret")):
+    for name, basename in (
+        ("KLYROW_MAUTIC_API_CLIENT_ID", "mautic-api-client-id"),
+        ("KLYROW_MAUTIC_API_CLIENT_SECRET", "mautic-api-client-secret"),
+    ):
         target = root / "secrets" / basename
         assert target.read_text() == values.get(name, "")
         assert target.stat().st_mode & 0o777 == 0o600
@@ -83,8 +91,10 @@ def test_incomplete_secret_write_never_installs_empty_authority(migration, monke
     directory.mkdir()
     target = directory / "mautic-api-client-secret"
     real_fsync = module.os.fsync
+
     def full_disk(_descriptor):
         raise OSError("synthetic disk full")
+
     monkeypatch.setattr(module.os, "fsync", full_disk)
     with pytest.raises(OSError):
         module.create_secret_file(target, "synthetic-legacy-credential")
@@ -123,6 +133,7 @@ def test_atomic_install_does_not_overwrite_a_concurrent_winner(migration):
 
 def test_durable_keyring_bootstrap_is_private_and_never_rotates_on_repeat(migration):
     from apps.gateway.app.durable_keys import KEYRING_ENV, load_keyring
+
     module, root, ownership = migration
     env = root / ".env"
     env.write_text("")
@@ -145,14 +156,17 @@ def test_invalid_durable_keyring_cannot_be_silently_replaced(migration):
     env = root / ".env"
     original = f"KLYROW_DURABLE_RESULT_KEYRING_FILE={path}\n"
     env.write_text(original)
-    with pytest.raises(SystemExit): module.main()
+    with pytest.raises(SystemExit):
+        module.main()
     assert env.read_text() == original
     assert path.read_text() == "corrupt-authority"
 
 
 def test_generate_env_bootstrap_then_configured_migration_preserves_key(migration, monkeypatch):
     import sys
+
     from apps.gateway.app.durable_keys import KEYRING_ENV, load_keyring
+
     module, root, _ = migration
     path = root / "secrets/durable-result-keyring.json"
     path.parent.mkdir()
@@ -179,7 +193,8 @@ def test_missing_configured_default_keyring_is_not_silently_replaced(migration):
     path = root / "secrets/durable-result-keyring.json"
     original = f"KLYROW_DURABLE_RESULT_KEYRING_FILE={path}\n"
     (root / ".env").write_text(original)
-    with pytest.raises(SystemExit): module.main()
+    with pytest.raises(SystemExit):
+        module.main()
     assert not path.exists()
     assert (root / ".env").read_text() == original
 
@@ -189,11 +204,15 @@ def test_missing_custom_keyring_does_not_invent_authority(migration):
     path = root / "approved-but-missing-keyring"
     original = f"KLYROW_DURABLE_RESULT_KEYRING_FILE={path}\n"
     (root / ".env").write_text(original)
-    with pytest.raises(SystemExit): module.main()
+    with pytest.raises(SystemExit):
+        module.main()
     assert not path.exists()
     assert (root / ".env").read_text() == original
 
 
 def test_generate_env_rewrites_the_keyring_to_the_selected_secret_directory():
     text = (Path(__file__).resolve().parents[1] / "scripts/generate-env").read_text()
-    assert "s|KLYROW_DURABLE_RESULT_KEYRING_FILE=.*|KLYROW_DURABLE_RESULT_KEYRING_FILE=$runtime_secret_dir/durable-result-keyring.json|" in text
+    assert (
+        "s|KLYROW_DURABLE_RESULT_KEYRING_FILE=.*|KLYROW_DURABLE_RESULT_KEYRING_FILE=$runtime_secret_dir/durable-result-keyring.json|"
+        in text
+    )

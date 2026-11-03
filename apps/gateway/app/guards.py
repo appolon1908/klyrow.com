@@ -7,13 +7,20 @@ are registered by those modules during application startup.
 
 import json
 import os
-from typing import Optional
+from datetime import UTC
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
 
-
-HARD_SUPPRESSION_REASONS = {"hard_bounce", "complaint", "bounced", "complained", "invalid", "abuse", "policy"}
+HARD_SUPPRESSION_REASONS = {
+    "hard_bounce",
+    "complaint",
+    "bounced",
+    "complained",
+    "invalid",
+    "abuse",
+    "policy",
+}
 
 
 def stream_priority(stream: str) -> int:
@@ -46,7 +53,7 @@ def enforce_suppression(
     tenant_id: str,
     email: str,
     stream: str,
-    campaign_id: Optional[str] = None,
+    campaign_id: str | None = None,
 ) -> None:
     """Apply purpose-scoped suppression consistently on all send paths."""
 
@@ -55,9 +62,7 @@ def enforce_suppression(
     normalized_stream = stream.lower()
     normalized_email = email.lower()
     item = suppression_record(s, tenant_id, normalized_email)
-    if item and (
-        item.reason in HARD_SUPPRESSION_REASONS or normalized_stream == "marketing"
-    ):
+    if item and (item.reason in HARD_SUPPRESSION_REASONS or normalized_stream == "marketing"):
         raise HTTPException(422, "recipient_suppressed")
     if normalized_stream == "marketing" and campaign_id:
         scoped = s.scalar(
@@ -124,7 +129,9 @@ def _enforce_sandbox_recipient(s, tenant_id: str, recipient: str, sandbox: bool)
     if not policy:
         return
     try:
-        allowed = {str(value).lower() for value in json.loads(policy.allowed_test_recipients_json or "[]")}
+        allowed = {
+            str(value).lower() for value in json.loads(policy.allowed_test_recipients_json or "[]")
+        }
     except (TypeError, ValueError):
         raise HTTPException(503, "sandbox_recipient_policy_invalid")
     sink_domain = os.getenv("KLYROW_SANDBOX_DOMAIN", "klyrow-sink.test").lower()
@@ -136,15 +143,44 @@ def _enforce_sandbox_recipient(s, tenant_id: str, recipient: str, sandbox: bool)
 def _enforce_warmup_quota(s, tenant, policy) -> None:
     if not policy:
         return
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
+
     from .main import Message
     from .provider import ProviderMessage
 
-    current = datetime.now(timezone.utc)
+    current = datetime.now(UTC)
     hour_ago = current - timedelta(hours=1)
     day_ago = current - timedelta(days=1)
-    hourly = (s.scalar(select(func.count(Message.id)).where(Message.tenant_id == tenant.id, Message.created_at >= hour_ago)) or 0) + (s.scalar(select(func.count(ProviderMessage.id)).where(ProviderMessage.tenant_id == tenant.id, ProviderMessage.created_at >= hour_ago)) or 0)
-    daily = (s.scalar(select(func.count(Message.id)).where(Message.tenant_id == tenant.id, Message.created_at >= day_ago)) or 0) + (s.scalar(select(func.count(ProviderMessage.id)).where(ProviderMessage.tenant_id == tenant.id, ProviderMessage.created_at >= day_ago)) or 0)
+    hourly = (
+        s.scalar(
+            select(func.count(Message.id)).where(
+                Message.tenant_id == tenant.id, Message.created_at >= hour_ago
+            )
+        )
+        or 0
+    ) + (
+        s.scalar(
+            select(func.count(ProviderMessage.id)).where(
+                ProviderMessage.tenant_id == tenant.id, ProviderMessage.created_at >= hour_ago
+            )
+        )
+        or 0
+    )
+    daily = (
+        s.scalar(
+            select(func.count(Message.id)).where(
+                Message.tenant_id == tenant.id, Message.created_at >= day_ago
+            )
+        )
+        or 0
+    ) + (
+        s.scalar(
+            select(func.count(ProviderMessage.id)).where(
+                ProviderMessage.tenant_id == tenant.id, ProviderMessage.created_at >= day_ago
+            )
+        )
+        or 0
+    )
     hourly_limit = min(policy.hourly_limit, policy.warmup_hourly_limit)
     daily_limit = min(policy.daily_limit, policy.warmup_daily_limit, tenant.quota)
     if policy.reputation_state == "LIMITED":
@@ -162,7 +198,7 @@ def authorize_send(
     recipient: str,
     stream: str,
     sandbox: bool,
-    campaign_id: Optional[str] = None,
+    campaign_id: str | None = None,
     topic: str = "marketing",
 ) -> dict:
     """Run the common guard chain before route-specific persistence."""

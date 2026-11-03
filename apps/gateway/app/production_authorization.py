@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -64,7 +64,7 @@ def _utc_datetime(value: datetime, error: str) -> datetime:
     """Reject undefined offsets and compare instants without host-local time."""
     try:
         if isinstance(value, datetime) and value.utcoffset() is not None:
-            return value.astimezone(timezone.utc)
+            return value.astimezone(UTC)
     except (OverflowError, TypeError, ValueError):
         pass
     raise ProductionAuthorizationError(error)
@@ -88,15 +88,11 @@ def validate_production_authorization(
         raise ProductionAuthorizationError("production_authorization_invalid") from exc
 
     current = _utc_datetime(
-        now if now is not None else datetime.now(timezone.utc),
+        now if now is not None else datetime.now(UTC),
         "production_authorization_clock_invalid",
     )
-    valid_from = _utc_datetime(
-        authority.validFrom, "production_authorization_window_invalid"
-    )
-    valid_until = _utc_datetime(
-        authority.validUntil, "production_authorization_window_invalid"
-    )
+    valid_from = _utc_datetime(authority.validFrom, "production_authorization_window_invalid")
+    valid_until = _utc_datetime(authority.validUntil, "production_authorization_window_invalid")
     if not valid_from <= current < valid_until:
         raise ProductionAuthorizationError("production_authorization_outside_window")
     authorized_at = _utc_datetime(
@@ -127,9 +123,11 @@ def validate_production_authorization(
     }
     if actual != expected:
         raise ProductionAuthorizationError("production_authorization_binding_mismatch")
-    if idempotency_key is not None and binding.idempotencyKeySha256 != hashlib.sha256(
-        idempotency_key.encode("utf-8")
-    ).hexdigest():
+    if (
+        idempotency_key is not None
+        and binding.idempotencyKeySha256
+        != hashlib.sha256(idempotency_key.encode("utf-8")).hexdigest()
+    ):
         raise ProductionAuthorizationError("production_authorization_idempotency_mismatch")
     return authority.model_dump(mode="json")
 

@@ -1,8 +1,9 @@
 """PostgreSQL-only proofs for PaymentAttempt locking semantics."""
+
 import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from threading import Barrier
 
@@ -11,8 +12,8 @@ from fastapi import HTTPException
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
-from apps.gateway.app.billing import Invoice
 from apps.gateway.app.main import Audit, Tenant
+from apps.gateway.app.billing import Invoice
 from apps.gateway.app.payment_attempts import (
     CAPTURED,
     PENDING,
@@ -52,21 +53,37 @@ def payment_database(monkeypatch, tmp_path):
     attempt_ids = [str(uuid.uuid4()), str(uuid.uuid4())]
     with Session(engine) as session:
         session.add(Tenant(id="tenant", name="Synthetic", quota=100))
-        session.add(Invoice(
-            id=invoice_id, number="INV-CONCURRENCY", tenant_id="tenant",
-            subscription_id="subscription", currency="USD",
-            subtotal=Decimal("10.00"), tax=Decimal("0.00"),
-            discount=Decimal("0.00"), credits=Decimal("0.00"),
-            total=Decimal("10.00"), status="OPEN",
-            due_at=datetime.now(timezone.utc) + timedelta(days=1),
-        ))
+        session.add(
+            Invoice(
+                id=invoice_id,
+                number="INV-CONCURRENCY",
+                tenant_id="tenant",
+                subscription_id="subscription",
+                currency="USD",
+                subtotal=Decimal("10.00"),
+                tax=Decimal("0.00"),
+                discount=Decimal("0.00"),
+                credits=Decimal("0.00"),
+                total=Decimal("10.00"),
+                status="OPEN",
+                due_at=datetime.now(UTC) + timedelta(days=1),
+            )
+        )
         for index, attempt_id in enumerate(attempt_ids):
-            session.add(PaymentAttempt(
-                id=attempt_id, tenant_id="tenant", invoice_id=invoice_id,
-                provider="stripe", idempotency_key=f"key-{index}",
-                request_fingerprint=f"fingerprint-{index}", amount_minor=600,
-                currency="USD", status=PENDING, created_by="admin",
-            ))
+            session.add(
+                PaymentAttempt(
+                    id=attempt_id,
+                    tenant_id="tenant",
+                    invoice_id=invoice_id,
+                    provider="stripe",
+                    idempotency_key=f"key-{index}",
+                    request_fingerprint=f"fingerprint-{index}",
+                    amount_minor=600,
+                    currency="USD",
+                    status=PENDING,
+                    created_by="admin",
+                )
+            )
         session.commit()
     try:
         yield engine, attempt_ids
@@ -106,4 +123,3 @@ def test_concurrent_captures_cannot_overpay_one_invoice(payment_database):
             select(PaymentAttempt).where(PaymentAttempt.status == CAPTURED)
         ).all()
         assert len(captured) == 1
-

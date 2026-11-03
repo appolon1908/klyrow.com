@@ -2,7 +2,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -19,15 +18,11 @@ def test_security_smtp_override_wires_activation_gates_to_relay_and_worker():
     assert relay["env_file"] == ["${KLYROW_ENV_FILE:-.env}"]
     required = {
         "KLYROW_SECURITY_SMTP_ENABLED": "${KLYROW_SECURITY_SMTP_ENABLED:-false}",
-        "KLYROW_SECURITY_SMTP_LIVE_ENABLED": (
-            "${KLYROW_SECURITY_SMTP_LIVE_ENABLED:-false}"
-        ),
+        "KLYROW_SECURITY_SMTP_LIVE_ENABLED": ("${KLYROW_SECURITY_SMTP_LIVE_ENABLED:-false}"),
         "KLYROW_SECURITY_SMTP_PRODUCTION_APPROVED": (
             "${KLYROW_SECURITY_SMTP_PRODUCTION_APPROVED:-false}"
         ),
-        "KLYROW_SECURITY_SMTP_CANARY_RECIPIENTS": (
-            "${KLYROW_SECURITY_SMTP_CANARY_RECIPIENTS:-}"
-        ),
+        "KLYROW_SECURITY_SMTP_CANARY_RECIPIENTS": ("${KLYROW_SECURITY_SMTP_CANARY_RECIPIENTS:-}"),
         "KLYROW_SECURITY_SMTP_CANARY_MAX_DELIVERIES": (
             "${KLYROW_SECURITY_SMTP_CANARY_MAX_DELIVERIES:-1}"
         ),

@@ -15,7 +15,8 @@ import hmac
 
 from fastapi import HTTPException, Request
 
-from . import auth_bff, browser_security_fixes as legacy
+from . import auth_bff
+from . import browser_security_fixes as legacy
 
 FLOW_COOKIE_PREFIX = "__Host-klyrow_oidc_flow-"
 FLOW_COOKIE_PATH = "/"

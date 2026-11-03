@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
@@ -52,12 +52,15 @@ def test_campaign_schedule_never_accepts_retries_or_changed_semantics_without_di
     s = session()
     s.add(Campaign(id="campaign-a", tenant_id="tenant-a", name="Campaign", status="draft"))
     s.commit()
-    first_time = datetime.now(timezone.utc) + timedelta(hours=2)
+    first_time = datetime.now(UTC) + timedelta(hours=2)
     for scheduled_at in (first_time, first_time, first_time + timedelta(hours=1)):
         with pytest.raises(HTTPException) as refused:
             campaign_schedule(
-                "campaign-a", CampaignSchedule(scheduled_at=scheduled_at),
-                context(), s, "schedule-campaign-key",
+                "campaign-a",
+                CampaignSchedule(scheduled_at=scheduled_at),
+                context(),
+                s,
+                "schedule-campaign-key",
             )
         assert refused.value.status_code == 409
         assert refused.value.detail == "campaign_dispatcher_unavailable"
@@ -103,19 +106,24 @@ def test_storage_identity_binds_caller_service_action_version_and_resource():
         != original
         for variant in variants
     )
-    assert scoped_idempotency_key(
-        base, "shared-raw-key", action="message.cancel", resource="messages"
-    ) != original
-    assert scoped_idempotency_key(
-        base, "shared-raw-key", action="message.send", resource="message-a"
-    ) != original
-    assert scoped_idempotency_key(
-        base,
-        "shared-raw-key",
-        action="message.send",
-        resource="messages",
-        api_version="v2",
-    ) != original
+    assert (
+        scoped_idempotency_key(base, "shared-raw-key", action="message.cancel", resource="messages")
+        != original
+    )
+    assert (
+        scoped_idempotency_key(base, "shared-raw-key", action="message.send", resource="message-a")
+        != original
+    )
+    assert (
+        scoped_idempotency_key(
+            base,
+            "shared-raw-key",
+            action="message.send",
+            resource="messages",
+            api_version="v2",
+        )
+        != original
+    )
 
 
 def test_semantic_hash_is_canonical_and_detects_payload_change():

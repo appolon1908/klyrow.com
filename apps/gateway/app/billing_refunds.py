@@ -1,12 +1,12 @@
 """Provider-neutral refund and dispute authority for the M6C billing lane."""
+
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Iterable
+from collections.abc import Iterable
+from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import HTTPException
 from sqlalchemy import func, select
-
 
 REFUND_STATES = {"REQUESTED", "PROVIDER_PENDING", "CONFIRMED", "FAILED", "REVERSED"}
 REFUND_TRANSITIONS = {
@@ -40,7 +40,9 @@ def refundable_amount(payment_amount: Decimal | int | str, refunds: Iterable[obj
     return max(money(payment_amount) - confirmed_refund_total(refunds), Decimal("0.00"))
 
 
-def canonical_refundable_amount(session, *, tenant_id: str, invoice_id: str, currency: str) -> Decimal:
+def canonical_refundable_amount(
+    session, *, tenant_id: str, invoice_id: str, currency: str
+) -> Decimal:
     """Calculate refundable money from canonical confirmed financial rows only."""
     from .billing import Credit, Payment, Refund
 

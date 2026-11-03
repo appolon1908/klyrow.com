@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from datetime import timezone
+from datetime import UTC
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -16,16 +16,16 @@ from starlette.concurrency import run_in_threadpool
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from . import auth_bff
-from .auth_bff import BrowserSession, SESSION_COOKIE, browser_context
 from .main import DB, User, db, sha
+from . import auth_bff
+from .auth_bff import SESSION_COOKIE, BrowserSession, browser_context
+from .platform_owner_api import OwnerAuthorityStatus, owner_authority_status
 from .platform_owner_policy import (
     PlatformOwnerConfig,
     PlatformOwnerError,
     validate_platform_owner_claims,
 )
 from .tenancy import OidcIdentity, TenantMember
-from .platform_owner_api import OwnerAuthorityStatus, owner_authority_status
 
 router = APIRouter(tags=["Platform owner security"])
 # The middleware is defense in depth for every browser API request made with a
@@ -52,9 +52,7 @@ def _stored_claims(item: BrowserSession) -> dict:
             },
         )
     except Exception as exc:
-        raise PlatformOwnerError(
-            403, "platform_owner_reauthentication_required"
-        ) from exc
+        raise PlatformOwnerError(403, "platform_owner_reauthentication_required") from exc
     if not isinstance(claims, dict):
         raise PlatformOwnerError(403, "platform_owner_claims_invalid")
     return claims
@@ -81,9 +79,7 @@ def _validate_owner_objects(
 ) -> bool:
     """Validate exact owner identity from one coherent authority snapshot."""
 
-    user_is_platform_admin = bool(
-        user and str(user.role or "").lower() == "platform_admin"
-    )
+    user_is_platform_admin = bool(user and str(user.role or "").lower() == "platform_admin")
     if not user or not user.enabled or user.id != item.user_id:
         raise PlatformOwnerError(403, "platform_owner_account_disabled")
     if (
@@ -107,9 +103,7 @@ def _validate_owner_objects(
     try:
         canonical_issuer = auth_bff._canonical_issuer()
     except HTTPException as exc:
-        raise PlatformOwnerError(
-            503, "platform_owner_issuer_misconfigured"
-        ) from exc
+        raise PlatformOwnerError(503, "platform_owner_issuer_misconfigured") from exc
     config = PlatformOwnerConfig.from_env(canonical_issuer=canonical_issuer)
     validate_platform_owner_claims(
         config,
@@ -148,9 +142,7 @@ def _validate_raw_session(raw: str) -> None:
     """Perform synchronous owner lookup and validation in one worker thread."""
 
     with DB() as s:
-        item = s.scalar(
-            select(BrowserSession).where(BrowserSession.token_hash == sha(raw))
-        )
+        item = s.scalar(select(BrowserSession).where(BrowserSession.token_hash == sha(raw)))
         if item and item.revoked_at is None:
             _validate_session(s, item)
 
@@ -177,7 +169,7 @@ def _locked_browser_authority(
         raise PlatformOwnerError(401, "session_revoked")
     expiry = item.expires_at
     if expiry.tzinfo is None:
-        expiry = expiry.replace(tzinfo=timezone.utc)
+        expiry = expiry.replace(tzinfo=UTC)
     if expiry <= auth_bff.now():
         raise PlatformOwnerError(401, "session_expired")
     if (
@@ -213,9 +205,7 @@ def _locked_browser_authority(
 
 
 def _is_browser_admin_path(path: str) -> bool:
-    return path == PLATFORM_OWNER_ADMIN_PREFIX or path.startswith(
-        PLATFORM_OWNER_ADMIN_PREFIX + "/"
-    )
+    return path == PLATFORM_OWNER_ADMIN_PREFIX or path.startswith(PLATFORM_OWNER_ADMIN_PREFIX + "/")
 
 
 def _is_browser_api_path(path: str) -> bool:
@@ -325,9 +315,7 @@ def install_platform_owner_guard(app) -> None:
     if app.middleware_stack is not None and not getattr(
         app.state, "klyrow_platform_owner_guard_installed", False
     ):
-        raise RuntimeError(
-            "platform owner guard must be installed before the ASGI stack is built"
-        )
+        raise RuntimeError("platform owner guard must be installed before the ASGI stack is built")
     _install_browser_route_dependencies(app)
     if getattr(app.state, "klyrow_platform_owner_guard_installed", False):
         return
@@ -350,9 +338,7 @@ def install_platform_owner_guard(app) -> None:
     # making the latest registration outermost. Appending this middleware keeps
     # the existing request-ID, security-header, metric, and latency middleware
     # outside the owner guard, so even early denials receive full instrumentation.
-    app.user_middleware.append(
-        Middleware(BaseHTTPMiddleware, dispatch=platform_owner_guard)
-    )
+    app.user_middleware.append(Middleware(BaseHTTPMiddleware, dispatch=platform_owner_guard))
     app.state.klyrow_platform_owner_guard_installed = True
 
 

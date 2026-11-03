@@ -8,12 +8,12 @@ from fastapi import HTTPException
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import sessionmaker
 
+from apps.gateway.app.main import Base, Tenant, User, sha
 from apps.gateway.app import auth_bff, browser_security_fixes
 from apps.gateway.app.auth_bff import BrowserSession
 from apps.gateway.app.browser_step_up_identity import (
     resolve_existing_step_up_identity,
 )
-from apps.gateway.app.main import Base, Tenant, User, sha
 from apps.gateway.app.platform import app
 from apps.gateway.app.tenancy import OidcIdentity, TenantMember
 
@@ -78,21 +78,16 @@ def _transaction(mode: str = "step-up:browser-step-up"):
 
 def test_canonical_composition_installs_exact_existing_identity_resolver() -> None:
     assert app.state.klyrow_existing_step_up_identity_guard_installed is True
-    assert (
-        browser_security_fixes._step_up_identity_context
-        is resolve_existing_step_up_identity
-    )
+    assert browser_security_fixes._step_up_identity_context is resolve_existing_step_up_identity
 
 
 def test_exact_existing_identity_and_membership_are_returned(
     step_up_session,
 ) -> None:
-    old_session, identity, user, membership = (
-        resolve_existing_step_up_identity(
-            step_up_session,
-            _transaction(),
-            {"sub": "subject-step-up"},
-        )
+    old_session, identity, user, membership = resolve_existing_step_up_identity(
+        step_up_session,
+        _transaction(),
+        {"sub": "subject-step-up"},
     )
     assert old_session.id == "browser-step-up"
     assert identity.id == "identity-step-up"
@@ -104,12 +99,8 @@ def test_different_subject_fails_without_first_login_or_provisioning(
     step_up_session,
     monkeypatch,
 ) -> None:
-    before_users = step_up_session.scalar(
-        select(func.count()).select_from(User)
-    )
-    before_tenants = step_up_session.scalar(
-        select(func.count()).select_from(Tenant)
-    )
+    before_users = step_up_session.scalar(select(func.count()).select_from(User))
+    before_tenants = step_up_session.scalar(select(func.count()).select_from(Tenant))
 
     def provisioning_must_not_run(*args, **kwargs):
         pytest.fail("step-up entered first-login provisioning")
@@ -128,14 +119,8 @@ def test_different_subject_fails_without_first_login_or_provisioning(
 
     assert denied.value.status_code == 403
     assert denied.value.detail == "step_up_identity_mismatch"
-    assert (
-        step_up_session.scalar(select(func.count()).select_from(User))
-        == before_users
-    )
-    assert (
-        step_up_session.scalar(select(func.count()).select_from(Tenant))
-        == before_tenants
-    )
+    assert step_up_session.scalar(select(func.count()).select_from(User)) == before_users
+    assert step_up_session.scalar(select(func.count()).select_from(Tenant)) == before_tenants
 
 
 def test_missing_subject_fails_closed(step_up_session) -> None:

@@ -1,4 +1,5 @@
 """Check the repository-owned downstream contract, not a synthetic Odoo payload."""
+
 import json
 from pathlib import Path
 
@@ -8,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_handoff_uses_the_checked_in_middleware_command_contract():
-    contract = json.loads((ROOT / "codestra/integration/middleware-command-contract.v1.json").read_text())
+    contract = json.loads(
+        (ROOT / "codestra/integration/middleware-command-contract.v1.json").read_text()
+    )
     assert contract["authority"] == "Middleware-"
     commands = {item["type"]: item for item in contract["commands"]}
     assert commands["email.message.send.v1"]["deliveryDefault"] == "disabled"

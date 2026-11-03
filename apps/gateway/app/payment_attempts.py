@@ -15,13 +15,14 @@ repository currently supports, all of which use 2 minor-unit decimal places.
 multi-decimal-currency support (e.g. 0- or 3-decimal ISO currencies) is an
 explicit Mission 03+ deferral.
 """
+
 from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Any, Optional, Protocol
+from typing import Any, Protocol
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from prometheus_client import Counter
@@ -38,8 +39,6 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from .billing import Invoice, Payment, PaymentMethodReference, money
-from .billing_config import BillingConfigError, load_billing_settings
 from .main import (
     Base,
     audit,
@@ -50,18 +49,31 @@ from .main import (
     scoped_idempotency_key,
     semantic_request_hash,
 )
+from .billing import Invoice, Payment, PaymentMethodReference, money
+from .billing_config import BillingConfigError, load_billing_settings
 
 router = APIRouter(prefix="/v1", tags=["Klyrow payment attempts"])
 
-now = lambda: datetime.now(timezone.utc)
+now = lambda: datetime.now(UTC)
 
 # --------------------------------------------------------------------------
 # Amount conversion boundary
 # --------------------------------------------------------------------------
 
-TWO_DECIMAL_CURRENCIES = frozenset({
-    "AUD", "CAD", "CHF", "CNY", "EUR", "GBP", "HKD", "NZD", "SGD", "USD",
-})
+TWO_DECIMAL_CURRENCIES = frozenset(
+    {
+        "AUD",
+        "CAD",
+        "CHF",
+        "CNY",
+        "EUR",
+        "GBP",
+        "HKD",
+        "NZD",
+        "SGD",
+        "USD",
+    }
+)
 
 
 def _minor_from_decimal(amount: Decimal) -> int:
@@ -85,7 +97,9 @@ FAILED = "FAILED"
 CANCELLED = "CANCELLED"
 EXPIRED = "EXPIRED"
 
-STATES = frozenset({CREATED, PENDING, REQUIRES_ACTION, AUTHORIZED, CAPTURED, FAILED, CANCELLED, EXPIRED})
+STATES = frozenset(
+    {CREATED, PENDING, REQUIRES_ACTION, AUTHORIZED, CAPTURED, FAILED, CANCELLED, EXPIRED}
+)
 TERMINAL_STATES = frozenset({CAPTURED, FAILED, CANCELLED, EXPIRED})
 ACTIVE_CHECKOUT_STATES = frozenset({CREATED, PENDING, REQUIRES_ACTION, AUTHORIZED})
 
@@ -117,60 +131,67 @@ class PaymentAttemptConflict(HTTPException):
 # Persistence
 # --------------------------------------------------------------------------
 
+
 class PaymentAttempt(Base):
     __tablename__ = "klyrow_payment_attempts"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     tenant_id: Mapped[str] = mapped_column(String, index=True)
     invoice_id: Mapped[str] = mapped_column(String, index=True)
-    customer_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    payment_method_reference_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    customer_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    payment_method_reference_id: Mapped[str | None] = mapped_column(String, nullable=True)
     provider: Mapped[str] = mapped_column(String)
-    provider_account_reference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    provider_attempt_reference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    provider_account_reference: Mapped[str | None] = mapped_column(String, nullable=True)
+    provider_attempt_reference: Mapped[str | None] = mapped_column(String, nullable=True)
     idempotency_key: Mapped[str] = mapped_column(String)
     request_fingerprint: Mapped[str] = mapped_column(String)
     amount_minor: Mapped[int] = mapped_column(BigInteger)
     currency: Mapped[str] = mapped_column(String)
     status: Mapped[str] = mapped_column(String, default=CREATED)
-    failure_code: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    failure_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    next_action_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    next_action_reference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    correlation_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    failure_code: Mapped[str | None] = mapped_column(String, nullable=True)
+    failure_message: Mapped[str | None] = mapped_column(String, nullable=True)
+    next_action_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    next_action_reference: Mapped[str | None] = mapped_column(String, nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String, nullable=True)
     created_by: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
-    authorized_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    captured_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    failed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    cancelled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    authorized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     version: Mapped[int] = mapped_column(Integer, default=1)
     __table_args__ = (
-        UniqueConstraint("tenant_id", "idempotency_key", name="uq_klyrow_payment_attempts_tenant_idempotency"),
+        UniqueConstraint(
+            "tenant_id", "idempotency_key", name="uq_klyrow_payment_attempts_tenant_idempotency"
+        ),
     )
 
 
 class PaymentAttemptEvent(Base):
     __tablename__ = "klyrow_payment_attempt_events"
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    payment_attempt_id: Mapped[str] = mapped_column(ForeignKey("klyrow_payment_attempts.id"), index=True)
+    payment_attempt_id: Mapped[str] = mapped_column(
+        ForeignKey("klyrow_payment_attempts.id"), index=True
+    )
     tenant_id: Mapped[str] = mapped_column(String, index=True)
-    from_status: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    from_status: Mapped[str | None] = mapped_column(String, nullable=True)
     to_status: Mapped[str] = mapped_column(String)
     event_type: Mapped[str] = mapped_column(String)
     source: Mapped[str] = mapped_column(String)
     provider: Mapped[str] = mapped_column(String)
-    provider_account_reference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    provider_event_reference: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    idempotency_key: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    payload_digest: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    correlation_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    provider_account_reference: Mapped[str | None] = mapped_column(String, nullable=True)
+    provider_event_reference: Mapped[str | None] = mapped_column(String, nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    payload_digest: Mapped[str | None] = mapped_column(String, nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String, nullable=True)
     created_by: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     __table_args__ = (
         UniqueConstraint(
-            "provider", "provider_account_reference", "provider_event_reference",
+            "provider",
+            "provider_account_reference",
+            "provider_event_reference",
             name="uq_klyrow_payment_attempt_events_provider_event",
         ),
     )
@@ -179,6 +200,7 @@ class PaymentAttemptEvent(Base):
 # --------------------------------------------------------------------------
 # Provider-neutral adapter contract (no SDK, no network calls)
 # --------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class ProviderAttemptCommand:
@@ -191,11 +213,11 @@ class ProviderAttemptCommand:
 @dataclass(frozen=True)
 class ProviderAttemptResult:
     status: str
-    provider_attempt_reference: Optional[str] = None
-    next_action_type: Optional[str] = None
-    next_action_reference: Optional[str] = None
-    failure_code: Optional[str] = None
-    failure_message: Optional[str] = None
+    provider_attempt_reference: str | None = None
+    next_action_type: str | None = None
+    next_action_reference: str | None = None
+    failure_code: str | None = None
+    failure_message: str | None = None
 
 
 class PaymentProviderAdapter(Protocol):
@@ -268,32 +290,110 @@ def enforce_billing_capability(provider: str, *, require_live_charging: bool = F
 # Metrics (no high-cardinality dimensions: no attempt/invoice/tenant/reference ID)
 # --------------------------------------------------------------------------
 
-CREATED_TOTAL = platform_metric(Counter("billing_payment_attempt_created_total", "Payment attempts created", ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "provider"]))
-TRANSITION_TOTAL = platform_metric(Counter("billing_payment_attempt_transition_total", "Payment attempt transitions", ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "transition"]))
-FAILED_TOTAL = platform_metric(Counter("billing_payment_attempt_failed_total", "Payment attempts failed", ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "failure_class"]))
-IDEMPOTENT_REPLAY_TOTAL = platform_metric(Counter("billing_payment_attempt_idempotent_replay_total", "Idempotent payment attempt replays", ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "provider"]))
-CONFLICT_TOTAL = platform_metric(Counter("billing_payment_attempt_conflict_total", "Payment attempt idempotency/transition conflicts", ["codestra_business", "application", "service", "environment", "server", "region", "deployment", "provider"]))
+CREATED_TOTAL = platform_metric(
+    Counter(
+        "billing_payment_attempt_created_total",
+        "Payment attempts created",
+        [
+            "codestra_business",
+            "application",
+            "service",
+            "environment",
+            "server",
+            "region",
+            "deployment",
+            "provider",
+        ],
+    )
+)
+TRANSITION_TOTAL = platform_metric(
+    Counter(
+        "billing_payment_attempt_transition_total",
+        "Payment attempt transitions",
+        [
+            "codestra_business",
+            "application",
+            "service",
+            "environment",
+            "server",
+            "region",
+            "deployment",
+            "transition",
+        ],
+    )
+)
+FAILED_TOTAL = platform_metric(
+    Counter(
+        "billing_payment_attempt_failed_total",
+        "Payment attempts failed",
+        [
+            "codestra_business",
+            "application",
+            "service",
+            "environment",
+            "server",
+            "region",
+            "deployment",
+            "failure_class",
+        ],
+    )
+)
+IDEMPOTENT_REPLAY_TOTAL = platform_metric(
+    Counter(
+        "billing_payment_attempt_idempotent_replay_total",
+        "Idempotent payment attempt replays",
+        [
+            "codestra_business",
+            "application",
+            "service",
+            "environment",
+            "server",
+            "region",
+            "deployment",
+            "provider",
+        ],
+    )
+)
+CONFLICT_TOTAL = platform_metric(
+    Counter(
+        "billing_payment_attempt_conflict_total",
+        "Payment attempt idempotency/transition conflicts",
+        [
+            "codestra_business",
+            "application",
+            "service",
+            "environment",
+            "server",
+            "region",
+            "deployment",
+            "provider",
+        ],
+    )
+)
 
 
 # --------------------------------------------------------------------------
 # Schemas
 # --------------------------------------------------------------------------
 
+
 class PaymentAttemptCreateIn(BaseModel):
     invoice_id: str = Field(min_length=1, max_length=200)
     amount_minor: int = Field(gt=0)
     currency: str = Field(pattern=r"^[A-Z]{3}$")
     provider: str = Field(pattern="^(disabled|stripe|paypal|stablecoin)$")
-    payment_method_reference_id: Optional[str] = Field(default=None, max_length=300)
+    payment_method_reference_id: str | None = Field(default=None, max_length=300)
 
 
 class PaymentAttemptTransitionIn(BaseModel):
-    target_status: str = Field(pattern="^(PENDING|REQUIRES_ACTION|AUTHORIZED|CAPTURED|FAILED|CANCELLED|EXPIRED)$")
-    provider_event_reference: Optional[str] = Field(default=None, max_length=300)
-    failure_code: Optional[str] = Field(default=None, max_length=100)
-    failure_message: Optional[str] = Field(default=None, max_length=500)
-    next_action_type: Optional[str] = Field(default=None, max_length=100)
-    next_action_reference: Optional[str] = Field(default=None, max_length=300)
+    target_status: str = Field(
+        pattern="^(PENDING|REQUIRES_ACTION|AUTHORIZED|CAPTURED|FAILED|CANCELLED|EXPIRED)$"
+    )
+    provider_event_reference: str | None = Field(default=None, max_length=300)
+    failure_code: str | None = Field(default=None, max_length=100)
+    failure_message: str | None = Field(default=None, max_length=500)
+    next_action_type: str | None = Field(default=None, max_length=100)
+    next_action_reference: str | None = Field(default=None, max_length=300)
 
 
 def _serialize(attempt: PaymentAttempt) -> dict[str, Any]:
@@ -330,7 +430,9 @@ def _serialize_event(event: PaymentAttemptEvent) -> dict[str, Any]:
     }
 
 
-def _tenant_invoice(session: Session, invoice_id: str, tenant_id: str, *, for_update: bool = False) -> Invoice:
+def _tenant_invoice(
+    session: Session, invoice_id: str, tenant_id: str, *, for_update: bool = False
+) -> Invoice:
     query = select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id)
     if for_update:
         query = query.with_for_update()
@@ -348,7 +450,9 @@ def _remaining_eligible_minor(session: Session, invoice: Invoice) -> int:
     return _minor_from_decimal(invoice_balance(session, invoice).remaining_due)
 
 
-def _validate_invoice_eligibility(session: Session, invoice: Invoice, tenant_id: str, amount_minor: int, currency: str) -> None:
+def _validate_invoice_eligibility(
+    session: Session, invoice: Invoice, tenant_id: str, amount_minor: int, currency: str
+) -> None:
     if invoice.status in {"PAID", "VOID", "CREDITED"}:
         raise HTTPException(409, "invoice_not_payable")
     if invoice.currency != currency:
@@ -383,11 +487,13 @@ def create_payment_attempt(
     ctx=Depends(auth),
     s: Session = Depends(db),
     idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
-    x_correlation_id: Optional[str] = Header(default=None, alias="X-Correlation-Id", max_length=200),
+    x_correlation_id: str | None = Header(default=None, alias="X-Correlation-Id", max_length=200),
 ):
     enforce_billing_capability(x.provider)
     fingerprint = _fingerprint(ctx, x)
-    storage_key = scoped_idempotency_key(ctx, idempotency_key, action="payment_attempt.create", resource="payment_attempts")
+    storage_key = scoped_idempotency_key(
+        ctx, idempotency_key, action="payment_attempt.create", resource="payment_attempts"
+    )
 
     existing = s.scalar(
         select(PaymentAttempt).where(
@@ -456,7 +562,8 @@ def create_payment_attempt(
         s.rollback()
         replay = s.scalar(
             select(PaymentAttempt).where(
-                PaymentAttempt.tenant_id == ctx["tenant"], PaymentAttempt.idempotency_key == storage_key
+                PaymentAttempt.tenant_id == ctx["tenant"],
+                PaymentAttempt.idempotency_key == storage_key,
             )
         )
         if replay and replay.request_fingerprint == fingerprint:
@@ -487,7 +594,9 @@ def list_payment_attempts(
 
 def _tenant_attempt(s: Session, payment_attempt_id: str, tenant_id: str) -> PaymentAttempt:
     attempt = s.scalar(
-        select(PaymentAttempt).where(PaymentAttempt.id == payment_attempt_id, PaymentAttempt.tenant_id == tenant_id)
+        select(PaymentAttempt).where(
+            PaymentAttempt.id == payment_attempt_id, PaymentAttempt.tenant_id == tenant_id
+        )
     )
     if not attempt:
         raise HTTPException(404, "payment_attempt_not_found")
@@ -500,11 +609,16 @@ def get_payment_attempt(payment_attempt_id: str, ctx=Depends(auth), s: Session =
 
 
 @router.get("/billing/payment-attempts/{payment_attempt_id}/events")
-def get_payment_attempt_events(payment_attempt_id: str, ctx=Depends(auth), s: Session = Depends(db)):
+def get_payment_attempt_events(
+    payment_attempt_id: str, ctx=Depends(auth), s: Session = Depends(db)
+):
     _tenant_attempt(s, payment_attempt_id, ctx["tenant"])
     rows = s.scalars(
         select(PaymentAttemptEvent)
-        .where(PaymentAttemptEvent.payment_attempt_id == payment_attempt_id, PaymentAttemptEvent.tenant_id == ctx["tenant"])
+        .where(
+            PaymentAttemptEvent.payment_attempt_id == payment_attempt_id,
+            PaymentAttemptEvent.tenant_id == ctx["tenant"],
+        )
         .order_by(PaymentAttemptEvent.created_at.asc())
     ).all()
     return [_serialize_event(row) for row in rows]
@@ -518,13 +632,13 @@ def _apply_transition(
     event_type: str,
     source: str,
     ctx: dict,
-    provider_event_reference: Optional[str] = None,
-    idempotency_key: Optional[str] = None,
-    correlation_id: Optional[str] = None,
-    failure_code: Optional[str] = None,
-    failure_message: Optional[str] = None,
-    next_action_type: Optional[str] = None,
-    next_action_reference: Optional[str] = None,
+    provider_event_reference: str | None = None,
+    idempotency_key: str | None = None,
+    correlation_id: str | None = None,
+    failure_code: str | None = None,
+    failure_message: str | None = None,
+    next_action_type: str | None = None,
+    next_action_reference: str | None = None,
 ) -> PaymentAttempt:
     """Centralized, transactional transition authority. Callers must already
     hold a row lock (``with_for_update``) on ``attempt``."""
@@ -544,12 +658,16 @@ def _apply_transition(
         duplicate = s.scalar(
             select(PaymentAttemptEvent).where(
                 PaymentAttemptEvent.provider == attempt.provider,
-                PaymentAttemptEvent.provider_account_reference == attempt.provider_account_reference,
+                PaymentAttemptEvent.provider_account_reference
+                == attempt.provider_account_reference,
                 PaymentAttemptEvent.provider_event_reference == provider_event_reference,
             )
         )
         if duplicate:
-            if duplicate.payment_attempt_id != attempt.id or duplicate.payload_digest != payload_digest:
+            if (
+                duplicate.payment_attempt_id != attempt.id
+                or duplicate.payload_digest != payload_digest
+            ):
                 CONFLICT_TOTAL.labels(attempt.provider).inc()
                 raise PaymentAttemptConflict("provider_event_payload_mismatch")
             IDEMPOTENT_REPLAY_TOTAL.labels(attempt.provider).inc()
@@ -560,7 +678,9 @@ def _apply_transition(
         IDEMPOTENT_REPLAY_TOTAL.labels(attempt.provider).inc()
         return attempt
 
-    if attempt.status in TERMINAL_STATES or target not in TRANSITIONS.get(attempt.status, frozenset()):
+    if attempt.status in TERMINAL_STATES or target not in TRANSITIONS.get(
+        attempt.status, frozenset()
+    ):
         CONFLICT_TOTAL.labels(attempt.provider).inc()
         raise PaymentAttemptConflict("invalid_payment_attempt_transition")
 
@@ -612,7 +732,9 @@ def cancel_payment_attempt(payment_attempt_id: str, ctx=Depends(auth), s: Sessio
     )
     if not attempt:
         raise HTTPException(404, "payment_attempt_not_found")
-    _apply_transition(s, attempt, CANCELLED, event_type="payment_attempt.cancelled", source="api", ctx=ctx)
+    _apply_transition(
+        s, attempt, CANCELLED, event_type="payment_attempt.cancelled", source="api", ctx=ctx
+    )
     audit(s, ctx, "billing.payment_attempt.cancelled")
     s.commit()
     return _serialize(attempt)

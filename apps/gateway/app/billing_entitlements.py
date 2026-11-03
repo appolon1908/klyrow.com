@@ -1,10 +1,11 @@
 """Provider-neutral subscription state and entitlement calculations."""
+
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Mapping
 
 
 class SubscriptionState(StrEnum):
@@ -20,10 +21,22 @@ class SubscriptionState(StrEnum):
 
 LEGAL_TRANSITIONS: dict[SubscriptionState, frozenset[SubscriptionState]] = {
     SubscriptionState.TRIALING: frozenset({SubscriptionState.ACTIVE, SubscriptionState.CANCELLED}),
-    SubscriptionState.ACTIVE: frozenset({SubscriptionState.PAST_DUE, SubscriptionState.CANCEL_AT_PERIOD_END, SubscriptionState.SUSPENDED}),
-    SubscriptionState.PAST_DUE: frozenset({SubscriptionState.ACTIVE, SubscriptionState.GRACE_PERIOD, SubscriptionState.SUSPENDED}),
-    SubscriptionState.GRACE_PERIOD: frozenset({SubscriptionState.ACTIVE, SubscriptionState.SUSPENDED}),
-    SubscriptionState.CANCEL_AT_PERIOD_END: frozenset({SubscriptionState.ACTIVE, SubscriptionState.CANCELLED}),
+    SubscriptionState.ACTIVE: frozenset(
+        {
+            SubscriptionState.PAST_DUE,
+            SubscriptionState.CANCEL_AT_PERIOD_END,
+            SubscriptionState.SUSPENDED,
+        }
+    ),
+    SubscriptionState.PAST_DUE: frozenset(
+        {SubscriptionState.ACTIVE, SubscriptionState.GRACE_PERIOD, SubscriptionState.SUSPENDED}
+    ),
+    SubscriptionState.GRACE_PERIOD: frozenset(
+        {SubscriptionState.ACTIVE, SubscriptionState.SUSPENDED}
+    ),
+    SubscriptionState.CANCEL_AT_PERIOD_END: frozenset(
+        {SubscriptionState.ACTIVE, SubscriptionState.CANCELLED}
+    ),
     SubscriptionState.SUSPENDED: frozenset({SubscriptionState.ACTIVE, SubscriptionState.CANCELLED}),
     SubscriptionState.CANCELLED: frozenset({SubscriptionState.ACTIVE, SubscriptionState.CLOSED}),
     SubscriptionState.CLOSED: frozenset(),
@@ -97,7 +110,11 @@ def calculate_entitlements(
     non-consumable policy value.
     """
     usage = usage or {}
-    if state in {SubscriptionState.SUSPENDED, SubscriptionState.CANCELLED, SubscriptionState.CLOSED}:
+    if state in {
+        SubscriptionState.SUSPENDED,
+        SubscriptionState.CANCELLED,
+        SubscriptionState.CLOSED,
+    }:
         return {key: False for key in features}
     result: dict[str, object] = dict(features)
     for key, value in features.items():

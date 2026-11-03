@@ -2,7 +2,9 @@ from pathlib import Path
 
 
 def test_m6c_persistence_migration_is_tenant_isolated():
-    migration = Path("migrations/2026092102_billing_m6c_persistence.sql").read_text(encoding="utf-8")
+    migration = Path("migrations/2026092102_billing_m6c_persistence.sql").read_text(
+        encoding="utf-8"
+    )
     for column in ("jurisdiction", "tax_rate", "tax_amount"):
         assert column in migration
     for table in ("klyrow_disputes", "klyrow_invoice_receipts"):

@@ -5,22 +5,22 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import quote, urlsplit
 
 import httpx
+from fastapi import HTTPException
 from sqlalchemy import DateTime, Integer, String, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .main import DB, Base, runtime_secret
-from .mautic_contract import SUPPORTED_MAUTIC_COMMANDS
-from .operations import IntegrationOutbox, IntegrationResult
 from .durable_keys import KeyringError, load_keyring
 from .durable_results import MAX_RESULT_BYTES, seal_integration_result
-from fastapi import HTTPException
+from .mautic_contract import SUPPORTED_MAUTIC_COMMANDS
+from .operations import IntegrationOutbox, IntegrationResult
 
-now = lambda: datetime.now(timezone.utc)
+now = lambda: datetime.now(UTC)
 MAX_ATTEMPTS = 5
 LEASE_SECONDS = 30
 
@@ -45,6 +45,7 @@ MAUTIC_ORIGIN_HEADERS = {
     "X-Forwarded-Prefix": "/mautic",
 }
 
+
 class MauticAdapterState(Base):
     __tablename__ = "mautic_adapter_state"
 
@@ -53,12 +54,8 @@ class MauticAdapterState(Base):
     circuit_open_until: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    last_success_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    last_failure_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_failure_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
@@ -78,9 +75,7 @@ def _bounded_id(value: Any, field: str) -> str:
     return quote(result, safe="")
 
 
-def mautic_request(
-    command: str, payload: dict[str, Any]
-) -> tuple[str, str, dict[str, Any] | None]:
+def mautic_request(command: str, payload: dict[str, Any]) -> tuple[str, str, dict[str, Any] | None]:
     """Translate the governed command vocabulary into Mautic's canonical API."""
 
     if command not in SUPPORTED_MAUTIC_COMMANDS:
@@ -135,11 +130,7 @@ def mautic_request(
         return "POST", "/api/hooks/new", payload
     if command == "sync.request.v1":
         resource_name = payload.get("resource")
-        route = (
-            MAUTIC_SYNC_ROUTES.get(resource_name)
-            if isinstance(resource_name, str)
-            else None
-        )
+        route = MAUTIC_SYNC_ROUTES.get(resource_name) if isinstance(resource_name, str) else None
         if route is None:
             raise ValueError("sync_resource_invalid")
         path, item_route = route
@@ -169,23 +160,17 @@ def _configuration() -> tuple[str, str, str]:
         or parsed.query
         or parsed.fragment
     ):
-        raise RuntimeError(
-            "KLYROW_MAUTIC_API_URL must be the private http://mautic endpoint"
-        )
+        raise RuntimeError("KLYROW_MAUTIC_API_URL must be the private http://mautic endpoint")
     client_id = runtime_secret("KLYROW_MAUTIC_API_CLIENT_ID")
     client_secret = runtime_secret("KLYROW_MAUTIC_API_CLIENT_SECRET")
     if len(client_id.encode()) < 16:
         raise RuntimeError("KLYROW_MAUTIC_API_CLIENT_ID must contain at least 16 bytes")
     if len(client_secret.encode()) < 32:
-        raise RuntimeError(
-            "KLYROW_MAUTIC_API_CLIENT_SECRET must contain at least 32 bytes"
-        )
+        raise RuntimeError("KLYROW_MAUTIC_API_CLIENT_SECRET must contain at least 32 bytes")
     return base_url, client_id, client_secret
 
 
-async def _oauth_access_token(
-    client: httpx.AsyncClient, client_id: str, client_secret: str
-) -> str:
+async def _oauth_access_token(client: httpx.AsyncClient, client_id: str, client_secret: str) -> str:
     response = await client.post(
         "/oauth/v2/token",
         data={
@@ -213,11 +198,14 @@ async def _oauth_access_token(
 
 def _recover_expired(session: Session, current: datetime) -> None:
     rows = session.scalars(
-        select(IntegrationOutbox).where(
+        select(IntegrationOutbox)
+        .where(
             IntegrationOutbox.target == "MAUTIC",
             IntegrationOutbox.state == "PROCESSING",
             IntegrationOutbox.lease_expires_at < current,
-        ).with_for_update(skip_locked=True).execution_options(populate_existing=True)
+        )
+        .with_for_update(skip_locked=True)
+        .execution_options(populate_existing=True)
     ).all()
     for item in rows:
         item.state = "DEAD_LETTER"
@@ -239,14 +227,17 @@ def _claim(session: Session) -> IntegrationOutbox | None:
             IntegrationOutbox.target == "MAUTIC",
             IntegrationOutbox.state.in_(("PENDING", "RETRY")),
             IntegrationOutbox.next_attempt_at <= current,
-            ~select(IntegrationResult.id).where(
+            ~select(IntegrationResult.id)
+            .where(
                 IntegrationResult.outbox_id == IntegrationOutbox.id,
                 IntegrationResult.tenant_id == IntegrationOutbox.tenant_id,
                 IntegrationResult.source == "MAUTIC_LATE",
-            ).exists(),
+            )
+            .exists(),
         )
         .order_by(IntegrationOutbox.created_at)
-        .with_for_update(skip_locked=True).execution_options(populate_existing=True)
+        .with_for_update(skip_locked=True)
+        .execution_options(populate_existing=True)
         .limit(1)
     )
     if item:
@@ -259,21 +250,30 @@ def _claim(session: Session) -> IntegrationOutbox | None:
 
 
 def _has_late_observation(session: Session, item: IntegrationOutbox) -> bool:
-    return session.scalar(select(IntegrationResult.id).where(
-        IntegrationResult.outbox_id == item.id,
-        IntegrationResult.tenant_id == item.tenant_id,
-        IntegrationResult.source == "MAUTIC_LATE",
-    ).limit(1)) is not None
+    return (
+        session.scalar(
+            select(IntegrationResult.id)
+            .where(
+                IntegrationResult.outbox_id == item.id,
+                IntegrationResult.tenant_id == item.tenant_id,
+                IntegrationResult.source == "MAUTIC_LATE",
+            )
+            .limit(1)
+        )
+        is not None
+    )
 
 
-def _current_claim(item: IntegrationOutbox | None, expected_attempt: int, current: datetime) -> bool:
+def _current_claim(
+    item: IntegrationOutbox | None, expected_attempt: int, current: datetime
+) -> bool:
     if item is None or item.state != "PROCESSING" or item.attempts != expected_attempt:
         return False
     deadline = item.lease_expires_at
     if deadline is None:
         return False
     if deadline.tzinfo is None:
-        deadline = deadline.replace(tzinfo=timezone.utc)
+        deadline = deadline.replace(tzinfo=UTC)
     return deadline > current
 
 
@@ -288,21 +288,27 @@ def _failure(
 ) -> bool:
     current = now()
     item = session.scalar(
-        select(IntegrationOutbox).where(IntegrationOutbox.id == item_id)
-        .with_for_update().execution_options(populate_existing=True)
+        select(IntegrationOutbox)
+        .where(IntegrationOutbox.id == item_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
     )
     # A delayed failure cannot rewrite a cancellation/new claim or poison its circuit.
     if not _current_claim(item, expected_attempt, current):
         return False
     if affects_circuit:
-        circuit = session.get(MauticAdapterState, "primary") or MauticAdapterState(state_key="primary")
+        circuit = session.get(MauticAdapterState, "primary") or MauticAdapterState(
+            state_key="primary"
+        )
         circuit.failure_streak = (circuit.failure_streak or 0) + 1
         circuit.last_failure_at = current
         circuit.updated_at = current
         if circuit.failure_streak >= 5:
             circuit.circuit_open_until = current + timedelta(seconds=60)
         session.add(circuit)
-    can_retry = retryable and item.attempts < MAX_ATTEMPTS and not _has_late_observation(session, item)
+    can_retry = (
+        retryable and item.attempts < MAX_ATTEMPTS and not _has_late_observation(session, item)
+    )
     item.state = "RETRY" if can_retry else "DEAD_LETTER"
     item.next_attempt_at = current + timedelta(seconds=min(300, 2**item.attempts))
     item.lease_expires_at = None
@@ -312,32 +318,52 @@ def _failure(
     return True
 
 
-def _record_late_completion(session: Session, item: IntegrationOutbox, expected_attempt: int) -> None:
+def _record_late_completion(
+    session: Session, item: IntegrationOutbox, expected_attempt: int
+) -> None:
     # Preserve terminal/newer state; retain a separate, non-success observation.
     source = "MAUTIC_LATE"
     key = f"mautic:late:{item.id}:{expected_attempt}"
-    prior = session.scalar(select(IntegrationResult).where(
-        IntegrationResult.tenant_id == item.tenant_id,
-        IntegrationResult.source == source, IntegrationResult.result_key == key,
-    ))
+    prior = session.scalar(
+        select(IntegrationResult).where(
+            IntegrationResult.tenant_id == item.tenant_id,
+            IntegrationResult.source == source,
+            IntegrationResult.result_key == key,
+        )
+    )
     if prior is None:
-        session.add(IntegrationResult(
-            id=__import__("uuid").uuid4().hex, tenant_id=item.tenant_id, outbox_id=item.id,
-            source=source, result_key=key,
-            payload_json=seal_integration_result(
-                {"status": "RECONCILIATION_REQUIRED", "attempt": expected_attempt,
-                 "reason": "provider_completed_after_operation_state_changed"},
-                tenant_id=item.tenant_id, outbox_id=item.id, source=source, result_key=key,
-            ),
-        ))
+        session.add(
+            IntegrationResult(
+                id=__import__("uuid").uuid4().hex,
+                tenant_id=item.tenant_id,
+                outbox_id=item.id,
+                source=source,
+                result_key=key,
+                payload_json=seal_integration_result(
+                    {
+                        "status": "RECONCILIATION_REQUIRED",
+                        "attempt": expected_attempt,
+                        "reason": "provider_completed_after_operation_state_changed",
+                    },
+                    tenant_id=item.tenant_id,
+                    outbox_id=item.id,
+                    source=source,
+                    result_key=key,
+                ),
+            )
+        )
     session.commit()
 
 
-def _success(session: Session, item_id: str, response: dict[str, Any], *, expected_attempt: int) -> bool:
+def _success(
+    session: Session, item_id: str, response: dict[str, Any], *, expected_attempt: int
+) -> bool:
     current = now()
     item = session.scalar(
-        select(IntegrationOutbox).where(IntegrationOutbox.id == item_id)
-        .with_for_update().execution_options(populate_existing=True)
+        select(IntegrationOutbox)
+        .where(IntegrationOutbox.id == item_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if item is None:
         return False
@@ -354,14 +380,22 @@ def _success(session: Session, item_id: str, response: dict[str, Any], *, expect
             IntegrationResult.result_key == result_key,
         )
     ):
-        session.add(IntegrationResult(
-            id=item.id, tenant_id=item.tenant_id, outbox_id=item.id, source="MAUTIC",
-            result_key=result_key,
-            payload_json=seal_integration_result(
-                response, tenant_id=item.tenant_id, outbox_id=item.id,
-                source="MAUTIC", result_key=result_key,
-            ),
-        ))
+        session.add(
+            IntegrationResult(
+                id=item.id,
+                tenant_id=item.tenant_id,
+                outbox_id=item.id,
+                source="MAUTIC",
+                result_key=result_key,
+                payload_json=seal_integration_result(
+                    response,
+                    tenant_id=item.tenant_id,
+                    outbox_id=item.id,
+                    source="MAUTIC",
+                    result_key=result_key,
+                ),
+            )
+        )
     item.state = "COMPLETED"
     item.lease_expires_at = None
     item.last_error = None
@@ -416,13 +450,13 @@ async def dispatch_mautic_outbox(limit: int = 20) -> dict[str, int]:
             item_id, command, stored, idempotency_key, expected_attempt = snapshot
             with DB() as session:
                 current = session.get(IntegrationOutbox, item_id)
-                if not _current_claim(current, expected_attempt, now()) or _has_late_observation(session, current):
+                if not _current_claim(current, expected_attempt, now()) or _has_late_observation(
+                    session, current
+                ):
                     continue
             provider_called = False
             try:
-                method, path, body = mautic_request(
-                    command, stored.get("payload") or {}
-                )
+                method, path, body = mautic_request(command, stored.get("payload") or {})
                 provider_called = True
                 response = await client.request(
                     method,
@@ -447,7 +481,8 @@ async def dispatch_mautic_outbox(limit: int = 20) -> dict[str, int]:
                             session,
                             item_id,
                             "mautic_ambiguous_http_" + str(response.status_code),
-                            retryable=False, expected_attempt=expected_attempt,
+                            retryable=False,
+                            expected_attempt=expected_attempt,
                         )
                     failed += 1
                     continue
@@ -455,9 +490,7 @@ async def dispatch_mautic_outbox(limit: int = 20) -> dict[str, int]:
                 if len(response.content) > MAX_RESULT_BYTES:
                     raise RuntimeError("mautic_response_too_large")
                 result = (
-                    response.json()
-                    if response.content
-                    else {"status_code": response.status_code}
+                    response.json() if response.content else {"status_code": response.status_code}
                 )
                 with DB() as session:
                     accepted = _success(session, item_id, result, expected_attempt=expected_attempt)
@@ -469,18 +502,29 @@ async def dispatch_mautic_outbox(limit: int = 20) -> dict[str, int]:
                         session,
                         item_id,
                         "mautic_http_" + str(error.response.status_code),
-                        retryable=retryable, expected_attempt=expected_attempt,
+                        retryable=retryable,
+                        expected_attempt=expected_attempt,
                         affects_circuit=error.response.status_code in {401, 403, 408, 429},
                     )
                 failed += 1
             except httpx.ConnectError:
                 with DB() as session:
-                    _failure(session, item_id, "mautic_connect_error", retryable=True, expected_attempt=expected_attempt)
+                    _failure(
+                        session,
+                        item_id,
+                        "mautic_connect_error",
+                        retryable=True,
+                        expected_attempt=expected_attempt,
+                    )
                 failed += 1
             except (httpx.TimeoutException, httpx.TransportError):
                 with DB() as session:
                     _failure(
-                        session, item_id, "mautic_transport_ambiguous", retryable=False, expected_attempt=expected_attempt
+                        session,
+                        item_id,
+                        "mautic_transport_ambiguous",
+                        retryable=False,
+                        expected_attempt=expected_attempt,
                     )
                 failed += 1
             except (
@@ -496,7 +540,8 @@ async def dispatch_mautic_outbox(limit: int = 20) -> dict[str, int]:
                         session,
                         item_id,
                         type(error).__name__,
-                        retryable=False, expected_attempt=expected_attempt,
+                        retryable=False,
+                        expected_attempt=expected_attempt,
                         affects_circuit=provider_called,
                     )
                 failed += 1

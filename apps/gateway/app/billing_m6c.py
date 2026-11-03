@@ -1,4 +1,5 @@
 """Browser billing documents backed by canonical M6C billing facts."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -7,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .billing import Credit, CreditNote, Invoice, InvoiceLine, Payment
+from .main import db
+from .billing import CreditNote, Invoice, InvoiceLine, Payment
 from .billing_browser import billing_context, decimal, iso
 from .billing_documents import (
     DocumentLine,
@@ -16,7 +18,6 @@ from .billing_documents import (
     receipt_document,
     require_confirmed_payment,
 )
-from .main import db
 
 router = APIRouter(prefix="/app/api/billing", tags=["Browser billing documents"])
 
@@ -38,7 +39,11 @@ def _document_payload(document: Any) -> dict[str, Any]:
         "source_reference": document.source_reference,
         "tax_evidence": document.tax_evidence,
         "lines": [
-            {"description": line.description, "quantity": line.quantity, "amount": decimal(line.amount)}
+            {
+                "description": line.description,
+                "quantity": line.quantity,
+                "amount": decimal(line.amount),
+            }
             for line in document.lines
         ],
         "content_hash": document.content_hash,
@@ -54,7 +59,9 @@ def invoice_document_get(
     invoice = _invoice(s, invoice_id, ctx["tenant"])
     lines = tuple(
         DocumentLine(line.description, line.quantity, line.amount)
-        for line in s.scalars(select(InvoiceLine).where(InvoiceLine.invoice_id == invoice.id).order_by(InvoiceLine.id)).all()
+        for line in s.scalars(
+            select(InvoiceLine).where(InvoiceLine.invoice_id == invoice.id).order_by(InvoiceLine.id)
+        ).all()
     )
     return _document_payload(
         invoice_document(
@@ -74,7 +81,9 @@ def credit_notes(
     s: Session = Depends(db),
 ) -> dict[str, Any]:
     rows = s.scalars(
-        select(CreditNote).where(CreditNote.tenant_id == ctx["tenant"]).order_by(CreditNote.created_at.desc(), CreditNote.id.desc())
+        select(CreditNote)
+        .where(CreditNote.tenant_id == ctx["tenant"])
+        .order_by(CreditNote.created_at.desc(), CreditNote.id.desc())
     ).all()
     return {
         "items": [
@@ -98,7 +107,11 @@ def credit_note_document_get(
     ctx: dict[str, Any] = Depends(billing_context),
     s: Session = Depends(db),
 ) -> dict[str, Any]:
-    item = s.scalar(select(CreditNote).where(CreditNote.id == credit_note_id, CreditNote.tenant_id == ctx["tenant"]))
+    item = s.scalar(
+        select(CreditNote).where(
+            CreditNote.id == credit_note_id, CreditNote.tenant_id == ctx["tenant"]
+        )
+    )
     if item is None:
         raise HTTPException(404, "credit_note_not_found")
     invoice = _invoice(s, item.invoice_id, ctx["tenant"])
@@ -120,7 +133,9 @@ def payment_receipt(
     ctx: dict[str, Any] = Depends(billing_context),
     s: Session = Depends(db),
 ) -> dict[str, Any]:
-    payment = s.scalar(select(Payment).where(Payment.id == payment_id, Payment.tenant_id == ctx["tenant"]))
+    payment = s.scalar(
+        select(Payment).where(Payment.id == payment_id, Payment.tenant_id == ctx["tenant"])
+    )
     if payment is None:
         raise HTTPException(404, "payment_not_found")
     require_confirmed_payment(payment.status)

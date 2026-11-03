@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).parents[1]
 
 
@@ -64,9 +63,12 @@ def test_frontend_location_headers_do_not_drop_the_security_policy():
     assert source.count('add_header X-Content-Type-Options "nosniff" always;') == 3
     assert source.count('add_header X-Frame-Options "DENY" always;') == 3
     assert source.count('add_header Referrer-Policy "no-referrer" always;') == 3
-    assert source.count(
-        'add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;'
-    ) == 3
+    assert (
+        source.count(
+            'add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;'
+        )
+        == 3
+    )
     assert source.count('add_header X-Robots-Tag "noindex, nofollow" always;') == 4
     assert source.count("add_header X-Request-ID $klyrow_request_id always;") == 2
 

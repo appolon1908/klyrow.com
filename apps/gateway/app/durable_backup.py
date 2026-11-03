@@ -1,14 +1,15 @@
 """Private keyring snapshots and read-only durable-record restore verification."""
+
 from __future__ import annotations
 
 import hashlib
 import hmac
 import json
 import os
-from pathlib import Path
 import re
 import stat
 import tempfile
+from pathlib import Path
 
 from .durable_keys import KEYRING_ENV, MAX_KEYRING_BYTES, load_keyring, parse_keyring
 
@@ -32,9 +33,12 @@ def _read_file(path: Path, limit: int, *, private: bool = True) -> bytes:
         before = os.fstat(stream.fileno())
         forbidden = 0o077 if private else 0o022
         owner_ok = os.name == "nt" or not hasattr(os, "geteuid") or before.st_uid == os.geteuid()
-        if (not stat.S_ISREG(before.st_mode) or not owner_ok
-                or (os.name != "nt" and before.st_mode & forbidden)
-                or not 0 < before.st_size <= limit):
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or not owner_ok
+            or (os.name != "nt" and before.st_mode & forbidden)
+            or not 0 < before.st_size <= limit
+        ):
             raise DurableBackupError("invalid_backup_authority")
         raw = stream.read(limit + 1)
         after = os.fstat(stream.fileno())
@@ -108,7 +112,9 @@ def capture_keyring(env_file: Path, stage: Path) -> None:
 
 def check_source_unchanged(env_file: Path, stage: Path) -> None:
     stage = _stage(stage)
-    if not hmac.compare_digest(_key_bytes(configured_keyring(env_file)), _key_bytes(stage / ARCHIVE_KEYRING)):
+    if not hmac.compare_digest(
+        _key_bytes(configured_keyring(env_file)), _key_bytes(stage / ARCHIVE_KEYRING)
+    ):
         raise DurableBackupError("backup_keyring_changed")
 
 
@@ -117,8 +123,11 @@ def check_archive(stage: Path) -> bytes:
     stage = _stage(stage)
     raw = _key_bytes(stage / ARCHIVE_KEYRING)
     manifest = _read_file(stage / "MANIFEST.sha256", 131072)
-    entries = [match.group(1).decode("ascii") for line in manifest.splitlines()
-               if (match := re.fullmatch(rb"([0-9a-f]{64})  durable-result-keyring\.json", line))]
+    entries = [
+        match.group(1).decode("ascii")
+        for line in manifest.splitlines()
+        if (match := re.fullmatch(rb"([0-9a-f]{64})  durable-result-keyring\.json", line))
+    ]
     if len(entries) != 1 or not hmac.compare_digest(entries[0], hashlib.sha256(raw).hexdigest()):
         raise DurableBackupError("backup_keyring_checksum_mismatch")
     return raw
@@ -128,8 +137,10 @@ def check_restore_coverage(env_file: Path, stage: Path) -> None:
     """Never overwrite live keys; require every archived key with identical bytes."""
     archived = parse_keyring(check_archive(stage))
     current = parse_keyring(_key_bytes(configured_keyring(env_file)))
-    if any(not hmac.compare_digest(current.keys.get(kid, b""), material)
-           for kid, material in archived.keys.items()):
+    if any(
+        not hmac.compare_digest(current.keys.get(kid, b""), material)
+        for kid, material in archived.keys.items()
+    ):
         raise DurableBackupError("restore_keyring_incomplete")
 
 
@@ -141,8 +152,9 @@ def verify_restored_records(session) -> dict:
     are returned. Streaming bounds memory, not the duration of a complete scan.
     """
     from sqlalchemy import select, text
-    from .durable_results import FORMAT, integration_document, read_control_response
+
     from .main import Idempotency
+    from .durable_results import FORMAT, integration_document, read_control_response
     from .operations import IntegrationResult
 
     if session.new or session.dirty or session.deleted:
@@ -150,8 +162,13 @@ def verify_restored_records(session) -> dict:
     authority = load_keyring()
     if session.get_bind().dialect.name == "postgresql":
         session.execute(text("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY"))
-    report = {"schema_version": 1, "control_records": 0, "integration_records": 0,
-              "authenticated_encrypted_records": 0, "legacy_records": 0}
+    report = {
+        "schema_version": 1,
+        "control_records": 0,
+        "integration_records": 0,
+        "authenticated_encrypted_records": 0,
+        "legacy_records": 0,
+    }
     for model, field, decoder, counter in (
         (Idempotency, "response_json", read_control_response, "control_records"),
         (IntegrationResult, "payload_json", integration_document, "integration_records"),
@@ -160,7 +177,11 @@ def verify_restored_records(session) -> dict:
         for row in session.scalars(query):
             decoder(row)  # Never bypass authentication because a result expired.
             envelope = json.loads(getattr(row, field))
-            kind = "authenticated_encrypted_records" if envelope.get("format") == FORMAT else "legacy_records"
+            kind = (
+                "authenticated_encrypted_records"
+                if envelope.get("format") == FORMAT
+                else "legacy_records"
+            )
             report[counter] += 1
             report[kind] += 1
     if load_keyring() != authority:
@@ -172,6 +193,7 @@ def main() -> int:
     """Read-only container entry point; ASGI startup/workers are never invoked."""
     try:
         from .main import DB
+
         with DB() as session:
             try:
                 report = verify_restored_records(session)

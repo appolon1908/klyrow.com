@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 import hashlib
-from datetime import datetime, timedelta, timezone, tzinfo
+from copy import deepcopy
+from datetime import UTC, datetime, timedelta, timezone, tzinfo
 
 import pytest
 
@@ -15,8 +15,7 @@ from apps.gateway.app.production_authorization import (
     validate_production_authorization,
 )
 
-
-NOW = datetime(2026, 9, 13, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 13, 12, 0, tzinfo=UTC)
 TENANT = "tenant-a"
 MESSAGE = "command-00000001"
 CORRELATION = "email-correlation-0001"
@@ -57,9 +56,7 @@ def authorization(recipients: list[str] | None = None, **updates) -> dict:
     return value
 
 
-def validate(
-    value: dict, recipients: list[str] | None = None, *, now: datetime = NOW
-) -> dict:
+def validate(value: dict, recipients: list[str] | None = None, *, now: datetime = NOW) -> dict:
     return validate_production_authorization(
         value,
         tenant_id=TENANT,
@@ -130,8 +127,7 @@ def test_outbox_revalidates_and_strips_control_data_before_provider():
     assert "_codestra_production_authorization" in payload
     assert payload == original
     assert provider_payload == {
-        key: value for key, value in original.items()
-        if key != "_codestra_production_authorization"
+        key: value for key, value in original.items() if key != "_codestra_production_authorization"
     }
 
 
@@ -150,21 +146,26 @@ def test_recipient_digest_matches_independent_wire_fixture():
 def test_recipient_order_mismatch_succeeds_with_normalized_sorting():
     middleware_recipients = ["b@example.com", "a@example.com"]
     klyrow_recipients = ["a@example.com", "b@example.com"]
-    result = validate(
-        authorization(recipients=middleware_recipients), recipients=klyrow_recipients
-    )
+    result = validate(authorization(recipients=middleware_recipients), recipients=klyrow_recipients)
     assert result["commandBinding"]["recipientsSha256"] == _recipients_sha256(klyrow_recipients)
 
 
-@pytest.mark.parametrize("recipients", [
-    ["different@example.net"], [], RECIPIENTS * 2,
-])
+@pytest.mark.parametrize(
+    "recipients",
+    [
+        ["different@example.net"],
+        [],
+        RECIPIENTS * 2,
+    ],
+)
 def test_changed_recipient_membership_fails_closed(recipients):
     with pytest.raises(ProductionAuthorizationError, match="binding_mismatch"):
         validate(authorization(), recipients=recipients)
 
 
-@pytest.mark.parametrize("offset", [timedelta(hours=2), timedelta(hours=-4), timedelta(hours=5, minutes=30)])
+@pytest.mark.parametrize(
+    "offset", [timedelta(hours=2), timedelta(hours=-4), timedelta(hours=5, minutes=30)]
+)
 def test_valid_authorization_with_non_utc_offset_timestamps(offset):
     offset_now = NOW.astimezone(timezone(offset))
     auth_payload = authorization(
@@ -215,29 +216,40 @@ def test_valid_from_boundary_is_inclusive():
     assert validate(authorization(validFrom=NOW.isoformat()))["mode"] == "TRANSACTIONAL_PRODUCTION"
 
 
-@pytest.mark.parametrize("changes", [
-    {"validUntil": NOW.isoformat()},
-    {"validFrom": (NOW + timedelta(microseconds=1)).isoformat()},
-    {"validFrom": NOW.isoformat(), "validUntil": NOW.isoformat()},
-    {"validFrom": (NOW + timedelta(hours=2)).isoformat()},
-])
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"validUntil": NOW.isoformat()},
+        {"validFrom": (NOW + timedelta(microseconds=1)).isoformat()},
+        {"validFrom": NOW.isoformat(), "validUntil": NOW.isoformat()},
+        {"validFrom": (NOW + timedelta(hours=2)).isoformat()},
+    ],
+)
 def test_expired_future_empty_or_reversed_window_fails_closed(changes):
     with pytest.raises(ProductionAuthorizationError, match="outside_window"):
         validate(authorization(**changes))
 
 
-@pytest.mark.parametrize("changes", [
-    {"authorizationTimestamp": NOW.isoformat()},
-    {"activationTimestamp": (NOW + timedelta(microseconds=1)).isoformat()},
-])
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"authorizationTimestamp": NOW.isoformat()},
+        {"activationTimestamp": (NOW + timedelta(microseconds=1)).isoformat()},
+    ],
+)
 def test_reversed_or_future_audit_timestamps_fail_closed(changes):
     with pytest.raises(ProductionAuthorizationError, match="timestamps_invalid"):
         validate(authorization(**changes))
 
 
-@pytest.mark.parametrize("authority", [
-    "invalid", {}, authorization(validUntil=NOW.isoformat()),
-])
+@pytest.mark.parametrize(
+    "authority",
+    [
+        "invalid",
+        {},
+        authorization(validUntil=NOW.isoformat()),
+    ],
+)
 def test_outbox_rejects_invalid_or_expired_authority_without_mutating_input(authority):
     payload = {
         "to": RECIPIENTS,
@@ -249,8 +261,11 @@ def test_outbox_rejects_invalid_or_expired_authority_without_mutating_input(auth
     original = deepcopy(payload)
     with pytest.raises(ProductionAuthorizationError):
         provider_payload_from_outbox(
-            payload, tenant_id=TENANT, message_id=MESSAGE,
-            correlation_id=CORRELATION, now=NOW,
+            payload,
+            tenant_id=TENANT,
+            message_id=MESSAGE,
+            correlation_id=CORRELATION,
+            now=NOW,
         )
     assert payload == original
 
@@ -258,8 +273,11 @@ def test_outbox_rejects_invalid_or_expired_authority_without_mutating_input(auth
 def test_outbox_without_authority_remains_unauthorized():
     payload = {"to": RECIPIENTS, "from": SENDER, "stream": "transactional"}
     result, authorized = provider_payload_from_outbox(
-        payload, tenant_id=TENANT, message_id=MESSAGE,
-        correlation_id=CORRELATION, now=NOW,
+        payload,
+        tenant_id=TENANT,
+        message_id=MESSAGE,
+        correlation_id=CORRELATION,
+        now=NOW,
     )
     assert authorized is False
     assert result == payload

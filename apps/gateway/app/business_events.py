@@ -4,21 +4,30 @@ The table in this module is deliberately separate from the generic integration
 outbox.  Its state machine and acceptance contract belong to the Klyrow to
 Middleware boundary; no Odoo dependency is present here.
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
 import uuid
-from datetime import date, datetime, time, timedelta, timezone
-from typing import Literal, Optional
+from datetime import UTC, date, datetime, time, timedelta
+from typing import Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
-from sqlalchemy import CheckConstraint, DateTime, Integer, String, Text, UniqueConstraint, func, select
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    select,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .main import Base
 from .telemetry import trace_carrier
-
 
 SOURCES = ("klyrow", "telnexa", "vicidial", "integration")
 KLYROW_EVENTS = (
@@ -49,14 +58,14 @@ OUTBOX_STATES = ("PENDING", "LEASED", "RETRYING", "DELIVERED", "DEAD_LETTER")
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class TenantEventData(BaseModel):
     model_config = ConfigDict(extra="forbid")
     tenant_id: str = Field(min_length=1, max_length=200)
-    name: Optional[str] = Field(default=None, max_length=200)
-    organization_id: Optional[str] = Field(default=None, max_length=200)
+    name: str | None = Field(default=None, max_length=200)
+    organization_id: str | None = Field(default=None, max_length=200)
     enabled: bool
 
 
@@ -64,8 +73,8 @@ class SubscriptionChangedData(BaseModel):
     model_config = ConfigDict(extra="forbid")
     subscription_id: str = Field(min_length=1, max_length=200)
     status: str = Field(min_length=1, max_length=50)
-    plan_id: Optional[str] = Field(default=None, max_length=200)
-    price_id: Optional[str] = Field(default=None, max_length=200)
+    plan_id: str | None = Field(default=None, max_length=200)
+    price_id: str | None = Field(default=None, max_length=200)
     version: int = Field(ge=1)
     effective_at: AwareDatetime
 
@@ -104,7 +113,7 @@ class DomainStatusData(BaseModel):
     domain_id: str = Field(min_length=1, max_length=200)
     domain: str = Field(min_length=1, max_length=253)
     status: str = Field(min_length=1, max_length=50)
-    verified_at: Optional[AwareDatetime] = None
+    verified_at: AwareDatetime | None = None
 
 
 class ProviderHealthData(BaseModel):
@@ -112,7 +121,7 @@ class ProviderHealthData(BaseModel):
     provider: str = Field(min_length=1, max_length=100)
     status: Literal["HEALTHY", "DEGRADED", "UNAVAILABLE"]
     checked_at: AwareDatetime
-    reason_code: Optional[str] = Field(default=None, max_length=100)
+    reason_code: str | None = Field(default=None, max_length=100)
 
 
 class AccountStateData(BaseModel):
@@ -144,14 +153,14 @@ class EventEnvelope(BaseModel):
     source: Literal["klyrow"]
     tenant_id: str = Field(min_length=1, max_length=200)
     correlation_id: str = Field(min_length=1, max_length=200)
-    causation_id: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    causation_id: str | None = Field(default=None, min_length=1, max_length=200)
     occurred_at: AwareDatetime
     data: dict
 
     @field_validator("occurred_at")
     @classmethod
     def normalize_utc(cls, value: datetime) -> datetime:
-        return value.astimezone(timezone.utc)
+        return value.astimezone(UTC)
 
     @model_validator(mode="after")
     def validate_event_data(self):
@@ -175,19 +184,25 @@ class BusinessEventOutbox(Base):
     event_id: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
     event_type: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
     tenant_id: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
-    aggregate_id: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, index=True)
+    aggregate_id: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)
     payload: Mapped[str] = mapped_column(Text, nullable=False)
     payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     correlation_id: Mapped[str] = mapped_column(String(200), nullable=False)
     trace_context: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     state: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING", index=True)
     attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow, index=True)
-    lease_owner: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
-    lease_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
-    delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_error: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    next_attempt_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, index=True
+    )
+    lease_owner: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     __table_args__ = (
         UniqueConstraint("tenant_id", "event_id", name="uq_business_event_tenant_event"),
@@ -207,12 +222,14 @@ def canonical_event(event: EventEnvelope) -> str:
     return json.dumps(event.model_dump(mode="json"), separators=(",", ":"), sort_keys=True)
 
 
-def enqueue_event(session, event: EventEnvelope, *, aggregate_id: Optional[str] = None):
+def enqueue_event(session, event: EventEnvelope, *, aggregate_id: str | None = None):
     """Add an immutable outbox row without committing the caller's transaction."""
 
     payload = canonical_event(event)
     payload_hash = hashlib.sha256(payload.encode("utf-8")).hexdigest()
-    existing = session.scalar(select(BusinessEventOutbox).where(BusinessEventOutbox.event_id == event.id))
+    existing = session.scalar(
+        select(BusinessEventOutbox).where(BusinessEventOutbox.event_id == event.id)
+    )
     if existing:
         if existing.payload_hash != payload_hash or existing.payload != payload:
             raise ValueError("business_event_idempotency_conflict")
@@ -243,17 +260,17 @@ def enqueue_named_event(
     event_type: str,
     tenant_id: str,
     data: dict,
-    correlation_id: Optional[str] = None,
-    causation_id: Optional[str] = None,
-    aggregate_id: Optional[str] = None,
-    event_id: Optional[str] = None,
-    occurred_at: Optional[datetime] = None,
+    correlation_id: str | None = None,
+    causation_id: str | None = None,
+    aggregate_id: str | None = None,
+    event_id: str | None = None,
+    occurred_at: datetime | None = None,
 ):
     identifier = event_id or new_event_id()
     normalized_data = dict(data)
     for key, value in normalized_data.items():
         if key.endswith("_at") and isinstance(value, datetime) and value.tzinfo is None:
-            normalized_data[key] = value.replace(tzinfo=timezone.utc)
+            normalized_data[key] = value.replace(tzinfo=UTC)
     event = EventEnvelope(
         id=identifier,
         type=event_type,
@@ -268,7 +285,7 @@ def enqueue_named_event(
     return enqueue_event(session, event, aggregate_id=aggregate_id)
 
 
-def replay_dead_letter(session, event_id: str, *, tenant_id: Optional[str] = None):
+def replay_dead_letter(session, event_id: str, *, tenant_id: str | None = None):
     query = select(BusinessEventOutbox).where(BusinessEventOutbox.event_id == event_id)
     if tenant_id is not None:
         query = query.where(BusinessEventOutbox.tenant_id == tenant_id)
@@ -292,8 +309,8 @@ def replay_dead_letter(session, event_id: str, *, tenant_id: Optional[str] = Non
 
 def daily_snapshot(session, tenant_id: str, day: date):
     """Create a new immutable daily snapshot only when the ledger changed."""
-    from .billing import UsageEvent
     from .main import Tenant
+    from .billing import UsageEvent
 
     current = utcnow()
     if day >= current.date():
@@ -302,25 +319,36 @@ def daily_snapshot(session, tenant_id: str, day: date):
         session.execute(select(func.set_config("statement_timeout", "5000", True)))
     if session.scalar(select(Tenant.id).where(Tenant.id == tenant_id).with_for_update()) is None:
         raise ValueError("tenant_not_found")
-    start = datetime.combine(day, time.min, tzinfo=timezone.utc)
+    start = datetime.combine(day, time.min, tzinfo=UTC)
     end = start + timedelta(days=1)
-    quantity = int(session.scalar(select(func.coalesce(func.sum(UsageEvent.quantity), 0)).where(
-        UsageEvent.tenant_id == tenant_id,
-        UsageEvent.unit == "accepted_message",
-        UsageEvent.occurred_at >= start,
-        UsageEvent.occurred_at < end,
-    )))
+    quantity = int(
+        session.scalar(
+            select(func.coalesce(func.sum(UsageEvent.quantity), 0)).where(
+                UsageEvent.tenant_id == tenant_id,
+                UsageEvent.unit == "accepted_message",
+                UsageEvent.occurred_at >= start,
+                UsageEvent.occurred_at < end,
+            )
+        )
+    )
     aggregate = f"usage:{tenant_id}:{day.isoformat()}"
-    prior = session.scalar(select(BusinessEventOutbox).where(
-        BusinessEventOutbox.tenant_id == tenant_id,
-        BusinessEventOutbox.event_type == "klyrow.usage.daily",
-        BusinessEventOutbox.aggregate_id == aggregate,
-    ).order_by(BusinessEventOutbox.created_at.desc(), BusinessEventOutbox.id.desc()).limit(1))
+    prior = session.scalar(
+        select(BusinessEventOutbox)
+        .where(
+            BusinessEventOutbox.tenant_id == tenant_id,
+            BusinessEventOutbox.event_type == "klyrow.usage.daily",
+            BusinessEventOutbox.aggregate_id == aggregate,
+        )
+        .order_by(BusinessEventOutbox.created_at.desc(), BusinessEventOutbox.id.desc())
+        .limit(1)
+    )
     if prior:
         prior_event = EventEnvelope.model_validate_json(prior.payload)
         if prior_event.data["quantity"] == quantity:
             return prior
-        previous_time = datetime.fromisoformat(prior_event.data["snapshot_at"].replace("Z", "+00:00"))
+        previous_time = datetime.fromisoformat(
+            prior_event.data["snapshot_at"].replace("Z", "+00:00")
+        )
         current = max(current, previous_time + timedelta(microseconds=1))
     return enqueue_named_event(
         session,
@@ -345,9 +373,9 @@ def snapshot_page(session, day: date, after: str = "", limit: int = 100):
 
     if not 1 <= limit <= 100:
         raise ValueError("invalid_snapshot_page_limit")
-    tenants = list(session.scalars(
-        select(Tenant.id).where(Tenant.id > after).order_by(Tenant.id).limit(limit)
-    ))
+    tenants = list(
+        session.scalars(select(Tenant.id).where(Tenant.id > after).order_by(Tenant.id).limit(limit))
+    )
     for tenant_id in tenants:
         daily_snapshot(session, tenant_id, day)
     return tenants[-1] if len(tenants) == limit else None

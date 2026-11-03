@@ -1,6 +1,5 @@
-from pathlib import Path
 import re
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -67,9 +66,12 @@ def test_web_runtime_does_not_retain_nondeterministic_package_log():
     )
     for entry in checksums.splitlines():
         digest, package = entry.split()
-        assert __import__("hashlib").sha256(
-            (ROOT / "apps/web/vendor" / package).read_bytes()
-        ).hexdigest() == digest
+        assert (
+            __import__("hashlib")
+            .sha256((ROOT / "apps/web/vendor" / package).read_bytes())
+            .hexdigest()
+            == digest
+        )
         assert f"apk verify --keys-dir /etc/apk/keys {package}" in dockerfile
         assert f"./{package}" in dockerfile
     for package in (
@@ -101,12 +103,8 @@ def test_every_container_build_stage_pins_its_base_manifest_digest():
 
 
 def test_postal_runtime_is_patched_from_immutable_os_and_gem_inputs():
-    dockerfile = (ROOT / "docker/postal-provisioner.Dockerfile").read_text(
-        encoding="utf-8"
-    )
-    sources = (ROOT / "docker/postal-security/debian.sources.list").read_text(
-        encoding="utf-8"
-    )
+    dockerfile = (ROOT / "docker/postal-provisioner.Dockerfile").read_text(encoding="utf-8")
+    sources = (ROOT / "docker/postal-security/debian.sources.list").read_text(encoding="utf-8")
     gemfile = (ROOT / "docker/postal-security/Gemfile").read_text(encoding="utf-8")
     lock = (ROOT / "docker/postal-security/Gemfile.lock").read_text(encoding="utf-8")
     assert sources.count("snapshot.debian.org/") == 3
@@ -132,9 +130,7 @@ def test_postal_runtime_is_patched_from_immutable_os_and_gem_inputs():
     assert "/usr/local/bundle/specifications/rack-3.2.6.gemspec" in dockerfile
     assert "setcap -r /usr/local/bin/ruby" in dockerfile
     assert 'test -z "$(getcap /usr/local/bin/ruby)"' in dockerfile
-    os_patch_layer = dockerfile.split(
-        "COPY docker/postal-security/Gemfile", maxsplit=1
-    )[0]
+    os_patch_layer = dockerfile.split("COPY docker/postal-security/Gemfile", maxsplit=1)[0]
     assert "rm -f" in os_patch_layer
     assert "/var/cache/ldconfig/aux-cache" in os_patch_layer
     assert "bundle config set deployment true" in dockerfile
@@ -157,11 +153,11 @@ def test_postal_runtime_is_patched_from_immutable_os_and_gem_inputs():
     assert "rails (7.2.3.2) sha256=" in lock
     assert "resolv (0.7.2) sha256=" in lock
     assert "zlib (3.2.3) sha256=" in lock
-    assert 'ARG SOURCE_SHA' in dockerfile
-    assert 'ARG SOURCE_DATE_EPOCH' in dockerfile
-    assert 'export SOURCE_DATE_EPOCH' in dockerfile
-    assert 'bundle install --jobs 1 --retry 3' in dockerfile
-    assert 'org.opencontainers.image.revision=$SOURCE_SHA' in dockerfile
+    assert "ARG SOURCE_SHA" in dockerfile
+    assert "ARG SOURCE_DATE_EPOCH" in dockerfile
+    assert "export SOURCE_DATE_EPOCH" in dockerfile
+    assert "bundle install --jobs 1 --retry 3" in dockerfile
+    assert "org.opencontainers.image.revision=$SOURCE_SHA" in dockerfile
     assert 'wc -c)" -eq 40' in dockerfile
 
 
@@ -174,12 +170,15 @@ def test_ci_compares_two_timestamp_rewritten_oci_exports_before_publish():
     assert '[migrate]="docker/migrate.Dockerfile"' in workflow
     assert '[postal-provisioner]="docker/postal-provisioner.Dockerfile"' in workflow
     assert "--no-cache" in workflow
-    assert "type=oci,dest=${RUNNER_TEMP}/klyrow-${image}-${copy}.tar,rewrite-timestamp=true" in workflow
+    assert (
+        "type=oci,dest=${RUNNER_TEMP}/klyrow-${image}-${copy}.tar,rewrite-timestamp=true"
+        in workflow
+    )
     assert "cmp \\\n" in workflow
     assert workflow.count("outputs: type=registry,rewrite-timestamp=true") == 4
-    initial_postal_build = workflow.split(
-        "- name: Build Postal provisioner candidate", maxsplit=1
-    )[1].split("- name: Build frontend candidate", maxsplit=1)[0]
+    initial_postal_build = workflow.split("- name: Build Postal provisioner candidate", maxsplit=1)[
+        1
+    ].split("- name: Build frontend candidate", maxsplit=1)[0]
     assert "SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}" in initial_postal_build
 
 
@@ -187,7 +186,7 @@ def test_protected_publication_covers_every_production_owned_image():
     workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert "github.ref == 'refs/heads/main'" in workflow
     assert "github.ref_protected == true" in workflow
-    assert 'test "$GITHUB_REF_PROTECTED" = \'true\'' in workflow
+    assert "test \"$GITHUB_REF_PROTECTED\" = 'true'" in workflow
     assert 'test "$(git rev-parse HEAD)" = "$KLYROW_SOURCE_SHA"' in workflow
     for image in ("gateway", "web", "migrate", "postal-provisioner"):
         assert f"klyrow-{image}:candidate-${{{{ github.run_id }}}}" in workflow
@@ -209,7 +208,9 @@ def test_protected_publisher_scans_and_verifies_exact_digests_before_promotion()
     collision = workflow.index("Reject immutable source-tag collisions before signing", publish)
     sign = workflow.index("Sign and attest only unpublished exact digests", publish)
     verify = workflow.index("Verify signatures, provenance, and SBOM attestations", publish)
-    promote = workflow.index("Promote only fully certified digests to immutable source tags", publish)
+    promote = workflow.index(
+        "Promote only fully certified digests to immutable source tags", publish
+    )
     assert candidate < scan < collision < sign < verify < promote
     assert workflow.count("format: json") >= 4
     assert workflow.count("publish-trivy-") >= 4
@@ -237,7 +238,9 @@ def test_pull_request_images_and_evidence_bind_to_exact_head_sha():
     # The sole foreign checkout supplies immutable test dependencies; every
     # Klyrow checkout must still bind images and evidence to the PR head.
     import json
+
     import yaml
+
     source = json.loads((ROOT / "integrations/codestra-middleware/SOURCE.json").read_text())
     foreign = 0
     for job in yaml.safe_load(workflow)["jobs"].values():

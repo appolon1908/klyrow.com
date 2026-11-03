@@ -16,25 +16,26 @@ from datetime import timedelta
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import select
 
-from .delivery_safety import email_activation_status
 from .main import DB, email_outbox_loop, postal_retry_loop, recover_middleware_commands
 from .billing import BillingEvent, BillingWorkItem, now
 from .billing_provider_events import claim_provider_events, mark_provider_event_failure
 from .billing_settlement_worker import process_stripe_provider_event
+from .business_event_worker import dispatch as dispatch_business_events
+from .campaign_dispatcher import dispatch_campaigns
+from .delivery_safety import email_activation_status
 from .mautic_adapter import dispatch_mautic_outbox
+from .observability import dispatch_observability_outbox
 from .postal_provisioning import provisioning_tick
 from .provider import (
     dispatch_provider_outbox,
     process_one_sandbox,
     recover_expired_leases,
 )
+from .secret_responses import cleanup_secret_responses
+from .secret_responses import refresh_metrics as refresh_secret_metrics
 from .security_smtp_worker import security_smtp_delivery_loop
-from .tenant_postal_delivery import tenant_email_outbox_loop
-from .business_event_worker import dispatch as dispatch_business_events
-from .campaign_dispatcher import dispatch_campaigns
-from .secret_responses import cleanup_secret_responses, refresh_metrics as refresh_secret_metrics
 from .telemetry import configure_tracing
-from .observability import dispatch_observability_outbox
+from .tenant_postal_delivery import tenant_email_outbox_loop
 
 ROLE = os.getenv("KLYROW_WORKER_ROLE", "mail")
 RUNNING = True
@@ -45,9 +46,7 @@ def tenant_postal_provisioning_enabled() -> bool:
     """Select tenant credentials only when the complete provisioning stack is enabled."""
 
     return (
-        os.getenv("KLYROW_TENANT_POSTAL_PROVISIONING_ENABLED", "false")
-        .strip()
-        .lower()
+        os.getenv("KLYROW_TENANT_POSTAL_PROVISIONING_ENABLED", "false").strip().lower()
         in _TRUE_VALUES
     )
 
@@ -114,26 +113,32 @@ def billing_tick(max_attempts=8):
                 if provider_event.provider == "stripe":
                     process_stripe_provider_event(session, provider_event)
                 else:
-                    mark_provider_event_failure(provider_event, "provider_unsupported", retryable=False)
+                    mark_provider_event_failure(
+                        provider_event, "provider_unsupported", retryable=False
+                    )
                 session.commit()
             except Exception:
                 session.rollback()
                 provider_event = session.get(type(provider_event), provider_event.id)
                 if provider_event:
-                    mark_provider_event_failure(provider_event, "processing_transient_failure", retryable=True)
+                    mark_provider_event_failure(
+                        provider_event, "processing_transient_failure", retryable=True
+                    )
                     session.commit()
         for event in session.scalars(
             select(BillingEvent)
-            .where(~select(BillingWorkItem.id).where(
-                BillingWorkItem.billing_event_id == BillingEvent.id,
-            ).exists())
+            .where(
+                ~select(BillingWorkItem.id)
+                .where(
+                    BillingWorkItem.billing_event_id == BillingEvent.id,
+                )
+                .exists()
+            )
             .order_by(BillingEvent.created_at, BillingEvent.id)
             .limit(200)
         ).all():
             if not session.scalar(
-                select(BillingWorkItem).where(
-                    BillingWorkItem.billing_event_id == event.id
-                )
+                select(BillingWorkItem).where(BillingWorkItem.billing_event_id == event.id)
             ):
                 session.add(
                     BillingWorkItem(
@@ -152,9 +157,7 @@ def billing_tick(max_attempts=8):
         ).all()
         for item in expired:
             item.state = "DEAD_LETTER" if item.attempts >= max_attempts else "RETRY"
-            item.available_at = now() + timedelta(
-                seconds=min(900, 2 ** max(item.attempts, 1))
-            )
+            item.available_at = now() + timedelta(seconds=min(900, 2 ** max(item.attempts, 1)))
             item.lease_expires_at = None
             item.last_error = "lease_expired"
         session.commit()
@@ -175,7 +178,11 @@ def billing_tick(max_attempts=8):
         item.lease_expires_at = now() + timedelta(seconds=60)
         session.commit()
         item = session.get(BillingWorkItem, item.id)
-        if item.kind not in {"subscription.created", "subscription.upgraded", "subscription.downgrade_scheduled"}:
+        if item.kind not in {
+            "subscription.created",
+            "subscription.upgraded",
+            "subscription.downgrade_scheduled",
+        }:
             item.state = "DEAD_LETTER"
             item.last_error = "unknown_billing_work_kind"
         else:

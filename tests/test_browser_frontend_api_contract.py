@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from apps.gateway.app.platform import app
 
-
 ROOT = Path(__file__).parents[1]
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "options", "head"}
 client = TestClient(app, base_url="https://app.klyrow.test")
@@ -138,9 +137,7 @@ def test_frontend_only_calls_registered_browser_api_paths():
 
 
 def test_admin_abuse_manual_suspension_matches_backend_contract():
-    source = (
-        ROOT / "apps/web/src/portal/pages/AdminAbusePage.vue"
-    ).read_text(encoding="utf-8")
+    source = (ROOT / "apps/web/src/portal/pages/AdminAbusePage.vue").read_text(encoding="utf-8")
     assert "ref<'TENANT' | 'DOMAIN' | 'SENDER'>('TENANT')" in source
     assert 'option value="TENANT"' in source
     assert 'option value="DOMAIN"' in source

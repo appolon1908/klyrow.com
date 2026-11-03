@@ -9,15 +9,13 @@ claims. A mailbox is supporting metadata and can never grant authority alone.
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 from email_validator import EmailNotValidError, validate_email
 
 CANONICAL_ISSUER = "https://auth.codestra.co/realms/codestra"
-MFA_POSSESSION_AMR_VALUES = frozenset(
-    {"fido", "fido2", "hwk", "otp", "swk", "totp", "webauthn"}
-)
+MFA_POSSESSION_AMR_VALUES = frozenset({"fido", "fido2", "hwk", "otp", "swk", "totp", "webauthn"})
 MFA_KNOWLEDGE_AMR_VALUES = frozenset({"pin", "pwd"})
 # No ACR label is trusted by default. A protected deployment may opt in only
 # after the exact Keycloak realm flow has been reviewed and evidenced.
@@ -47,7 +45,7 @@ class PlatformOwnerConfig:
         values: Mapping[str, str],
         *,
         canonical_issuer: str = CANONICAL_ISSUER,
-    ) -> "PlatformOwnerConfig":
+    ) -> PlatformOwnerConfig:
         issuer = str(values.get("KLYROW_PLATFORM_OWNER_ISSUER", "")).strip()
         subject = str(values.get("KLYROW_PLATFORM_OWNER_SUBJECT", "")).strip()
         email = str(values.get("KLYROW_PLATFORM_OWNER_EMAIL", "")).strip().lower()
@@ -64,9 +62,7 @@ class PlatformOwnerConfig:
         if mailbox.normalized.lower() != email:
             raise PlatformOwnerError(503, "platform_owner_email_misconfigured")
 
-        raw_age = str(
-            values.get("KLYROW_PLATFORM_OWNER_STEP_UP_MAX_AGE_SECONDS", "300")
-        ).strip()
+        raw_age = str(values.get("KLYROW_PLATFORM_OWNER_STEP_UP_MAX_AGE_SECONDS", "300")).strip()
         try:
             max_age = int(raw_age)
         except ValueError as exc:
@@ -74,13 +70,13 @@ class PlatformOwnerConfig:
         if not 60 <= max_age <= 900:
             raise PlatformOwnerError(503, "platform_owner_step_up_misconfigured")
 
-        raw_acr = str(
-            values.get("KLYROW_PLATFORM_OWNER_REQUIRED_ACR_VALUES", "")
-        )
+        raw_acr = str(values.get("KLYROW_PLATFORM_OWNER_REQUIRED_ACR_VALUES", ""))
         acr_values = frozenset(item.strip() for item in raw_acr.split(",") if item.strip())
-        acr_evidence_approved = str(
-            values.get("KLYROW_PLATFORM_OWNER_ACR_MFA_EVIDENCE_APPROVED", "false")
-        ).strip().lower()
+        acr_evidence_approved = (
+            str(values.get("KLYROW_PLATFORM_OWNER_ACR_MFA_EVIDENCE_APPROVED", "false"))
+            .strip()
+            .lower()
+        )
         if acr_evidence_approved not in {"true", "false"}:
             raise PlatformOwnerError(503, "platform_owner_acr_misconfigured")
         if acr_evidence_approved == "true":
@@ -98,9 +94,7 @@ class PlatformOwnerConfig:
         )
 
     @classmethod
-    def from_env(
-        cls, *, canonical_issuer: str = CANONICAL_ISSUER
-    ) -> "PlatformOwnerConfig":
+    def from_env(cls, *, canonical_issuer: str = CANONICAL_ISSUER) -> PlatformOwnerConfig:
         return cls.from_mapping(os.environ, canonical_issuer=canonical_issuer)
 
 
@@ -114,9 +108,7 @@ def _integer_claim(claims: Mapping[str, object], name: str) -> int:
         raise PlatformOwnerError(403, "platform_owner_claims_invalid") from exc
 
 
-def _mfa_present(
-    claims: Mapping[str, object], required_acr_values: frozenset[str]
-) -> bool:
+def _mfa_present(claims: Mapping[str, object], required_acr_values: frozenset[str]) -> bool:
     raw_amr = claims.get("amr", ())
     if isinstance(raw_amr, str):
         amr = {raw_amr.lower()}

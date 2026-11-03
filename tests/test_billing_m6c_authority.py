@@ -25,7 +25,9 @@ def test_dispute_transitions_are_explicit():
 
 
 def test_dispute_evidence_is_tenant_scoped():
-    evidence = DisputeEvidence("e1", "tenant-a", "d1", "invoice", "hash", __import__("datetime").datetime.now())
+    evidence = DisputeEvidence(
+        "e1", "tenant-a", "d1", "invoice", "hash", __import__("datetime").datetime.now()
+    )
     assert require_tenant_evidence([evidence], "tenant-a") == (evidence,)
     with pytest.raises(HTTPException, match="dispute_not_found"):
         require_tenant_evidence([evidence], "tenant-b")
@@ -41,14 +43,37 @@ def test_tax_snapshot_is_deterministic_and_immutable():
 
 def test_documents_are_reproducible_from_canonical_facts():
     lines = (DocumentLine("Subscription", 1, Decimal("10.00")),)
-    first = invoice_document(tenant_id="tenant-a", number="INV-1", currency="GBP", lines=lines, total=Decimal("12.00"))
-    second = invoice_document(tenant_id="tenant-a", number="INV-1", currency="GBP", lines=lines, total=Decimal("12.00"))
+    first = invoice_document(
+        tenant_id="tenant-a", number="INV-1", currency="GBP", lines=lines, total=Decimal("12.00")
+    )
+    second = invoice_document(
+        tenant_id="tenant-a", number="INV-1", currency="GBP", lines=lines, total=Decimal("12.00")
+    )
     assert first.content_hash == second.content_hash
-    assert credit_note_document(tenant_id="tenant-a", number="CN-1", invoice_number="INV-1", currency="GBP", amount=Decimal("2.00"), reason="Adjustment").document_type == "CREDIT_NOTE"
+    assert (
+        credit_note_document(
+            tenant_id="tenant-a",
+            number="CN-1",
+            invoice_number="INV-1",
+            currency="GBP",
+            amount=Decimal("2.00"),
+            reason="Adjustment",
+        ).document_type
+        == "CREDIT_NOTE"
+    )
 
 
 def test_receipts_require_confirmed_payment():
     require_confirmed_payment("CONFIRMED")
     with pytest.raises(HTTPException, match="receipt_requires_confirmed_payment"):
         require_confirmed_payment("PENDING_RECONCILIATION")
-    assert receipt_document(tenant_id="tenant-a", payment_reference="pay-1", currency="GBP", amount=Decimal("10.00"), invoice_number="INV-1").document_type == "RECEIPT"
+    assert (
+        receipt_document(
+            tenant_id="tenant-a",
+            payment_reference="pay-1",
+            currency="GBP",
+            amount=Decimal("10.00"),
+            invoice_number="INV-1",
+        ).document_type
+        == "RECEIPT"
+    )

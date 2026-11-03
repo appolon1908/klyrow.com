@@ -11,12 +11,12 @@ bare service credential. Reuses the same SenderIdentity/DomainClaim models,
 validation rules, and AllowedSender bookkeeping as that route rather than
 introducing a parallel identity concept.
 """
+
 from __future__ import annotations
 
 import os
 import time
 import uuid
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
@@ -58,7 +58,7 @@ class SenderIdentityIn(BaseModel):
     domain_claim_id: str = Field(min_length=1, max_length=200)
     email: EmailStr
     display_name: str = Field(min_length=1, max_length=200)
-    reply_to: Optional[EmailStr] = None
+    reply_to: EmailStr | None = None
     stream: str = Field(default="transactional")
 
 
@@ -106,10 +106,15 @@ def create_sender_identity(
         return _serialize(existing)
 
     item = SenderIdentity(
-        id=str(uuid.uuid4()), tenant_id=ctx["tenant"], domain_claim_id=claim.id,
-        address=address, display_name=body.display_name,
+        id=str(uuid.uuid4()),
+        tenant_id=ctx["tenant"],
+        domain_claim_id=claim.id,
+        address=address,
+        display_name=body.display_name,
         reply_to=str(body.reply_to).lower() if body.reply_to else None,
-        stream=kind, status="ACTIVE", verified=True,
+        stream=kind,
+        status="ACTIVE",
+        verified=True,
     )
     s.add(item)
     allowed = s.scalar(
@@ -121,8 +126,11 @@ def create_sender_identity(
     if allowed is None:
         s.add(
             AllowedSender(
-                id=str(uuid.uuid4()), tenant_id=ctx["tenant"], address=address,
-                role="agent_sender", enabled=True,
+                id=str(uuid.uuid4()),
+                tenant_id=ctx["tenant"],
+                address=address,
+                role="agent_sender",
+                enabled=True,
             )
         )
     else:
@@ -133,9 +141,7 @@ def create_sender_identity(
 
 
 @router.get("/v1/internal/sender-identities/{item_id}")
-def get_sender_identity(
-    item_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> dict:
+def get_sender_identity(item_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)) -> dict:
     _authorize(ctx)
     _sender_identity_rate_limit(ctx, "read")
     item = s.get(SenderIdentity, item_id)

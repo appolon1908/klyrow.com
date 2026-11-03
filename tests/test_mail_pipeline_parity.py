@@ -4,11 +4,9 @@ import inspect
 
 import pytest
 
-from apps.gateway.app import main, provider, smtp_relay
-from apps.gateway.app.billing import UsageEvent as BillingUsageEvent
 from apps.gateway.app.main import (
-    AllowedSender,
     DB,
+    AllowedSender,
     Domain,
     Message,
     Suppression,
@@ -17,6 +15,8 @@ from apps.gateway.app.main import (
     auth,
     rate_buckets,
 )
+from apps.gateway.app import main, provider, smtp_relay
+from apps.gateway.app.billing import UsageEvent as BillingUsageEvent
 from apps.gateway.app.provider import (
     ProviderDomain,
     ProviderMessage,
@@ -32,7 +32,6 @@ from tests.mail_path_clients import (
     MailPathClients,
     seed_mail_paths,
 )
-
 
 CLIENTS = MailPathClients()
 
@@ -53,7 +52,11 @@ def submit(path: str, **kwargs):
 @pytest.mark.parametrize("path", ALL_PATHS)
 def test_suppressed_recipient_rejected(path):
     with DB() as session:
-        session.add(Suppression(id="parity-hard-bounce", tenant_id=TENANT_ID, email=SINK, reason="hard_bounce"))
+        session.add(
+            Suppression(
+                id="parity-hard-bounce", tenant_id=TENANT_ID, email=SINK, reason="hard_bounce"
+            )
+        )
         session.commit()
     assert submit(path).accepted is False
 
@@ -64,7 +67,14 @@ def test_suppressed_recipient_rejected(path):
 )
 def test_marketing_unsubscribe_does_not_block_transactional(path):
     with DB() as session:
-        session.add(Suppression(id="parity-unsubscribe", tenant_id=TENANT_ID, email=SINK, reason="unsubscribe_marketing"))
+        session.add(
+            Suppression(
+                id="parity-unsubscribe",
+                tenant_id=TENANT_ID,
+                email=SINK,
+                reason="unsubscribe_marketing",
+            )
+        )
         session.commit()
     assert submit(path).accepted is True
 

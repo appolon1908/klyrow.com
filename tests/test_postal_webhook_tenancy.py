@@ -5,10 +5,9 @@ import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from apps.gateway.app import postal_webhook_tenancy
 from apps.gateway.app.main import (
-    Base,
     DB,
+    Base,
     EmailOutbox,
     Event,
     Message,
@@ -16,8 +15,9 @@ from apps.gateway.app.main import (
     Tenant,
     engine,
 )
+from apps.gateway.app import postal_webhook_tenancy
 from apps.gateway.app.platform import app
-from apps.gateway.app.postal_provisioning import PostalTenantMapping, READY
+from apps.gateway.app.postal_provisioning import READY, PostalTenantMapping
 
 client = TestClient(app, base_url="https://app.klyrow.test")
 
@@ -162,9 +162,7 @@ def test_native_bounce_is_persisted_under_the_resolved_tenant(monkeypatch):
 
     with DB() as session:
         event = session.get(Event, event_id)
-        suppression = session.scalar(
-            select(Suppression).where(Suppression.email == bounced)
-        )
+        suppression = session.scalar(select(Suppression).where(Suppression.email == bounced))
         assert event is not None
         assert event.tenant_id == seeded["tenant_b"]
         assert suppression is not None

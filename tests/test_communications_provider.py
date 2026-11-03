@@ -10,9 +10,14 @@ os.environ.update(
 
 from fastapi.testclient import TestClient
 
-from apps.gateway.app.main import AllowedSender, Base, DB, Domain, Tenant, app, auth, engine
-from apps.gateway.app.provider import DkimKey, ProviderDomain, ProviderEvent, ProviderMessage, SenderIdentity
-
+from apps.gateway.app.main import DB, AllowedSender, Base, Domain, Tenant, app, auth, engine
+from apps.gateway.app.provider import (
+    DkimKey,
+    ProviderDomain,
+    ProviderEvent,
+    ProviderMessage,
+    SenderIdentity,
+)
 
 client = TestClient(app)
 identity = {
@@ -29,8 +34,24 @@ def setup_module():
     Base.metadata.create_all(engine)
     with DB() as session:
         session.add(Tenant(id="tenant-comms", name="Communications", quota=100))
-        session.add(Domain(id="legacy-comms-domain", tenant_id="tenant-comms", domain="communications.example.com", token="verified", verified=True))
-        session.add(AllowedSender(id="allowed-comms-support", tenant_id="tenant-comms", address="support@communications.example.com", role="support", enabled=True))
+        session.add(
+            Domain(
+                id="legacy-comms-domain",
+                tenant_id="tenant-comms",
+                domain="communications.example.com",
+                token="verified",
+                verified=True,
+            )
+        )
+        session.add(
+            AllowedSender(
+                id="allowed-comms-support",
+                tenant_id="tenant-comms",
+                address="support@communications.example.com",
+                role="support",
+                enabled=True,
+            )
+        )
         provider_domain = ProviderDomain(
             id="provider-comms-domain",
             tenant_id="tenant-comms",
@@ -40,8 +61,28 @@ def setup_module():
             sending_enabled=False,
         )
         session.add(provider_domain)
-        session.add(SenderIdentity(id="sender-comms", tenant_id="tenant-comms", domain_id="provider-comms-domain", email="support@communications.example.com", stream="TRANSACTIONAL", status="ACTIVE"))
-        session.add(DkimKey(id="dkim-comms", tenant_id="tenant-comms", domain_id="provider-comms-domain", selector="k1", version=1, public_value="v=DKIM1; p=test", private_secret_ref="file:/safe", status="ACTIVE"))
+        session.add(
+            SenderIdentity(
+                id="sender-comms",
+                tenant_id="tenant-comms",
+                domain_id="provider-comms-domain",
+                email="support@communications.example.com",
+                stream="TRANSACTIONAL",
+                status="ACTIVE",
+            )
+        )
+        session.add(
+            DkimKey(
+                id="dkim-comms",
+                tenant_id="tenant-comms",
+                domain_id="provider-comms-domain",
+                selector="k1",
+                version=1,
+                public_value="v=DKIM1; p=test",
+                private_secret_ref="file:/safe",
+                status="ACTIVE",
+            )
+        )
         session.commit()
 
 
@@ -70,7 +111,9 @@ def payload(**changes):
 
 
 def test_canonical_provider_send_is_service_only_idempotent_and_safe_mode():
-    first = client.post("/v1/internal/email/communications/messages", headers=headers(), json=payload())
+    first = client.post(
+        "/v1/internal/email/communications/messages", headers=headers(), json=payload()
+    )
     assert first.status_code == 202, first.text
     body = first.json()
     assert body["channel"] == "email"
@@ -78,7 +121,9 @@ def test_canonical_provider_send_is_service_only_idempotent_and_safe_mode():
     assert body["status"] == "queued"
     assert body["metadata"]["sandbox"] is True
 
-    replay = client.post("/v1/internal/email/communications/messages", headers=headers(), json=payload())
+    replay = client.post(
+        "/v1/internal/email/communications/messages", headers=headers(), json=payload()
+    )
     assert replay.status_code == 202
     assert replay.json()["messageId"] == body["messageId"]
 
@@ -110,7 +155,15 @@ def test_canonical_provider_readbacks_domain_health_and_reputation():
     assert message.json()["correlationId"] == "readback-correlation"
 
     with DB() as session:
-        session.add(ProviderEvent(id="event-1", tenant_id="tenant-comms", message_id=created["messageId"], kind="message.delivered", payload_json='{"provider_event":"delivered"}'))
+        session.add(
+            ProviderEvent(
+                id="event-1",
+                tenant_id="tenant-comms",
+                message_id=created["messageId"],
+                kind="message.delivered",
+                payload_json='{"provider_event":"delivered"}',
+            )
+        )
         session.get(ProviderMessage, created["messageId"]).status = "DELIVERED"
         session.commit()
 

@@ -1,4 +1,5 @@
 """Mission 01: fail-closed billing configuration authority tests."""
+
 import os
 
 import pytest
@@ -94,24 +95,32 @@ def test_provider_and_dependent_flags_fail_without_billing(flag):
 
 def test_live_charging_fails_without_any_provider():
     with pytest.raises(BillingConfigError) as excinfo:
-        load_billing_settings(env(KLYROW_BILLING_ENABLED="true", KLYROW_LIVE_CHARGING_ENABLED="true"))
+        load_billing_settings(
+            env(KLYROW_BILLING_ENABLED="true", KLYROW_LIVE_CHARGING_ENABLED="true")
+        )
     assert excinfo.value.code == "live_charging_requires_provider"
 
 
 def test_live_charging_succeeds_with_a_valid_provider(tmp_path):
-    settings = load_billing_settings(enabled_stripe_env(tmp_path, KLYROW_LIVE_CHARGING_ENABLED="true"))
+    settings = load_billing_settings(
+        enabled_stripe_env(tmp_path, KLYROW_LIVE_CHARGING_ENABLED="true")
+    )
     assert settings.live_charging_enabled is True
 
 
 def test_webhook_processing_fails_without_any_provider():
     with pytest.raises(BillingConfigError) as excinfo:
-        load_billing_settings(env(KLYROW_BILLING_ENABLED="true", KLYROW_BILLING_WEBHOOK_PROCESSING_ENABLED="true"))
+        load_billing_settings(
+            env(KLYROW_BILLING_ENABLED="true", KLYROW_BILLING_WEBHOOK_PROCESSING_ENABLED="true")
+        )
     assert excinfo.value.code == "webhook_processing_requires_provider"
 
 
 def test_webhook_processing_requires_provider_webhook_secret(tmp_path):
     with pytest.raises(BillingConfigError, match="KLYROW_STRIPE_WEBHOOK_SECRET_FILE"):
-        load_billing_settings(enabled_stripe_env(tmp_path, KLYROW_BILLING_WEBHOOK_PROCESSING_ENABLED="true"))
+        load_billing_settings(
+            enabled_stripe_env(tmp_path, KLYROW_BILLING_WEBHOOK_PROCESSING_ENABLED="true")
+        )
 
 
 def test_webhook_processing_succeeds_with_webhook_secret(tmp_path):
@@ -216,7 +225,9 @@ def test_production_with_inline_secret_fails(tmp_path):
 def test_sandbox_with_production_key_fails(tmp_path):
     values = enabled_stripe_env(
         tmp_path,
-        KLYROW_STRIPE_SECRET_FILE=write_secret(tmp_path, "stripe-secret-live", "sk_live_should_be_rejected"),
+        KLYROW_STRIPE_SECRET_FILE=write_secret(
+            tmp_path, "stripe-secret-live", "sk_live_should_be_rejected"
+        ),
     )
     with pytest.raises(BillingConfigError) as excinfo:
         load_billing_settings(values)
@@ -381,7 +392,9 @@ def test_errors_never_contain_secret_path_or_value(tmp_path):
     with pytest.raises(BillingConfigError) as excinfo:
         load_billing_settings(values)
     message = str(excinfo.value)
-    formatted = "".join(traceback.format_exception(type(excinfo.value), excinfo.value, excinfo.value.__traceback__))
+    formatted = "".join(
+        traceback.format_exception(type(excinfo.value), excinfo.value, excinfo.value.__traceback__)
+    )
     assert str(secret_file) not in message
     assert str(secret_file) not in formatted
     assert excinfo.value.__cause__ is None

@@ -1,19 +1,20 @@
 """Same-origin browser BFF for tenant profiles and suppressions."""
+
 from __future__ import annotations
 
 import json
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .main import Suppression, db
 from .auth_bff import csrf_guard
 from .capabilities import require_permission
-from .main import Suppression, db
-from .saas import Consent, CustomerEvent, Preference, Profile, attrs, profile_payload
+from .saas import Consent, CustomerEvent, Preference, Profile, profile_payload
 
 router = APIRouter(prefix="/app/api", tags=["Browser profiles and suppressions"])
 
@@ -30,7 +31,9 @@ def require_browser_permission(ctx: dict[str, Any], permission: str) -> dict[str
 
 
 def tenant_profile(s: Session, profile_id: str, tenant_id: str) -> Profile:
-    profile = s.scalar(select(Profile).where(Profile.id == profile_id, Profile.tenant_id == tenant_id))
+    profile = s.scalar(
+        select(Profile).where(Profile.id == profile_id, Profile.tenant_id == tenant_id)
+    )
     if profile is None:
         raise HTTPException(404, "profile_not_found")
     return profile
@@ -48,7 +51,9 @@ def profile_detail(s: Session, profile: Profile) -> dict[str, Any]:
         }
         for event in s.scalars(
             select(CustomerEvent)
-            .where(CustomerEvent.profile_id == profile.id, CustomerEvent.tenant_id == profile.tenant_id)
+            .where(
+                CustomerEvent.profile_id == profile.id, CustomerEvent.tenant_id == profile.tenant_id
+            )
             .order_by(CustomerEvent.occurred_at.desc())
             .limit(100)
         ).all()
@@ -62,13 +67,17 @@ def profile_detail(s: Session, profile: Profile) -> dict[str, Any]:
             "occurred_at": item.occurred_at,
         }
         for item in s.scalars(
-            select(Consent).where(Consent.profile_id == profile.id, Consent.tenant_id == profile.tenant_id)
+            select(Consent).where(
+                Consent.profile_id == profile.id, Consent.tenant_id == profile.tenant_id
+            )
         ).all()
     ]
     payload["preferences"] = [
         {"topic": item.topic, "subscribed": item.subscribed, "updated_at": item.updated_at}
         for item in s.scalars(
-            select(Preference).where(Preference.profile_id == profile.id, Preference.tenant_id == profile.tenant_id)
+            select(Preference).where(
+                Preference.profile_id == profile.id, Preference.tenant_id == profile.tenant_id
+            )
         ).all()
     ]
     return payload
@@ -82,13 +91,18 @@ class BrowserSuppressionIn(BaseModel):
 @router.get("/profiles")
 def profiles(
     limit: int = Query(default=50, ge=1, le=200),
-    cursor: Optional[str] = Query(default=None, max_length=512),
+    cursor: str | None = Query(default=None, max_length=512),
     ctx: dict[str, Any] = Depends(browser_read_context),
     s: Session = Depends(db),
 ) -> dict[str, Any]:
     require_browser_permission(ctx, "contact.manage")
     from .saas import decode_profile_cursor, encode_profile_cursor
-    query = select(Profile).where(Profile.tenant_id == ctx["tenant"]).order_by(Profile.created_at.desc(), Profile.id.desc())
+
+    query = (
+        select(Profile)
+        .where(Profile.tenant_id == ctx["tenant"])
+        .order_by(Profile.created_at.desc(), Profile.id.desc())
+    )
     if cursor:
         created, profile_id = decode_profile_cursor(cursor)
         query = query.where(
@@ -131,8 +145,7 @@ def suppressions(
     ).all()
     return {
         "items": [
-            {"id": item.id, "email": item.email, "reason": item.reason}
-            for item in rows[:limit]
+            {"id": item.id, "email": item.email, "reason": item.reason} for item in rows[:limit]
         ],
         "limit": limit,
         "offset": offset,
@@ -146,19 +159,32 @@ def add_suppression(
     ctx: dict[str, Any] = Depends(browser_read_context),
     _session: Any = Depends(csrf_guard),
     s: Session = Depends(db),
-    idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key", min_length=8, max_length=200),
+    idempotency_key: str | None = Header(
+        default=None, alias="Idempotency-Key", min_length=8, max_length=200
+    ),
 ) -> dict[str, Any]:
     require_browser_permission(ctx, "contact.manage")
     email = payload.email.strip().lower()
-    existing = s.scalar(select(Suppression).where(
-        Suppression.tenant_id == ctx["tenant"], Suppression.email == email,
-    ))
+    existing = s.scalar(
+        select(Suppression).where(
+            Suppression.tenant_id == ctx["tenant"],
+            Suppression.email == email,
+        )
+    )
     if existing:
         if existing.reason != payload.reason:
             raise HTTPException(409, "suppression_reason_conflict")
-        return {"id": existing.id, "email": existing.email, "reason": existing.reason, "duplicate": True}
+        return {
+            "id": existing.id,
+            "email": existing.email,
+            "reason": existing.reason,
+            "duplicate": True,
+        }
     item = Suppression(
-        id=str(uuid.uuid4()), tenant_id=ctx["tenant"], email=email, reason=payload.reason,
+        id=str(uuid.uuid4()),
+        tenant_id=ctx["tenant"],
+        email=email,
+        reason=payload.reason,
     )
     s.add(item)
     s.commit()
@@ -173,9 +199,12 @@ def remove_suppression(
     s: Session = Depends(db),
 ) -> None:
     require_browser_permission(ctx, "contact.manage")
-    item = s.scalar(select(Suppression).where(
-        Suppression.id == suppression_id, Suppression.tenant_id == ctx["tenant"],
-    ))
+    item = s.scalar(
+        select(Suppression).where(
+            Suppression.id == suppression_id,
+            Suppression.tenant_id == ctx["tenant"],
+        )
+    )
     if item is None:
         raise HTTPException(404, "suppression_not_found")
     s.delete(item)

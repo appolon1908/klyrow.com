@@ -4,15 +4,15 @@ Receives verified AWS SNS events, reconciles by SES provider ID inside Klyrow's
 database and deletes SQS messages *only* after durable commit or duplicate proof.
 Unmatched, tampered or unavailable events remain retained for DLQ/review.
 """
+
 from __future__ import annotations
-import hashlib
+
 import json
 import os
 import re
-import sys
 import time
 
-from .ses_feedback import SESFeedbackDenied, REGION, reconcile_feedback, verified_ses_event
+from .ses_feedback import SESFeedbackDenied, reconcile_feedback, verified_ses_event
 
 REGION_NAME = "us-east-1"
 
@@ -23,8 +23,12 @@ def checked_configuration(env=None):
         raise RuntimeError("ses_feedback_consumer_disabled")
     topic = config.get("KLYROW_SES_SNS_TOPIC_ARN", "")
     queue = config.get("KLYROW_SES_SQS_QUEUE_URL", "")
-    topic_match = re.fullmatch(r"arn:aws:sns:us-east-1:([0-9]{12}):codestra-klyrow-ses-events", topic)
-    queue_match = re.fullmatch(r"https://sqs\.us-east-1\.amazonaws\.com/([0-9]{12})/codestra-klyrow-ses-events", queue)
+    topic_match = re.fullmatch(
+        r"arn:aws:sns:us-east-1:([0-9]{12}):codestra-klyrow-ses-events", topic
+    )
+    queue_match = re.fullmatch(
+        r"https://sqs\.us-east-1\.amazonaws\.com/([0-9]{12})/codestra-klyrow-ses-events", queue
+    )
     if not topic_match or not queue_match or topic_match.group(1) != queue_match.group(1):
         raise RuntimeError("ses_feedback_queue_or_topic_mismatch")
     if config.get("KLYROW_EMAIL_TRANSPORT") != "ses":
@@ -37,7 +41,11 @@ def checked_configuration(env=None):
 def process_batch(sqs, *, topic_arn: str, queue_url: str, messages: list) -> dict:
     counts = {"ack": 0, "duplicate": 0, "unmatched": 0, "invalid": 0, "failed": 0}
     for message in messages:
-        if not isinstance(message, dict) or not isinstance(message.get("Body"), str) or not message.get("ReceiptHandle"):
+        if (
+            not isinstance(message, dict)
+            or not isinstance(message.get("Body"), str)
+            or not message.get("ReceiptHandle")
+        ):
             counts["invalid"] += 1
             continue
         try:
@@ -68,11 +76,14 @@ def run():
     topic, queue = checked_configuration()
     # boto3 is an optional runtime-only dependency; no credentials are read from Git.
     import boto3
+
     client = boto3.client("sqs", region_name=REGION_NAME)
     while True:
         try:
             results = client.receive_message(
-                QueueUrl=queue, MaxNumberOfMessages=10, WaitTimeSeconds=15,
+                QueueUrl=queue,
+                MaxNumberOfMessages=10,
+                WaitTimeSeconds=15,
                 MessageSystemAttributeNames=["ApproximateReceiveCount"],
             )
             if not isinstance(results, dict) or not isinstance(results.get("Messages", []), list):
@@ -85,7 +96,10 @@ def run():
         summary = process_batch(client, topic_arn=topic, queue_url=queue, messages=records)
         if records:
             # Safe bounded counters only. Do not expose email recipients or message bodies.
-            print(json.dumps({"component": "klyrow-ses-feedback", "result":summary},sort_keys=True), flush=True)
+            print(
+                json.dumps({"component": "klyrow-ses-feedback", "result": summary}, sort_keys=True),
+                flush=True,
+            )
 
 
 if __name__ == "__main__":

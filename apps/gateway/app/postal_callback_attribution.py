@@ -1,4 +1,5 @@
 """Signed Postal lifecycle callback attribution for multi-tenant delivery."""
+
 from __future__ import annotations
 
 import hashlib
@@ -6,16 +7,16 @@ import json
 import os
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from . import main as core
 from .main import EmailOutbox, Message, PostalEvent, Tenant, db
-from .postal_provisioning import PostalTenantMapping, READY
+from . import main as core
+from .postal_provisioning import READY, PostalTenantMapping
 from .provider import ProviderMessage
 
 router = APIRouter(tags=["Postal callbacks"])
@@ -26,15 +27,13 @@ _TRUE_VALUES = {"1", "true", "yes", "on"}
 @dataclass(frozen=True)
 class PostalAttribution:
     tenant_id: str
-    local_message_id: Optional[str]
+    local_message_id: str | None
     source: str
 
 
 def tenant_callback_attribution_required() -> bool:
     return (
-        os.getenv("KLYROW_TENANT_POSTAL_PROVISIONING_ENABLED", "false")
-        .strip()
-        .lower()
+        os.getenv("KLYROW_TENANT_POSTAL_PROVISIONING_ENABLED", "false").strip().lower()
         in _TRUE_VALUES
     )
 
@@ -46,9 +45,8 @@ def install_postal_callback_extension() -> None:
     if _INSTALLED:
         return
     for route in list(core.app.router.routes):
-        if (
-            getattr(route, "path", "") == "/v1/webhooks/postal-native"
-            and "POST" in getattr(route, "methods", set())
+        if getattr(route, "path", "") == "/v1/webhooks/postal-native" and "POST" in getattr(
+            route, "methods", set()
         ):
             core.app.router.routes.remove(route)
     _INSTALLED = True
@@ -128,18 +126,12 @@ def _resolve_attribution(
     # Postal echoes the opaque local message ID in `tag`. Prefer this exact,
     # application-generated correlation before provider-assigned identifiers.
     if tag:
-        for row in session.scalars(
-            select(EmailOutbox).where(EmailOutbox.message_id == tag)
-        ).all():
-            candidates.append(
-                PostalAttribution(row.tenant_id, row.message_id, "outbox_tag")
-            )
+        for row in session.scalars(select(EmailOutbox).where(EmailOutbox.message_id == tag)).all():
+            candidates.append(PostalAttribution(row.tenant_id, row.message_id, "outbox_tag"))
         local_message = session.get(Message, tag)
         if local_message:
             candidates.append(
-                PostalAttribution(
-                    local_message.tenant_id, local_message.id, "message_tag"
-                )
+                PostalAttribution(local_message.tenant_id, local_message.id, "message_tag")
             )
         for row in session.scalars(
             select(ProviderMessage).where(
@@ -149,41 +141,27 @@ def _resolve_attribution(
                 )
             )
         ).all():
-            candidates.append(
-                PostalAttribution(row.tenant_id, row.id, "provider_tag")
-            )
+            candidates.append(PostalAttribution(row.tenant_id, row.id, "provider_tag"))
 
     if provider_references:
         for row in session.scalars(
-            select(EmailOutbox).where(
-                EmailOutbox.provider_message_id.in_(provider_references)
-            )
+            select(EmailOutbox).where(EmailOutbox.provider_message_id.in_(provider_references))
         ).all():
             candidates.append(
-                PostalAttribution(
-                    row.tenant_id, row.message_id, "outbox_provider_message_id"
-                )
+                PostalAttribution(row.tenant_id, row.message_id, "outbox_provider_message_id")
             )
         for row in session.scalars(
             select(ProviderMessage).where(
                 ProviderMessage.provider_message_id.in_(provider_references)
             )
         ).all():
-            candidates.append(
-                PostalAttribution(
-                    row.tenant_id, row.id, "provider_message_id"
-                )
-            )
+            candidates.append(PostalAttribution(row.tenant_id, row.id, "provider_message_id"))
 
     if general_references:
         for row in session.scalars(
-            select(EmailOutbox).where(
-                EmailOutbox.message_id.in_(general_references)
-            )
+            select(EmailOutbox).where(EmailOutbox.message_id.in_(general_references))
         ).all():
-            candidates.append(
-                PostalAttribution(row.tenant_id, row.message_id, "outbox_reference")
-            )
+            candidates.append(PostalAttribution(row.tenant_id, row.message_id, "outbox_reference"))
         for row in session.scalars(
             select(ProviderMessage).where(
                 or_(
@@ -192,9 +170,7 @@ def _resolve_attribution(
                 )
             )
         ).all():
-            candidates.append(
-                PostalAttribution(row.tenant_id, row.id, "provider_reference")
-            )
+            candidates.append(PostalAttribution(row.tenant_id, row.id, "provider_reference"))
 
     server_references = _server_references(raw, payload, message)
     if server_references:
@@ -203,15 +179,11 @@ def _resolve_attribution(
                 PostalTenantMapping.state == READY,
                 or_(
                     PostalTenantMapping.provider_server_id.in_(server_references),
-                    PostalTenantMapping.provider_server_permalink.in_(
-                        server_references
-                    ),
+                    PostalTenantMapping.provider_server_permalink.in_(server_references),
                 ),
             )
         ).all():
-            candidates.append(
-                PostalAttribution(mapping.tenant_id, None, "postal_server_mapping")
-            )
+            candidates.append(PostalAttribution(mapping.tenant_id, None, "postal_server_mapping"))
 
     tenants = {candidate.tenant_id for candidate in candidates}
     if len(tenants) > 1:
@@ -227,9 +199,7 @@ def _resolve_attribution(
             None,
         )
         source = next(
-            candidate.source
-            for candidate in candidates
-            if candidate.tenant_id == tenant_id
+            candidate.source for candidate in candidates if candidate.tenant_id == tenant_id
         )
         return PostalAttribution(tenant_id, local_message_id, source)
 
@@ -273,10 +243,7 @@ async def postal_native_hook(
         event_timestamp = float(raw.get("timestamp"))
     except (TypeError, ValueError) as exc:
         raise HTTPException(401, "invalid_postal_timestamp") from exc
-    if (
-        event_timestamp > time.time() + 300
-        or event_timestamp < time.time() - 86400
-    ):
+    if event_timestamp > time.time() + 300 or event_timestamp < time.time() - 86400:
         raise HTTPException(401, "expired_postal_event")
 
     event_name = _text(raw.get("event"))
@@ -301,9 +268,7 @@ async def postal_native_hook(
     if existing and existing.state == "delivered":
         return {"accepted": True, "duplicate": True}
 
-    provider_message_id = _text(message.get("message_id")) or _text(
-        message.get("id")
-    )
+    provider_message_id = _text(message.get("message_id")) or _text(message.get("id"))
     correlation = (
         _text(payload.get("correlation_id"))
         or _text(message.get("tag"))
@@ -316,17 +281,17 @@ async def postal_native_hook(
         or provider_message_id
         or correlation
     )
-    outbox = session.scalar(select(EmailOutbox).where(
-        EmailOutbox.tenant_id == attribution.tenant_id,
-        EmailOutbox.message_id == local_message_id,
-    ))
+    outbox = session.scalar(
+        select(EmailOutbox).where(
+            EmailOutbox.tenant_id == attribution.tenant_id,
+            EmailOutbox.message_id == local_message_id,
+        )
+    )
     if outbox and outbox.correlation_id:
         correlation = outbox.correlation_id
     operation_id = outbox.operation_id if outbox and outbox.operation_id else local_message_id
     recipient = _recipient(message)
-    canonical_status = core.TERMINAL_MESSAGE_STATUSES.get(
-        canonical, canonical.rsplit(".", 1)[-1]
-    )
+    canonical_status = core.TERMINAL_MESSAGE_STATUSES.get(canonical, canonical.rsplit(".", 1)[-1])
     normalized = {
         "event": canonical,
         "event_id": event_id,
@@ -340,16 +305,13 @@ async def postal_native_hook(
         "stream": "transactional",
         "correlation_id": correlation,
         "causation_id": correlation,
-        "recipient_reference": "sha256:"
-        + hashlib.sha256(recipient.lower().encode()).hexdigest(),
+        "recipient_reference": "sha256:" + hashlib.sha256(recipient.lower().encode()).hexdigest(),
         "recipient": recipient,
         "sender": message.get("from"),
         "provider": "postal",
         "status": payload.get("status") or canonical.rsplit(".", 1)[-1],
         "canonical_status": canonical_status,
-        "occurred_at": datetime.fromtimestamp(
-            event_timestamp, timezone.utc
-        ).isoformat(),
+        "occurred_at": datetime.fromtimestamp(event_timestamp, UTC).isoformat(),
         "attempt": 1,
         "metadata": {
             "provider_event": event_name,
@@ -370,7 +332,7 @@ async def postal_native_hook(
         )
         session.add(item)
     item.attempts = (item.attempts or 0) + 1
-    item.updated_at = datetime.now(timezone.utc)
+    item.updated_at = datetime.now(UTC)
     session.commit()
 
     core.persist_email_event(

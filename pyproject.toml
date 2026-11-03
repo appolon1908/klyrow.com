@@ -1,0 +1,70 @@
+# Repo-wide tooling configuration (no build system; this repository is not a
+# distributable package). Runtime dependencies stay in apps/gateway/requirements.txt.
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [
+    "migrations",
+    "integrations",
+    "apps/web",
+    "docs",
+    "evidence",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = [
+    # SQLAlchemy column expressions require `== True` / `== None`; rewriting
+    # them to `is` or truthiness breaks the generated SQL (101 sites).
+    "E711",
+    "E712",
+    # Module-level lambda aliases (`now = lambda: ...`, 18 sites) and
+    # `raise HTTPException` inside `except` without `from` (24 sites) are
+    # deferred to a dedicated follow-up pass rather than hand-edited here.
+    "E731",
+    "B904",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# main.py is the composition root: feature routers are imported late on
+# purpose, and platform.py / auth_bff.py extend that same pattern.
+"apps/gateway/app/main.py" = ["E402"]
+"apps/gateway/app/platform.py" = ["E402"]
+"apps/gateway/app/auth_bff.py" = ["E402"]
+# Tests set environment variables before importing the application.
+"tests/*.py" = ["E402"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI dependency markers are immutable by design (B008).
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.Cookie",
+    "fastapi.Path",
+    "fastapi.Form",
+    "fastapi.File",
+    # ruff resolves `from .main import require` under the `app` package root.
+    "app.main.require",
+    "apps.gateway.app.main.require",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "tests", "scripts"]
+# apps.gateway.app.main is the composition root: every feature module imports
+# it first and main imports the feature routers late in its body. Keeping it
+# at the top of each import block preserves that import topology.
+force-to-top = ["apps.gateway.app.main", ".main", "main"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["apps/gateway/app"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

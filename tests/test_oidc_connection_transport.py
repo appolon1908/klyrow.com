@@ -9,9 +9,17 @@ from apps.gateway.app import auth_bff
 
 
 def request():
-    return Request({"type": "http", "method": "GET", "scheme": "https", "path": "/auth/callback",
-                    "server": ("app.klyrow.com", 443), "headers": [(b"host", b"app.klyrow.com")],
-                    "query_string": b""})
+    return Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "scheme": "https",
+            "path": "/auth/callback",
+            "server": ("app.klyrow.com", 443),
+            "headers": [(b"host", b"app.klyrow.com")],
+            "query_string": b"",
+        }
+    )
 
 
 def test_code_exchange_uses_canonical_keycloak_without_proxy_or_redirect(monkeypatch):
@@ -47,7 +55,10 @@ def test_malformed_keycloak_response_becomes_sanitized_gateway_error(monkeypatch
 def test_invalid_json_and_token_endpoint_errors_are_sanitized(monkeypatch):
     monkeypatch.setenv("KLYROW_OIDC_ISSUER", auth_bff.ISSUER)
     monkeypatch.delenv("KLYROW_OIDC_CLIENT_SECRET_FILE", raising=False)
-    for error in (ValueError("private upstream response"), httpx.ConnectError("private network detail")):
+    for error in (
+        ValueError("private upstream response"),
+        httpx.ConnectError("private network detail"),
+    ):
         monkeypatch.setattr(auth_bff.httpx, "post", Mock(side_effect=error))
         with pytest.raises(HTTPException) as raised:
             auth_bff._exchange_code("synthetic-code", "synthetic-verifier", request())

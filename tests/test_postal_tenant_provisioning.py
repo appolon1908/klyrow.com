@@ -4,7 +4,7 @@ from pathlib import Path
 
 from sqlalchemy import func, select
 
-from apps.gateway.app.main import Base, DB, Tenant, engine
+from apps.gateway.app.main import DB, Base, Tenant, engine
 from apps.gateway.app import postal_provisioning as provisioning
 from apps.gateway.app.postal_provisioning import PostalProvisioningOutbox, PostalTenantMapping
 
@@ -29,7 +29,15 @@ def test_enqueue_is_idempotent():
 
 def test_provisioning_stores_encrypted_tenant_credential(monkeypatch):
     async def fake_bridge(_tenant):
-        return {"organization_id":"org-1","organization_permalink":"org-one","server_id":"server-1","server_permalink":"server-one","mode":"Development","api_key":"provider-api-key-fixture-value-123456"}
+        return {
+            "organization_id": "org-1",
+            "organization_permalink": "org-one",
+            "server_id": "server-1",
+            "server_permalink": "server-one",
+            "mode": "Development",
+            "api_key": "provider-api-key-fixture-value-123456",
+        }
+
     monkeypatch.setattr(provisioning, "_call_bridge", fake_bridge)
     with DB() as s:
         provisioning.enqueue_postal_provisioning(s, "tenant-provision")
@@ -39,7 +47,10 @@ def test_provisioning_stores_encrypted_tenant_credential(monkeypatch):
         assert mapping.state == "READY" and mapping.provider_mode == "Development"
         assert "provider-api-key-fixture" not in mapping.api_key_ciphertext
         assert mapping.api_key_fingerprint.startswith("sha256:")
-        assert provisioning.tenant_postal_api_key(s, "tenant-provision") == "provider-api-key-fixture-value-123456"
+        assert (
+            provisioning.tenant_postal_api_key(s, "tenant-provision")
+            == "provider-api-key-fixture-value-123456"
+        )
 
 
 def test_unprovisioned_tenant_cannot_use_global_postal_credential():
@@ -55,18 +66,29 @@ def test_unprovisioned_tenant_cannot_use_global_postal_credential():
 def test_retryable_failure_is_durable(monkeypatch):
     async def failed_bridge(_tenant):
         raise OSError("bridge unavailable")
+
     monkeypatch.setattr(provisioning, "_call_bridge", failed_bridge)
     with DB() as s:
         provisioning.enqueue_postal_provisioning(s, "tenant-provision")
     assert asyncio.run(provisioning.provisioning_tick()) == 0
     with DB() as s:
         mapping = s.get(PostalTenantMapping, "tenant-provision")
-        job = s.scalar(select(PostalProvisioningOutbox).where(PostalProvisioningOutbox.tenant_id == "tenant-provision"))
-        assert mapping.state == "RETRYABLE_FAILURE" and job.state == "RETRYABLE_FAILURE" and job.attempts == 1
+        job = s.scalar(
+            select(PostalProvisioningOutbox).where(
+                PostalProvisioningOutbox.tenant_id == "tenant-provision"
+            )
+        )
+        assert (
+            mapping.state == "RETRYABLE_FAILURE"
+            and job.state == "RETRYABLE_FAILURE"
+            and job.attempts == 1
+        )
 
 
 def test_postal_bridge_uses_models_and_development_mode_not_direct_sql():
-    source = (Path(__file__).parents[1] / "apps/postal-provisioner/provisioner.rb").read_text(encoding="utf-8")
+    source = (Path(__file__).parents[1] / "apps/postal-provisioner/provisioner.rb").read_text(
+        encoding="utf-8"
+    )
     assert 'row.mode = "Development"' in source
     assert "Organization.find_or_create_by!" in source
     assert "server.credentials.find_or_create_by!" in source

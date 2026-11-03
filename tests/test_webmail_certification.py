@@ -8,16 +8,16 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from apps.gateway.app.main import (
+    DB,
     AllowedSender,
     Base,
-    DB,
     Domain,
     InboundRouteConfig,
     Tenant,
     engine,
 )
-from apps.gateway.app.provider import ProviderDomain
 from apps.gateway.app import webmail
+from apps.gateway.app.provider import ProviderDomain
 from apps.gateway.app.webmail import (
     AccessGrantIn,
     ComposeIn,
@@ -45,10 +45,12 @@ def reset_db():
 
 def seed_tenants():
     with DB() as s:
-        s.add_all([
-            Tenant(id="tenant-a", name="Tenant A", quota=100),
-            Tenant(id="tenant-b", name="Tenant B", quota=100),
-        ])
+        s.add_all(
+            [
+                Tenant(id="tenant-a", name="Tenant A", quota=100),
+                Tenant(id="tenant-b", name="Tenant B", quota=100),
+            ]
+        )
         s.commit()
 
 
@@ -71,26 +73,28 @@ def test_mailbox_grants_are_tenant_scoped_and_role_scoped():
     with DB() as s:
         box_a = mailbox()
         box_b = mailbox("mailbox-b", "tenant-b", "support@other.test")
-        s.add_all([
-            box_a,
-            box_b,
-            WebmailAccess(
-                id="grant-reader",
-                tenant_id="tenant-a",
-                mailbox_id=box_a.id,
-                user_id="reader-a",
-                role="READER",
-                created_by="owner-a",
-            ),
-            WebmailAccess(
-                id="grant-sender",
-                tenant_id="tenant-a",
-                mailbox_id=box_a.id,
-                user_id="sender-a",
-                role="SENDER",
-                created_by="owner-a",
-            ),
-        ])
+        s.add_all(
+            [
+                box_a,
+                box_b,
+                WebmailAccess(
+                    id="grant-reader",
+                    tenant_id="tenant-a",
+                    mailbox_id=box_a.id,
+                    user_id="reader-a",
+                    role="READER",
+                    created_by="owner-a",
+                ),
+                WebmailAccess(
+                    id="grant-sender",
+                    tenant_id="tenant-a",
+                    mailbox_id=box_a.id,
+                    user_id="sender-a",
+                    role="SENDER",
+                    created_by="owner-a",
+                ),
+            ]
+        )
         s.commit()
 
         reader = {"tenant": "tenant-a", "sub": "reader-a", "role": "SUPPORT"}
@@ -101,7 +105,9 @@ def test_mailbox_grants_are_tenant_scoped_and_role_scoped():
         assert [item["id"] for item in rows] == ["mailbox-a"]
 
         with pytest.raises(HTTPException) as denied_send:
-            create_draft(box_a.id, DraftIn(to="person@example.net", subject="x", text="y"), reader, None, s)
+            create_draft(
+                box_a.id, DraftIn(to="person@example.net", subject="x", text="y"), reader, None, s
+            )
         assert denied_send.value.status_code == 404
 
         draft = create_draft(
@@ -118,7 +124,9 @@ def test_mailbox_grants_are_tenant_scoped_and_role_scoped():
         assert denied_manage.value.status_code == 404
 
         with pytest.raises(HTTPException) as cross_tenant:
-            update_message(box_a.id, draft["id"], MessageUpdate(is_read=True), other_tenant_admin, None, s)
+            update_message(
+                box_a.id, draft["id"], MessageUpdate(is_read=True), other_tenant_admin, None, s
+            )
         assert cross_tenant.value.status_code == 404
 
 
@@ -223,10 +231,19 @@ def test_draft_send_reply_and_retry_are_durable_and_idempotent(monkeypatch):
         assert first["message"]["thread_id"] == parent.thread_id
         assert first["message"]["in_reply_to"] == "<parent@example.test>"
         assert first["message"]["references"] == ["<parent@example.test>"]
-        stored = s.scalar(select(WebmailMessage).where(WebmailMessage.outbound_message_id == "core-message-1"))
+        stored = s.scalar(
+            select(WebmailMessage).where(WebmailMessage.outbound_message_id == "core-message-1")
+        )
         assert stored.html_body == "<p>&lt;script&gt;alert(1)&lt;/script&gt;<br>plain text</p>"
         assert s.get(WebmailMessage, draft["id"]).deleted_at is not None
-        assert len(s.scalars(select(WebmailMessage).where(WebmailMessage.direction == "OUTBOUND")).all()) == 1
+        assert (
+            len(
+                s.scalars(
+                    select(WebmailMessage).where(WebmailMessage.direction == "OUTBOUND")
+                ).all()
+            )
+            == 1
+        )
         assert fake_send.await_count == 2
 
 
@@ -263,7 +280,9 @@ def test_message_state_requires_trash_before_permanent_delete():
         assert s.get(WebmailMessage, msg.id).deleted_at is not None
 
 
-def test_verified_domain_postal_reconciliation_activates_exact_route_and_projects_inbound(monkeypatch):
+def test_verified_domain_postal_reconciliation_activates_exact_route_and_projects_inbound(
+    monkeypatch,
+):
     reset_db()
     seed_tenants()
     owner = {"tenant": "tenant-a", "sub": "owner-a", "role": "OWNER"}
@@ -274,54 +293,56 @@ def test_verified_domain_postal_reconciliation_activates_exact_route_and_project
     monkeypatch.setattr(webmail, "_reconcile_postal_outbound", postal_outbound)
 
     with DB() as s:
-        s.add_all([
-            Domain(
-                id="domain-a",
-                tenant_id="tenant-a",
-                domain="example.test",
-                token="verified-token",
-                verified=True,
-            ),
-            ProviderDomain(
-                id="provider-domain-a",
-                tenant_id="tenant-a",
-                domain="example.test",
-                status="SENDING_ENABLED",
-                ownership_token="owned",
-                sending_enabled=True,
-                inbound_enabled=False,
-            ),
-            AllowedSender(
-                id="sender-support",
-                tenant_id="tenant-a",
-                address="support@example.test",
-                role="support",
-                enabled=True,
-            ),
-            Domain(
-                id="domain-b",
-                tenant_id="tenant-b",
-                domain="other.test",
-                token="verified-token-b",
-                verified=True,
-            ),
-            ProviderDomain(
-                id="provider-domain-b",
-                tenant_id="tenant-b",
-                domain="other.test",
-                status="SENDING_ENABLED",
-                ownership_token="owned-b",
-                sending_enabled=True,
-                inbound_enabled=False,
-            ),
-            AllowedSender(
-                id="sender-b",
-                tenant_id="tenant-b",
-                address="support@other.test",
-                role="support",
-                enabled=True,
-            ),
-        ])
+        s.add_all(
+            [
+                Domain(
+                    id="domain-a",
+                    tenant_id="tenant-a",
+                    domain="example.test",
+                    token="verified-token",
+                    verified=True,
+                ),
+                ProviderDomain(
+                    id="provider-domain-a",
+                    tenant_id="tenant-a",
+                    domain="example.test",
+                    status="SENDING_ENABLED",
+                    ownership_token="owned",
+                    sending_enabled=True,
+                    inbound_enabled=False,
+                ),
+                AllowedSender(
+                    id="sender-support",
+                    tenant_id="tenant-a",
+                    address="support@example.test",
+                    role="support",
+                    enabled=True,
+                ),
+                Domain(
+                    id="domain-b",
+                    tenant_id="tenant-b",
+                    domain="other.test",
+                    token="verified-token-b",
+                    verified=True,
+                ),
+                ProviderDomain(
+                    id="provider-domain-b",
+                    tenant_id="tenant-b",
+                    domain="other.test",
+                    status="SENDING_ENABLED",
+                    ownership_token="owned-b",
+                    sending_enabled=True,
+                    inbound_enabled=False,
+                ),
+                AllowedSender(
+                    id="sender-b",
+                    tenant_id="tenant-b",
+                    address="support@other.test",
+                    role="support",
+                    enabled=True,
+                ),
+            ]
+        )
         s.commit()
 
         result = asyncio.run(activate_inbound_mailboxes(owner, None, s))
@@ -331,22 +352,29 @@ def test_verified_domain_postal_reconciliation_activates_exact_route_and_project
         postal_inbound.assert_awaited_once_with("tenant-a", ["support@example.test"])
         postal_outbound.assert_awaited_once_with(s, "tenant-a", ["example.test"])
 
-        route = s.scalar(select(InboundRouteConfig).where(
-            InboundRouteConfig.tenant_id == "tenant-a",
-            InboundRouteConfig.address == "support@example.test",
-        ))
+        route = s.scalar(
+            select(InboundRouteConfig).where(
+                InboundRouteConfig.tenant_id == "tenant-a",
+                InboundRouteConfig.address == "support@example.test",
+            )
+        )
         assert route is not None
         assert route.verified is True and route.enabled is True
         assert route.destination_kind == "webmail"
         assert route.destination_ref == "klyrow:webmail"
 
-        box = s.scalar(select(WebmailMailbox).where(
-            WebmailMailbox.tenant_id == "tenant-a",
-            WebmailMailbox.address == "support@example.test",
-        ))
+        box = s.scalar(
+            select(WebmailMailbox).where(
+                WebmailMailbox.tenant_id == "tenant-a",
+                WebmailMailbox.address == "support@example.test",
+            )
+        )
         assert box is not None
         assert box.receiving_enabled is True
-        assert s.scalar(select(InboundRouteConfig).where(InboundRouteConfig.tenant_id == "tenant-b")) is None
+        assert (
+            s.scalar(select(InboundRouteConfig).where(InboundRouteConfig.tenant_id == "tenant-b"))
+            is None
+        )
 
         attachment = b"controlled inbound evidence"
         parsed = {
@@ -359,12 +387,14 @@ def test_verified_domain_postal_reconciliation_activates_exact_route_and_project
             "html": "<script>not rendered by bundled client</script>",
             "in_reply_to": None,
             "references": None,
-            "attachments": [{
-                "filename": "evidence.txt",
-                "content_type": "text/plain",
-                "size": len(attachment),
-                "sha256": hashlib.sha256(attachment).hexdigest(),
-            }],
+            "attachments": [
+                {
+                    "filename": "evidence.txt",
+                    "content_type": "text/plain",
+                    "size": len(attachment),
+                    "sha256": hashlib.sha256(attachment).hexdigest(),
+                }
+            ],
             "attachment_contents": [attachment],
         }
         provider_item = SimpleNamespace(
@@ -385,6 +415,13 @@ def test_verified_domain_postal_reconciliation_activates_exact_route_and_project
 
         replay = capture_provider_inbound(s, route, provider_item, parsed)
         assert replay.id == message.id
-        assert len(s.scalars(select(WebmailMessage).where(
-            WebmailMessage.provider_inbound_id == "postal-inbound-1"
-        )).all()) == 1
+        assert (
+            len(
+                s.scalars(
+                    select(WebmailMessage).where(
+                        WebmailMessage.provider_inbound_id == "postal-inbound-1"
+                    )
+                ).all()
+            )
+            == 1
+        )

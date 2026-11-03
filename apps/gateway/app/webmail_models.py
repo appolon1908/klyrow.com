@@ -4,23 +4,34 @@ This module intentionally depends only on the core ORM registry.  Keeping it
 free of browser-auth and route imports makes schema registration safe for API,
 worker, migration, and test entry points regardless of import order.
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .main import Base
 
-
-now = lambda: datetime.now(timezone.utc)
+now = lambda: datetime.now(UTC)
 
 
 class WebmailMailbox(Base):
     __tablename__ = "webmail_mailboxes"
-    __table_args__ = (UniqueConstraint("tenant_id", "address", name="uq_webmail_mailbox_tenant_address"),)
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "address", name="uq_webmail_mailbox_tenant_address"),
+    )
     id: Mapped[str] = mapped_column(String, primary_key=True)
     tenant_id: Mapped[str] = mapped_column(String, index=True)
     domain_id: Mapped[str] = mapped_column(String, index=True)
@@ -37,7 +48,9 @@ class WebmailMailbox(Base):
 
 class WebmailAccess(Base):
     __tablename__ = "webmail_access"
-    __table_args__ = (UniqueConstraint("mailbox_id", "user_id", name="uq_webmail_access_mailbox_user"),)
+    __table_args__ = (
+        UniqueConstraint("mailbox_id", "user_id", name="uq_webmail_access_mailbox_user"),
+    )
     id: Mapped[str] = mapped_column(String, primary_key=True)
     tenant_id: Mapped[str] = mapped_column(String, index=True)
     mailbox_id: Mapped[str] = mapped_column(ForeignKey("webmail_mailboxes.id"), index=True)
@@ -57,29 +70,29 @@ class WebmailMessage(Base):
     tenant_id: Mapped[str] = mapped_column(String, index=True)
     mailbox_id: Mapped[str] = mapped_column(ForeignKey("webmail_mailboxes.id"), index=True)
     thread_id: Mapped[str] = mapped_column(String, index=True)
-    provider_inbound_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    outbound_message_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    provider_inbound_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    outbound_message_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     direction: Mapped[str] = mapped_column(String, index=True)
     folder: Mapped[str] = mapped_column(String, index=True)
-    message_id_header: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
-    in_reply_to: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    reply_to_message_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    message_id_header: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    in_reply_to: Mapped[str | None] = mapped_column(String, nullable=True)
+    reply_to_message_id: Mapped[str | None] = mapped_column(String, nullable=True)
     references_json: Mapped[str] = mapped_column(Text, default="[]")
     from_address: Mapped[str] = mapped_column(String)
     to_json: Mapped[str] = mapped_column(Text, default="[]")
     cc_json: Mapped[str] = mapped_column(Text, default="[]")
     bcc_json: Mapped[str] = mapped_column(Text, default="[]")
-    reply_to: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    reply_to: Mapped[str | None] = mapped_column(String, nullable=True)
     subject: Mapped[str] = mapped_column(String, default="")
-    text_body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    html_body: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    text_body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    html_body: Mapped[str | None] = mapped_column(Text, nullable=True)
     attachments_json: Mapped[str] = mapped_column(Text, default="[]")
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     is_starred: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    delivery_status: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
-    received_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivery_status: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 

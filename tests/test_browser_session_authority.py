@@ -5,10 +5,10 @@ from datetime import timedelta
 from fastapi import Request
 from fastapi.testclient import TestClient
 
+from apps.gateway.app.main import DB, Base, Tenant, User, engine, ph, sha
 from apps.gateway.app import auth_bff
-from apps.gateway.app.auth_bff import BrowserSession, SESSION_COOKIE
+from apps.gateway.app.auth_bff import SESSION_COOKIE, BrowserSession
 from apps.gateway.app.browser_auth_actions import stable_csrf_token
-from apps.gateway.app.main import Base, DB, Tenant, User, engine, ph, sha
 from apps.gateway.app.platform import app
 from apps.gateway.app.tenancy import OidcIdentity, TenantMember
 
@@ -221,8 +221,9 @@ def test_logout_all_revokes_sessions_for_every_identity_of_the_user():
 
 
 def test_session_projection_uses_canonical_capabilities_and_explicit_utc():
-    from apps.gateway.app.tenancy import ROLE_PERMISSIONS
     from datetime import datetime
+
+    from apps.gateway.app.tenancy import ROLE_PERMISSIONS
 
     seeded = _seed_session()
     for role in ["OWNER", "ADMIN", "DEVELOPER", "MARKETING", "BILLING", "SUPPORT", "UNKNOWN"]:

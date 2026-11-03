@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
 def test_browser_observability_is_read_only_and_governed():
     source = (ROOT / "apps/gateway/app/browser_observability.py").read_text()
     assert '@router.get("/app/api/admin/observability/webmail-postal")' in source
@@ -9,6 +10,7 @@ def test_browser_observability_is_read_only_and_governed():
     assert "Caddy -> Kong -> Middleware" in source
     for forbidden in ("httpx.", "requests.", "postal_url", "odoo_url", "prometheus_url"):
         assert forbidden not in source.lower()
+
 
 def test_admin_observability_ui_registered():
     routes = (ROOT / "apps/web/src/portal/routes.ts").read_text()
@@ -48,7 +50,7 @@ def test_observability_endpoint_inventory_and_incident_logic():
 def test_trace_drilldown_is_bounded_and_redacted():
     api = (ROOT / "apps/gateway/app/browser_observability.py").read_text()
     ui = (ROOT / "apps/web/src/portal/pages/AdminObservabilityPage.vue").read_text()
-    assert '/app/api/admin/observability/webmail-postal/traces/{correlation_id}' in api
+    assert "/app/api/admin/observability/webmail-postal/traces/{correlation_id}" in api
     assert "invalid_correlation_id" in api
     assert '"direct_cross_system_writes": False' in api
     assert "No addresses, subjects, bodies, tokens, provider IDs or payloads" in api
@@ -70,6 +72,8 @@ def test_unified_operations_center_covers_user_billing_admin_suites():
         assert endpoint in api and endpoint in routes
     assert "/admin/operations" in routes
     assert "'admin-operations': AdminOperationsCenterPage" in pages
-    assert "Users & access" in ui and "Billing operations" in ui and "Middleware & integrations" in ui
+    assert (
+        "Users & access" in ui and "Billing operations" in ui and "Middleware & integrations" in ui
+    )
     assert api.count('"direct_cross_system_writes": False') >= 5
     assert '"sensitive_payment_data_returned": False' in api

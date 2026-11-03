@@ -3,6 +3,7 @@
 No sending. No queue reads/deletes are performed unless the separate worker is
 explicitly enabled and supplied an AWS-authenticated SQS client.
 """
+
 from __future__ import annotations
 
 import base64
@@ -11,7 +12,7 @@ import json
 import re
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlsplit
 
 import requests
@@ -77,7 +78,10 @@ def _sns_cert_url(raw: object) -> str:
         url.scheme != "https"
         or url.hostname != "sns.us-east-1.amazonaws.com"
         or url.port is not None
-        or url.username or url.password or url.query or url.fragment
+        or url.username
+        or url.password
+        or url.query
+        or url.fragment
         or not re.fullmatch(r"/SimpleNotificationService-[a-fA-F0-9]+\.pem", url.path)
     ):
         raise SESFeedbackDenied("sns_certificate_url_invalid")
@@ -93,19 +97,26 @@ def fetch_sns_certificate(url: str) -> bytes:
     return r.content
 
 
-def verified_ses_event(sqs_body: str, *, topic_arn: str, certificate_loader=fetch_sns_certificate) -> SESFeedback:
+def verified_ses_event(
+    sqs_body: str, *, topic_arn: str, certificate_loader=fetch_sns_certificate
+) -> SESFeedback:
     """Verify SNS RSA signature before interpreting any SES or recipient fields."""
     envelope = _load_object(sqs_body, limit=MAX_SQS_BYTES)
     if (
         envelope.get("Type") != "Notification"
         or envelope.get("TopicArn") != topic_arn
-        or not re.fullmatch(r"arn:aws:sns:us-east-1:[0-9]{12}:codestra-klyrow-ses-events", topic_arn)
+        or not re.fullmatch(
+            r"arn:aws:sns:us-east-1:[0-9]{12}:codestra-klyrow-ses-events", topic_arn
+        )
     ):
         raise SESFeedbackDenied("sns_topic_or_type_denied")
     version = str(envelope.get("SignatureVersion"))
     if version not in {"1", "2"}:  # AWS signed SHA1 legacy / preferred signed SHA256
         raise SESFeedbackDenied("sns_signature_version_invalid")
-    if not all(isinstance(envelope.get(k), str) and envelope[k] for k in ("Message", "MessageId", "TopicArn", "Timestamp", "Signature")):
+    if not all(
+        isinstance(envelope.get(k), str) and envelope[k]
+        for k in ("Message", "MessageId", "TopicArn", "Timestamp", "Signature")
+    ):
         raise SESFeedbackDenied("sns_required_field_missing")
     if not re.fullmatch(r"[A-Za-z0-9-]{15,100}", envelope["MessageId"]):
         raise SESFeedbackDenied("sns_message_id_invalid")
@@ -115,7 +126,7 @@ def verified_ses_event(sqs_body: str, *, topic_arn: str, certificate_loader=fetc
             raise ValueError
     except ValueError as exc:
         raise SESFeedbackDenied("sns_timestamp_invalid") from exc
-    if when > datetime.now(timezone.utc) + timedelta(minutes=5):
+    if when > datetime.now(UTC) + timedelta(minutes=5):
         raise SESFeedbackDenied("sns_future_timestamp_denied")
     parts = []
     for key in CANONICAL_FIELDS:
@@ -129,7 +140,7 @@ def verified_ses_event(sqs_body: str, *, topic_arn: str, certificate_loader=fetc
         signature = base64.b64decode(envelope["Signature"], validate=True)
         cert_url = _sns_cert_url(envelope.get("SigningCertURL"))
         cert = x509.load_pem_x509_certificate(certificate_loader(cert_url))
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if not (cert.not_valid_before_utc <= now <= cert.not_valid_after_utc):
             raise SESFeedbackDenied("sns_certificate_expired")
         key = cert.public_key()
@@ -152,9 +163,17 @@ def verified_ses_event(sqs_body: str, *, topic_arn: str, certificate_loader=fetc
         raise SESFeedbackDenied("ses_provider_id_invalid")
     sender = mail.get("source")
     destinations = mail.get("destination")
-    if not isinstance(sender, str) or sender.count("@") != 1 or sender.rsplit("@",1)[1].lower() not in SOURCE_DOMAINS:
+    if (
+        not isinstance(sender, str)
+        or sender.count("@") != 1
+        or sender.rsplit("@", 1)[1].lower() not in SOURCE_DOMAINS
+    ):
         raise SESFeedbackDenied("ses_sender_unapproved")
-    if not isinstance(destinations, list) or len(destinations) != 1 or not isinstance(destinations[0], str):
+    if (
+        not isinstance(destinations, list)
+        or len(destinations) != 1
+        or not isinstance(destinations[0], str)
+    ):
         raise SESFeedbackDenied("ses_destination_invalid")
     recipient = destinations[0].lower()
     if "@" not in recipient or len(recipient) > 254:
@@ -168,14 +187,24 @@ def verified_ses_event(sqs_body: str, *, topic_arn: str, certificate_loader=fetc
             raise SESFeedbackDenied("ses_bounce_invalid")
         entries = bounce.get("bouncedRecipients", [])
         if not isinstance(entries, list) or not any(
-            isinstance(e, dict) and str(e.get("emailAddress", "")).lower() == recipient for e in entries
+            isinstance(e, dict) and str(e.get("emailAddress", "")).lower() == recipient
+            for e in entries
         ):
             raise SESFeedbackDenied("ses_bounce_recipient_invalid")
         if bounce.get("bounceType") not in {"Permanent", "Transient"}:
             raise SESFeedbackDenied("ses_bounce_type_invalid")
         permanent = bounce["bounceType"] == "Permanent"
         status = "bounced" if permanent else "deferred"
-        raw_status = str(next((e.get("status") for e in entries if e.get("emailAddress", "").lower() == recipient), ""))[:30]
+        raw_status = str(
+            next(
+                (
+                    e.get("status")
+                    for e in entries
+                    if e.get("emailAddress", "").lower() == recipient
+                ),
+                "",
+            )
+        )[:30]
     elif event_type in SIMPLE_TYPES:
         permanent = False
         status = SIMPLE_TYPES[event_type]
@@ -186,15 +215,21 @@ def verified_ses_event(sqs_body: str, *, topic_arn: str, certificate_loader=fetc
                 raise SESFeedbackDenied("ses_complaint_invalid")
             complaints = complaint.get("complainedRecipients", [])
             if not isinstance(complaints, list) or not any(
-                isinstance(e,dict) and str(e.get("emailAddress","")).lower()==recipient for e in complaints
+                isinstance(e, dict) and str(e.get("emailAddress", "")).lower() == recipient
+                for e in complaints
             ):
                 raise SESFeedbackDenied("ses_complaint_recipient_invalid")
     else:
         raise SESFeedbackDenied("ses_event_type_unhandled")
     return SESFeedback(
-        sns_message_id=envelope["MessageId"], provider_message_id=provider_id,
-        event_type=str(event_type), status=status, sender=sender.lower(),
-        recipient=recipient, raw_status=raw_status, permanent_bounce=permanent,
+        sns_message_id=envelope["MessageId"],
+        provider_message_id=provider_id,
+        event_type=str(event_type),
+        status=status,
+        sender=sender.lower(),
+        recipient=recipient,
+        raw_status=raw_status,
+        permanent_bounce=permanent,
     )
 
 
@@ -203,8 +238,20 @@ def reconcile_feedback(event: SESFeedback, *, session_factory=None) -> str:
 
     Return 'ack' or 'duplicate' only after commit. 'unmatched' remains in SQS.
     """
-    from .main import Audit, DB, EmailOutbox, Event, Message, Replay, Suppression, bind_tenant_rls, queue_email_lifecycle_event, set_core_message_status
+    from .main import (
+        DB,
+        Audit,
+        EmailOutbox,
+        Event,
+        Message,
+        Replay,
+        Suppression,
+        bind_tenant_rls,
+        queue_email_lifecycle_event,
+        set_core_message_status,
+    )
     from .webmail import update_outbound_status
+
     factory = session_factory or DB
     replay_id = "ses-sns:" + hashlib.sha256(event.sns_message_id.encode()).hexdigest()
     event_id = "ses-event:" + hashlib.sha256(event.sns_message_id.encode()).hexdigest()
@@ -214,7 +261,8 @@ def reconcile_feedback(event: SESFeedback, *, session_factory=None) -> str:
         matches = session.scalars(
             select(EmailOutbox)
             .where(EmailOutbox.provider_message_id == event.provider_message_id)
-            .limit(2).with_for_update()
+            .limit(2)
+            .with_for_update()
         ).all()
         if len(matches) != 1:
             # No arbitrary tenant selection if a provider ID was duplicated.
@@ -222,7 +270,8 @@ def reconcile_feedback(event: SESFeedback, *, session_factory=None) -> str:
         outbox = matches[0]
         message = session.get(Message, outbox.message_id)
         if (
-            message is None or message.tenant_id != outbox.tenant_id
+            message is None
+            or message.tenant_id != outbox.tenant_id
             or message.sender.lower() != event.sender
             or message.recipient.lower() != event.recipient
         ):
@@ -244,24 +293,64 @@ def reconcile_feedback(event: SESFeedback, *, session_factory=None) -> str:
             set_core_message_status(message, status)
             if status in TERMINAL_STATUSES:
                 outbox.state = "delivered" if status == "delivered" else "failed"
-            outbox.updated_at = datetime.now(timezone.utc)
+            outbox.updated_at = datetime.now(UTC)
             if status in {"bounced", "complained"}:
-                existing = session.scalar(select(Suppression).where(Suppression.tenant_id == outbox.tenant_id, Suppression.email == event.recipient))
+                existing = session.scalar(
+                    select(Suppression).where(
+                        Suppression.tenant_id == outbox.tenant_id,
+                        Suppression.email == event.recipient,
+                    )
+                )
                 if existing is None:
-                    session.add(Suppression(id=str(uuid.uuid4()), tenant_id=outbox.tenant_id, email=event.recipient, reason=status))
+                    session.add(
+                        Suppression(
+                            id=str(uuid.uuid4()),
+                            tenant_id=outbox.tenant_id,
+                            email=event.recipient,
+                            reason=status,
+                        )
+                    )
                 else:
                     existing.reason = status
-            payload = json.dumps({"provider":"ses", "status":status, "event_type":event.event_type, "provider_id_hash":hashlib.sha256(event.provider_message_id.encode()).hexdigest()},separators=(",",":"))
-            session.add(Event(id=event_id, tenant_id=outbox.tenant_id, message_id=outbox.message_id, kind="klyrow.email."+status, payload=payload))
-            session.add(Audit(id=str(uuid.uuid4()), tenant_id=outbox.tenant_id, actor="provider:ses", action="email.status."+status))
+            payload = json.dumps(
+                {
+                    "provider": "ses",
+                    "status": status,
+                    "event_type": event.event_type,
+                    "provider_id_hash": hashlib.sha256(
+                        event.provider_message_id.encode()
+                    ).hexdigest(),
+                },
+                separators=(",", ":"),
+            )
+            session.add(
+                Event(
+                    id=event_id,
+                    tenant_id=outbox.tenant_id,
+                    message_id=outbox.message_id,
+                    kind="klyrow.email." + status,
+                    payload=payload,
+                )
+            )
+            session.add(
+                Audit(
+                    id=str(uuid.uuid4()),
+                    tenant_id=outbox.tenant_id,
+                    actor="provider:ses",
+                    action="email.status." + status,
+                )
+            )
             if status in TERMINAL_STATUSES or status == "deferred":
                 queue_email_lifecycle_event(
-                    session, kind="email." + status, tenant_id=outbox.tenant_id,
+                    session,
+                    kind="email." + status,
+                    tenant_id=outbox.tenant_id,
                     message_id=outbox.message_id,
                     operation_id=outbox.operation_id or outbox.message_id,
                     correlation_id=outbox.correlation_id or outbox.message_id,
                     provider_message_id=event.provider_message_id,
-                    recipient=event.recipient, attempt=max(1, outbox.attempts or 1),
+                    recipient=event.recipient,
+                    attempt=max(1, outbox.attempts or 1),
                 )
             update_outbound_status(session, outbox.tenant_id, outbox.message_id, status)
         session.add(Replay(id=replay_id))
@@ -269,7 +358,7 @@ def reconcile_feedback(event: SESFeedback, *, session_factory=None) -> str:
             session.commit()
         except IntegrityError:
             session.rollback()
-            if session.get(Replay,replay_id):
+            if session.get(Replay, replay_id):
                 return "duplicate"
             raise
     return "ack"

@@ -3,12 +3,13 @@
 The browser surface reuses the canonical SupportTicket model from operations.py.
 It persists customer replies locally and never queues Odoo/provider work itself.
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -16,9 +17,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from .main import audit, db
 from .auth_bff import browser_context, csrf_guard
 from .db_base import Base
-from .main import audit, db
 from .operations import SupportTicket
 
 router = APIRouter(prefix="/app/api/support", tags=["Browser support"])
@@ -28,7 +29,7 @@ SupportPriority = Literal["LOW", "NORMAL", "HIGH", "URGENT"]
 
 
 def now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class SupportTicketMessage(Base):
@@ -80,7 +81,9 @@ def _ticket(s: Session, ticket_id: str, tenant_id: str) -> SupportTicket:
     return item
 
 
-def _ticket_payload(s: Session, item: SupportTicket, *, include_messages: bool = False) -> dict[str, Any]:
+def _ticket_payload(
+    s: Session, item: SupportTicket, *, include_messages: bool = False
+) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "id": item.id,
         "subject": item.subject,

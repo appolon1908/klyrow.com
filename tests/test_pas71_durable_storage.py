@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
 import inspect
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine, select
@@ -94,7 +94,7 @@ def test_worker_job_is_idempotent_by_logical_generation_and_key(store):
 
 
 def test_job_lease_recovery_retry_completion_and_lease_guard(store):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with store() as session:
         enqueue_job(
             session,
@@ -152,7 +152,7 @@ def test_job_lease_recovery_retry_completion_and_lease_guard(store):
 
 
 def test_retry_and_dead_letter_are_bounded_and_idempotent(store):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with store() as session:
         job = enqueue_job(
             session,
@@ -190,11 +190,14 @@ def test_retry_and_dead_letter_are_bounded_and_idempotent(store):
         )
         assert first.id == second.id
         assert job.state == "DEAD_LETTER"
-        assert session.scalar(select(DeadLetter).where(DeadLetter.job_id == job.id)).reason_code == "attempts_exhausted"
+        assert (
+            session.scalar(select(DeadLetter).where(DeadLetter.job_id == job.id)).reason_code
+            == "attempts_exhausted"
+        )
 
 
 def test_worker_heartbeat_updates_one_durable_identity(store):
-    t1 = datetime.now(timezone.utc)
+    t1 = datetime.now(UTC)
     t2 = t1 + timedelta(seconds=5)
     with store() as session:
         first = heartbeat_worker(
@@ -225,7 +228,7 @@ def test_worker_heartbeat_updates_one_durable_identity(store):
 
 
 def test_journey_node_wait_event_and_goal_records_are_idempotent(store):
-    wake_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+    wake_at = datetime.now(UTC) + timedelta(minutes=5)
     with store() as session:
         node = ensure_node_execution(
             session,
@@ -258,13 +261,16 @@ def test_journey_node_wait_event_and_goal_records_are_idempotent(store):
             node_execution_id=node.id,
             wake_at=wake_at,
         )
-        assert schedule_wakeup(
-            session,
-            tenant_id="tenant-a",
-            run_id="run-a",
-            node_execution_id=node.id,
-            wake_at=wake_at,
-        ).id == wakeup.id
+        assert (
+            schedule_wakeup(
+                session,
+                tenant_id="tenant-a",
+                run_id="run-a",
+                node_execution_id=node.id,
+                wake_at=wake_at,
+            ).id
+            == wakeup.id
+        )
         with pytest.raises(ValueError, match="journey_wakeup_conflict"):
             schedule_wakeup(
                 session,
@@ -283,14 +289,17 @@ def test_journey_node_wait_event_and_goal_records_are_idempotent(store):
             event_name="purchase.completed",
             filter_payload={"sku": "A"},
         )
-        assert register_event_wait(
-            session,
-            tenant_id="tenant-a",
-            run_id="run-a",
-            profile_id="profile-a",
-            node_execution_id=node.id,
-            event_name="purchase.completed",
-        ).id == wait.id
+        assert (
+            register_event_wait(
+                session,
+                tenant_id="tenant-a",
+                run_id="run-a",
+                profile_id="profile-a",
+                node_execution_id=node.id,
+                event_name="purchase.completed",
+            ).id
+            == wait.id
+        )
 
         hit = record_goal_hit(
             session,
@@ -299,17 +308,20 @@ def test_journey_node_wait_event_and_goal_records_are_idempotent(store):
             goal_node_id="goal-a",
             event_id="event-a",
         )
-        assert record_goal_hit(
-            session,
-            tenant_id="tenant-a",
-            run_id="run-a",
-            goal_node_id="goal-a",
-            event_id="event-a",
-        ).id == hit.id
+        assert (
+            record_goal_hit(
+                session,
+                tenant_id="tenant-a",
+                run_id="run-a",
+                goal_node_id="goal-a",
+                event_id="event-a",
+            ).id
+            == hit.id
+        )
 
 
 def test_due_wakeup_claim_uses_single_claim_state(store):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with store() as session:
         due = JourneyWakeup(
             id="wake-due",
@@ -360,6 +372,7 @@ def test_pas71_source_and_migration_freeze_required_storage_contract():
         assert invariant in sql
 
     from apps.gateway.app import durable_jobs, journey_storage
+
     assert "skip_locked=True" in inspect.getsource(durable_jobs.claim_job)
     assert "skip_locked=True" in inspect.getsource(durable_jobs.recover_expired_leases)
     assert "skip_locked=True" in inspect.getsource(journey_storage.claim_due_wakeup)

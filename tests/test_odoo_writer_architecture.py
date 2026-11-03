@@ -1,7 +1,8 @@
 """Source and packaging guardrails; live ACL/firewall tests remain separate."""
+
 import ast
-from pathlib import Path
 import re
+from pathlib import Path
 
 import yaml
 
@@ -56,12 +57,22 @@ def test_klyrow_and_telemetry_services_have_no_odoo_credential_mounts():
                 source = secret if isinstance(secret, str) else secret["source"]
                 assert "odoo" not in source.lower(), (path.name, name, source)
             environment = service.get("environment", {})
-            names = environment if isinstance(environment, dict) else [value.split("=", 1)[0] for value in environment]
+            names = (
+                environment
+                if isinstance(environment, dict)
+                else [value.split("=", 1)[0] for value in environment]
+            )
             assert not any(forbidden_runtime_reference(key) for key in names), (path.name, name)
 
 
 def test_guard_detects_writer_protocols_and_credentials_but_allows_routing_metadata():
-    for value in ("KLYROW_ODOO_API_KEY_FILE", "/json/2/res.partner/write", "/jsonrpc", "xmlrpc.client", "app.workers.klyrow_mail_odoo"):
+    for value in (
+        "KLYROW_ODOO_API_KEY_FILE",
+        "/json/2/res.partner/write",
+        "/jsonrpc",
+        "xmlrpc.client",
+        "app.workers.klyrow_mail_odoo",
+    ):
         assert forbidden_runtime_reference(value)
     for value in ("odoo_reference", "ODOO", "odoo_helpdesk"):
         assert not forbidden_runtime_reference(value)

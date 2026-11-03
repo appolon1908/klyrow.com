@@ -3,6 +3,7 @@
 Provider integrations supply evidence; this module owns durable payment
 posting and the resulting invoice financial state.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -27,13 +28,24 @@ class InvoiceBalance:
 
 
 def invoice_balance(session: Session, invoice: Invoice) -> InvoiceBalance:
-    settled = money(session.scalar(select(func.coalesce(func.sum(Payment.amount), 0)).where(
-        Payment.invoice_id == invoice.id, Payment.status == "CONFIRMED",
-    )) or 0)
-    refunded = money(session.scalar(select(func.coalesce(func.sum(Refund.amount), 0)).where(
-        Refund.payment_id.in_(select(Payment.id).where(Payment.invoice_id == invoice.id)),
-        Refund.status == "CONFIRMED",
-    )) or 0)
+    settled = money(
+        session.scalar(
+            select(func.coalesce(func.sum(Payment.amount), 0)).where(
+                Payment.invoice_id == invoice.id,
+                Payment.status == "CONFIRMED",
+            )
+        )
+        or 0
+    )
+    refunded = money(
+        session.scalar(
+            select(func.coalesce(func.sum(Refund.amount), 0)).where(
+                Refund.payment_id.in_(select(Payment.id).where(Payment.invoice_id == invoice.id)),
+                Refund.status == "CONFIRMED",
+            )
+        )
+        or 0
+    )
     total = money(invoice.total)
     credits = money(invoice.credits)
     gross_due = max(money(total - credits), Decimal("0.00"))
@@ -51,11 +63,13 @@ def invoice_balance(session: Session, invoice: Invoice) -> InvoiceBalance:
 
 
 def _persist_receipt(session: Session, payment: Payment, invoice: Invoice) -> InvoiceReceipt:
-    existing = session.scalar(select(InvoiceReceipt).where(
-        InvoiceReceipt.tenant_id == payment.tenant_id,
-        InvoiceReceipt.kind == "RECEIPT",
-        InvoiceReceipt.payment_id == payment.id,
-    ))
+    existing = session.scalar(
+        select(InvoiceReceipt).where(
+            InvoiceReceipt.tenant_id == payment.tenant_id,
+            InvoiceReceipt.kind == "RECEIPT",
+            InvoiceReceipt.payment_id == payment.id,
+        )
+    )
     if existing:
         return existing
     document = receipt_document(
@@ -81,24 +95,53 @@ def _persist_receipt(session: Session, payment: Payment, invoice: Invoice) -> In
     return receipt
 
 
-def post_settlement(session: Session, *, tenant_id: str, invoice_id: str, provider: str, provider_reference: str, amount: Decimal, currency: str, confirmed_by: str | None, payment_attempt_id: str | None = None) -> Payment:
+def post_settlement(
+    session: Session,
+    *,
+    tenant_id: str,
+    invoice_id: str,
+    provider: str,
+    provider_reference: str,
+    amount: Decimal,
+    currency: str,
+    confirmed_by: str | None,
+    payment_attempt_id: str | None = None,
+) -> Payment:
     """Post one confirmed settlement and derive the invoice state atomically.
 
     Caller owns the transaction and locks the invoice before calling this
     service when competing writers are possible.
     """
-    invoice = session.scalar(select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id).with_for_update())
+    invoice = session.scalar(
+        select(Invoice)
+        .where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id)
+        .with_for_update()
+    )
     if not invoice:
         raise ValueError("invoice_not_found")
     if invoice.currency != currency:
         raise ValueError("currency_mismatch")
-    replay = session.scalar(select(Payment).where(Payment.provider == provider, Payment.provider_reference == provider_reference).with_for_update())
+    replay = session.scalar(
+        select(Payment)
+        .where(Payment.provider == provider, Payment.provider_reference == provider_reference)
+        .with_for_update()
+    )
     if replay and replay.status == "CONFIRMED":
-        if replay.invoice_id != invoice.id or replay.tenant_id != tenant_id or money(replay.amount) != money(amount) or replay.currency != currency:
+        if (
+            replay.invoice_id != invoice.id
+            or replay.tenant_id != tenant_id
+            or money(replay.amount) != money(amount)
+            or replay.currency != currency
+        ):
             raise ValueError("provider_reference_conflict")
         _persist_receipt(session, replay, invoice)
         return replay
-    if replay and (replay.invoice_id != invoice.id or replay.tenant_id != tenant_id or money(replay.amount) != money(amount) or replay.currency != currency):
+    if replay and (
+        replay.invoice_id != invoice.id
+        or replay.tenant_id != tenant_id
+        or money(replay.amount) != money(amount)
+        or replay.currency != currency
+    ):
         raise ValueError("provider_reference_conflict")
     balance = invoice_balance(session, invoice)
     if invoice.status in {"VOID", "CREDITED", "PAID"} or balance.remaining_due <= Decimal("0.00"):
@@ -106,14 +149,20 @@ def post_settlement(session: Session, *, tenant_id: str, invoice_id: str, provid
     if money(amount) <= Decimal("0.00") or money(amount) > balance.remaining_due:
         raise ValueError("amount_exceeds_remaining_due")
     payment = replay or Payment(
-        id=__import__("uuid").uuid4().hex, tenant_id=tenant_id, invoice_id=invoice.id,
-        provider=provider, provider_reference=provider_reference, amount=money(amount),
-        currency=currency, status="PENDING_RECONCILIATION", confirmed_by=None,
+        id=__import__("uuid").uuid4().hex,
+        tenant_id=tenant_id,
+        invoice_id=invoice.id,
+        provider=provider,
+        provider_reference=provider_reference,
+        amount=money(amount),
+        currency=currency,
+        status="PENDING_RECONCILIATION",
+        confirmed_by=None,
     )
     payment.status = "CONFIRMED"
     payment.confirmed_by = confirmed_by
     if payment_attempt_id is not None:
-        setattr(payment, "payment_attempt_id", payment_attempt_id)
+        payment.payment_attempt_id = payment_attempt_id
     session.add(payment)
     session.flush()
     _persist_receipt(session, payment, invoice)

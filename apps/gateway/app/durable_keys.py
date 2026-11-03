@@ -1,4 +1,5 @@
 """Dedicated durable-result key authority; no browser/session-key fallback."""
+
 from __future__ import annotations
 
 import base64
@@ -97,9 +98,17 @@ def load_keyring(path: str | Path | None = None) -> Keyring:
 
 def new_keyring_document() -> str:
     key_id = "dr-" + secrets.token_hex(8)
-    return json.dumps({"schema_version": 1, "active_key_id": key_id,
-                       "keys": {key_id: base64.urlsafe_b64encode(secrets.token_bytes(32)).decode("ascii")}},
-                      sort_keys=True) + "\n"
+    return (
+        json.dumps(
+            {
+                "schema_version": 1,
+                "active_key_id": key_id,
+                "keys": {key_id: base64.urlsafe_b64encode(secrets.token_bytes(32)).decode("ascii")},
+            },
+            sort_keys=True,
+        )
+        + "\n"
+    )
 
 
 def keyring_ready() -> bool:

@@ -1,6 +1,7 @@
 """Mission 02: provider-neutral PaymentAttempt foundation tests."""
+
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -9,7 +10,7 @@ pytestmark = pytest.mark.usefixtures("canonical_api_owner")
 
 from fastapi.testclient import TestClient
 
-from apps.gateway.app.main import Base, DB, Tenant, User, app, engine, ph, rate_buckets
+from apps.gateway.app.main import DB, Base, Tenant, User, app, engine, ph, rate_buckets
 from apps.gateway.app.billing import Invoice, Payment, PaymentMethodReference
 from apps.gateway.app.payment_attempts import (
     AUTHORIZED,
@@ -23,11 +24,10 @@ from apps.gateway.app.payment_attempts import (
     TERMINAL_STATES,
     TRANSITIONS,
     PaymentAttempt,
-    PaymentAttemptEvent,
     PaymentAttemptConflict,
     _apply_transition,
-    _minor_from_decimal,
     _decimal_from_minor,
+    _minor_from_decimal,
 )
 
 client = TestClient(app)
@@ -40,7 +40,11 @@ def setup_module():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     with DB() as session:
-        for tenant_id, role in (("a", "tenant_admin"), ("b", "tenant_admin"), ("root", "platform_admin")):
+        for tenant_id, role in (
+            ("a", "tenant_admin"),
+            ("b", "tenant_admin"),
+            ("root", "platform_admin"),
+        ):
             session.add(Tenant(id=tenant_id, name=tenant_id, quota=10000))
             session.add(
                 User(
@@ -57,7 +61,9 @@ def setup_module():
 def login(email):
     if email in tokens:
         return tokens[email]
-    response = client.post("/v1/auth/login", json={"email": email, "password": "long-enough-password"})
+    response = client.post(
+        "/v1/auth/login", json={"email": email, "password": "long-enough-password"}
+    )
     assert response.status_code == 200, response.text
     tokens[email] = {"Authorization": "Bearer " + response.json()["access_token"]}
     return tokens[email]
@@ -76,7 +82,7 @@ def make_invoice(tenant_id, *, total="100.00", currency="USD", status="OPEN", cr
         credits=Decimal(credits),
         total=Decimal(total),
         status=status,
-        due_at=datetime.now(timezone.utc) + timedelta(days=30),
+        due_at=datetime.now(UTC) + timedelta(days=30),
     )
     with DB() as session:
         session.add(inv)
@@ -97,8 +103,16 @@ def enable_live_stripe(monkeypatch, tmp_path):
     monkeypatch.setenv("KLYROW_LIVE_CHARGING_ENABLED", "true")
 
 
-def create_attempt(headers, *, invoice_id, amount_minor=1000, currency="USD", provider="disabled",
-                    idempotency_key=None, payment_method_reference_id=None):
+def create_attempt(
+    headers,
+    *,
+    invoice_id,
+    amount_minor=1000,
+    currency="USD",
+    provider="disabled",
+    idempotency_key=None,
+    payment_method_reference_id=None,
+):
     payload = {
         "invoice_id": invoice_id,
         "amount_minor": amount_minor,
@@ -116,15 +130,29 @@ def create_attempt(headers, *, invoice_id, amount_minor=1000, currency="USD", pr
 # State machine unit tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.parametrize(
     "start,target",
     [
-        (CREATED, PENDING), (CREATED, CANCELLED), (CREATED, EXPIRED),
-        (PENDING, REQUIRES_ACTION), (PENDING, AUTHORIZED), (PENDING, CAPTURED),
-        (PENDING, FAILED), (PENDING, CANCELLED), (PENDING, EXPIRED),
-        (REQUIRES_ACTION, PENDING), (REQUIRES_ACTION, AUTHORIZED), (REQUIRES_ACTION, CAPTURED),
-        (REQUIRES_ACTION, FAILED), (REQUIRES_ACTION, CANCELLED), (REQUIRES_ACTION, EXPIRED),
-        (AUTHORIZED, CAPTURED), (AUTHORIZED, FAILED), (AUTHORIZED, CANCELLED), (AUTHORIZED, EXPIRED),
+        (CREATED, PENDING),
+        (CREATED, CANCELLED),
+        (CREATED, EXPIRED),
+        (PENDING, REQUIRES_ACTION),
+        (PENDING, AUTHORIZED),
+        (PENDING, CAPTURED),
+        (PENDING, FAILED),
+        (PENDING, CANCELLED),
+        (PENDING, EXPIRED),
+        (REQUIRES_ACTION, PENDING),
+        (REQUIRES_ACTION, AUTHORIZED),
+        (REQUIRES_ACTION, CAPTURED),
+        (REQUIRES_ACTION, FAILED),
+        (REQUIRES_ACTION, CANCELLED),
+        (REQUIRES_ACTION, EXPIRED),
+        (AUTHORIZED, CAPTURED),
+        (AUTHORIZED, FAILED),
+        (AUTHORIZED, CANCELLED),
+        (AUTHORIZED, EXPIRED),
     ],
 )
 def test_every_documented_valid_transition_is_allowed(start, target):
@@ -134,9 +162,15 @@ def test_every_documented_valid_transition_is_allowed(start, target):
 @pytest.mark.parametrize(
     "start,target",
     [
-        (CREATED, AUTHORIZED), (CREATED, CAPTURED), (CREATED, REQUIRES_ACTION),
-        (CAPTURED, PENDING), (FAILED, PENDING), (CANCELLED, PENDING), (EXPIRED, PENDING),
-        (AUTHORIZED, PENDING), (AUTHORIZED, REQUIRES_ACTION),
+        (CREATED, AUTHORIZED),
+        (CREATED, CAPTURED),
+        (CREATED, REQUIRES_ACTION),
+        (CAPTURED, PENDING),
+        (FAILED, PENDING),
+        (CANCELLED, PENDING),
+        (EXPIRED, PENDING),
+        (AUTHORIZED, PENDING),
+        (AUTHORIZED, REQUIRES_ACTION),
     ],
 )
 def test_every_undocumented_transition_is_rejected(start, target):
@@ -178,19 +212,25 @@ def test_apply_transition_valid_updates_status_and_timestamp():
 def test_apply_transition_invalid_raises_conflict():
     attempt = _fresh_attempt(CREATED)
     with pytest.raises(PaymentAttemptConflict):
-        _apply_transition(_FakeSession(), attempt, CAPTURED, event_type="t", source="test", ctx={"sub": "tester"})
+        _apply_transition(
+            _FakeSession(), attempt, CAPTURED, event_type="t", source="test", ctx={"sub": "tester"}
+        )
 
 
 def test_apply_transition_from_terminal_state_raises_conflict():
     attempt = _fresh_attempt(CAPTURED)
     with pytest.raises(PaymentAttemptConflict):
-        _apply_transition(_FakeSession(), attempt, FAILED, event_type="t", source="test", ctx={"sub": "tester"})
+        _apply_transition(
+            _FakeSession(), attempt, FAILED, event_type="t", source="test", ctx={"sub": "tester"}
+        )
 
 
 def test_apply_transition_identical_replay_is_idempotent_and_appends_no_event():
     attempt = _fresh_attempt(PENDING)
     session = _FakeSession()
-    _apply_transition(session, attempt, PENDING, event_type="t", source="test", ctx={"sub": "tester"})
+    _apply_transition(
+        session, attempt, PENDING, event_type="t", source="test", ctx={"sub": "tester"}
+    )
     assert attempt.status == PENDING
     assert attempt.version == 1
     assert session.added == []
@@ -217,6 +257,7 @@ def test_minor_unit_conversion_boundary_round_trips():
 # API tests
 # ---------------------------------------------------------------------------
 
+
 def test_creation_fails_closed_when_billing_disabled():
     invoice_id = make_invoice("a")
     response = create_attempt(login("a@example.com"), invoice_id=invoice_id)
@@ -229,7 +270,12 @@ def test_creation_requires_idempotency_key(monkeypatch):
     invoice_id = make_invoice("a")
     response = client.post(
         "/v1/billing/payment-attempts",
-        json={"invoice_id": invoice_id, "amount_minor": 1000, "currency": "USD", "provider": "disabled"},
+        json={
+            "invoice_id": invoice_id,
+            "amount_minor": 1000,
+            "currency": "USD",
+            "provider": "disabled",
+        },
         headers=login("a@example.com"),
     )
     assert response.status_code == 422
@@ -242,7 +288,12 @@ def test_creation_rejects_malformed_idempotency_key(monkeypatch):
     headers["Idempotency-Key"] = "short"
     response = client.post(
         "/v1/billing/payment-attempts",
-        json={"invoice_id": invoice_id, "amount_minor": 1000, "currency": "USD", "provider": "disabled"},
+        json={
+            "invoice_id": invoice_id,
+            "amount_minor": 1000,
+            "currency": "USD",
+            "provider": "disabled",
+        },
         headers=headers,
     )
     assert response.status_code == 422
@@ -266,7 +317,12 @@ def test_unauthenticated_creation_is_rejected(monkeypatch):
     invoice_id = make_invoice("a")
     response = client.post(
         "/v1/billing/payment-attempts",
-        json={"invoice_id": invoice_id, "amount_minor": 1000, "currency": "USD", "provider": "disabled"},
+        json={
+            "invoice_id": invoice_id,
+            "amount_minor": 1000,
+            "currency": "USD",
+            "provider": "disabled",
+        },
         headers={"Idempotency-Key": "key-" + uuid.uuid4().hex},
     )
     assert response.status_code == 401
@@ -287,8 +343,12 @@ def test_conflicting_idempotency_key_reuse_is_rejected(monkeypatch):
     enable_billing(monkeypatch)
     invoice_id = make_invoice("a")
     key = "conflict-" + uuid.uuid4().hex
-    first = create_attempt(login("a@example.com"), invoice_id=invoice_id, idempotency_key=key, amount_minor=1000)
-    second = create_attempt(login("a@example.com"), invoice_id=invoice_id, idempotency_key=key, amount_minor=2000)
+    first = create_attempt(
+        login("a@example.com"), invoice_id=invoice_id, idempotency_key=key, amount_minor=1000
+    )
+    second = create_attempt(
+        login("a@example.com"), invoice_id=invoice_id, idempotency_key=key, amount_minor=2000
+    )
     assert first.status_code == 201
     assert second.status_code == 409
     assert second.json()["detail"] == "idempotency_key_payload_mismatch"
@@ -321,7 +381,12 @@ def test_zero_and_negative_amounts_are_rejected(monkeypatch):
     for amount in (0, -100):
         response = client.post(
             "/v1/billing/payment-attempts",
-            json={"invoice_id": invoice_id, "amount_minor": amount, "currency": "USD", "provider": "disabled"},
+            json={
+                "invoice_id": invoice_id,
+                "amount_minor": amount,
+                "currency": "USD",
+                "provider": "disabled",
+            },
             headers={**login("a@example.com"), "Idempotency-Key": "key-" + uuid.uuid4().hex},
         )
         assert response.status_code == 422
@@ -355,8 +420,12 @@ def test_capture_is_revalidated_against_invoice_balance_at_transition_time(monke
     collectively overpay the invoice."""
     enable_live_stripe(monkeypatch, tmp_path)
     invoice_id = make_invoice("a", total="10.00")
-    first = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=400, provider="stripe").json()
-    second = create_attempt(login("a@example.com"), invoice_id=invoice_id, amount_minor=700, provider="stripe").json()
+    first = create_attempt(
+        login("a@example.com"), invoice_id=invoice_id, amount_minor=400, provider="stripe"
+    ).json()
+    second = create_attempt(
+        login("a@example.com"), invoice_id=invoice_id, amount_minor=700, provider="stripe"
+    ).json()
 
     missing_payment = client.post(
         f"/v1/internal/billing/payment-attempts/{first['id']}/transition",
@@ -374,12 +443,20 @@ def test_capture_is_revalidated_against_invoice_balance_at_transition_time(monke
     assert missing_capture_payment.json()["detail"] == "capture_requires_confirmed_payment"
 
     with DB() as session:
-        session.add(Payment(
-            id=str(uuid.uuid4()), tenant_id="a", invoice_id=invoice_id,
-            payment_attempt_id=first["id"], provider="stripe",
-            provider_reference="pi_test_first", amount=Decimal("4.00"),
-            currency="USD", status="CONFIRMED", confirmed_by="stripe-webhook",
-        ))
+        session.add(
+            Payment(
+                id=str(uuid.uuid4()),
+                tenant_id="a",
+                invoice_id=invoice_id,
+                payment_attempt_id=first["id"],
+                provider="stripe",
+                provider_reference="pi_test_first",
+                amount=Decimal("4.00"),
+                currency="USD",
+                status="CONFIRMED",
+                confirmed_by="stripe-webhook",
+            )
+        )
         session.commit()
 
     def advance_to_captured(attempt_id, *, make_pending=True):
@@ -427,19 +504,28 @@ def test_payment_method_reference_must_be_active_and_tenant_scoped(monkeypatch):
     invoice_id = make_invoice("a")
     with DB() as session:
         foreign = PaymentMethodReference(
-            id=str(uuid.uuid4()), tenant_id="b", provider="EXTERNAL_TOKENIZED",
-            provider_reference="token-foreign", label="Foreign", is_default=False,
+            id=str(uuid.uuid4()),
+            tenant_id="b",
+            provider="EXTERNAL_TOKENIZED",
+            provider_reference="token-foreign",
+            label="Foreign",
+            is_default=False,
         )
         revoked = PaymentMethodReference(
-            id=str(uuid.uuid4()), tenant_id="a", provider="EXTERNAL_TOKENIZED",
-            provider_reference="token-revoked", label="Revoked", is_default=False,
-            revoked_at=datetime.now(timezone.utc),
+            id=str(uuid.uuid4()),
+            tenant_id="a",
+            provider="EXTERNAL_TOKENIZED",
+            provider_reference="token-revoked",
+            label="Revoked",
+            is_default=False,
+            revoked_at=datetime.now(UTC),
         )
         session.add_all([foreign, revoked])
         session.commit()
     for reference_id in (foreign.id, revoked.id, "missing-reference"):
         response = create_attempt(
-            login("a@example.com"), invoice_id=invoice_id,
+            login("a@example.com"),
+            invoice_id=invoice_id,
             payment_method_reference_id=reference_id,
         )
         assert response.status_code == 422
@@ -474,7 +560,12 @@ def test_unsupported_provider_is_rejected(monkeypatch):
     invoice_id = make_invoice("a")
     response = client.post(
         "/v1/billing/payment-attempts",
-        json={"invoice_id": invoice_id, "amount_minor": 1000, "currency": "USD", "provider": "carrier-pigeon"},
+        json={
+            "invoice_id": invoice_id,
+            "amount_minor": 1000,
+            "currency": "USD",
+            "provider": "carrier-pigeon",
+        },
         headers={**login("a@example.com"), "Idempotency-Key": "key-" + uuid.uuid4().hex},
     )
     assert response.status_code == 422
@@ -498,10 +589,14 @@ def test_list_and_detail_are_tenant_scoped(monkeypatch):
     assert listed.status_code == 200
     assert any(row["id"] == created["id"] for row in listed.json())
 
-    detail = client.get(f"/v1/billing/payment-attempts/{created['id']}", headers=login("a@example.com"))
+    detail = client.get(
+        f"/v1/billing/payment-attempts/{created['id']}", headers=login("a@example.com")
+    )
     assert detail.status_code == 200
 
-    cross_tenant = client.get(f"/v1/billing/payment-attempts/{created['id']}", headers=login("b@example.com"))
+    cross_tenant = client.get(
+        f"/v1/billing/payment-attempts/{created['id']}", headers=login("b@example.com")
+    )
     assert cross_tenant.status_code == 404
 
     cross_tenant_list = client.get("/v1/billing/payment-attempts", headers=login("b@example.com"))
@@ -531,16 +626,22 @@ def test_event_history_is_tenant_scoped_and_available_after_cancel(monkeypatch):
     invoice_id = make_invoice("a")
     created = create_attempt(login("a@example.com"), invoice_id=invoice_id).json()
 
-    cancelled = client.post(f"/v1/billing/payment-attempts/{created['id']}/cancel", headers=login("a@example.com"))
+    cancelled = client.post(
+        f"/v1/billing/payment-attempts/{created['id']}/cancel", headers=login("a@example.com")
+    )
     assert cancelled.status_code == 200
     assert cancelled.json()["status"] == CANCELLED
 
-    events = client.get(f"/v1/billing/payment-attempts/{created['id']}/events", headers=login("a@example.com"))
+    events = client.get(
+        f"/v1/billing/payment-attempts/{created['id']}/events", headers=login("a@example.com")
+    )
     assert events.status_code == 200
     kinds = [row["to_status"] for row in events.json()]
     assert kinds == [CREATED, CANCELLED]
 
-    cross_tenant_events = client.get(f"/v1/billing/payment-attempts/{created['id']}/events", headers=login("b@example.com"))
+    cross_tenant_events = client.get(
+        f"/v1/billing/payment-attempts/{created['id']}/events", headers=login("b@example.com")
+    )
     assert cross_tenant_events.status_code == 404
 
 
@@ -548,9 +649,13 @@ def test_cancel_of_terminal_attempt_is_rejected(monkeypatch):
     enable_billing(monkeypatch)
     invoice_id = make_invoice("a")
     created = create_attempt(login("a@example.com"), invoice_id=invoice_id).json()
-    first = client.post(f"/v1/billing/payment-attempts/{created['id']}/cancel", headers=login("a@example.com"))
+    first = client.post(
+        f"/v1/billing/payment-attempts/{created['id']}/cancel", headers=login("a@example.com")
+    )
     assert first.status_code == 200
-    second = client.post(f"/v1/billing/payment-attempts/{created['id']}/cancel", headers=login("a@example.com"))
+    second = client.post(
+        f"/v1/billing/payment-attempts/{created['id']}/cancel", headers=login("a@example.com")
+    )
     assert second.status_code == 200  # identical replay of CANCELLED is idempotent, not a conflict
 
 
@@ -558,7 +663,9 @@ def test_cross_tenant_cancel_is_rejected(monkeypatch):
     enable_billing(monkeypatch)
     invoice_id = make_invoice("a")
     created = create_attempt(login("a@example.com"), invoice_id=invoice_id).json()
-    response = client.post(f"/v1/billing/payment-attempts/{created['id']}/cancel", headers=login("b@example.com"))
+    response = client.post(
+        f"/v1/billing/payment-attempts/{created['id']}/cancel", headers=login("b@example.com")
+    )
     assert response.status_code == 404
 
 
@@ -593,11 +700,14 @@ def test_live_charging_disabled_blocks_authorize_for_real_provider(monkeypatch):
     monkeypatch.setenv("KLYROW_STRIPE_ENVIRONMENT", "sandbox")
     import tempfile
     from pathlib import Path
+
     secret_path = Path(tempfile.mkdtemp()) / "stripe-secret"
     secret_path.write_text("SYNTHETIC-FIXTURE-VALUE")
     monkeypatch.setenv("KLYROW_STRIPE_SECRET_FILE", str(secret_path))
     invoice_id = make_invoice("a")
-    created = create_attempt(login("a@example.com"), invoice_id=invoice_id, provider="stripe").json()
+    created = create_attempt(
+        login("a@example.com"), invoice_id=invoice_id, provider="stripe"
+    ).json()
     monkeypatch.setenv("KLYROW_LIVE_CHARGING_ENABLED", "false")
     response = client.post(
         f"/v1/internal/billing/payment-attempts/{created['id']}/transition",
