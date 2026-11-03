@@ -2585,13 +2585,23 @@ def metrics(authorization: str = Header(default="")):
     return Response(generate_latest(), media_type="text/plain")
 
 
-@app.post("/v1/auth/login")
-def login(x: Login, request: Request, s: Session = Depends(db)):
-    if (
+def local_auth_enabled() -> bool:
+    """Legacy HS256/password auth is refused in production or when disabled."""
+
+    return not (
         os.getenv("KLYROW_ENV", "development").lower() == "production"
         or os.getenv("KLYROW_LOCAL_AUTH_ENABLED", "true").lower() != "true"
-    ):
+    )
+
+
+def require_local_auth() -> None:
+    if not local_auth_enabled():
         raise HTTPException(410, "use_canonical_oidc")
+
+
+@app.post("/v1/auth/login")
+def login(x: Login, request: Request, s: Session = Depends(db)):
+    require_local_auth()
     auth_rate(request, "login")
     u = s.scalar(select(User).where(User.email == x.email.lower()))
     try:
@@ -2630,19 +2640,31 @@ def logout(ctx=Depends(auth), s: Session = Depends(db)):
 
 @app.post("/v1/auth/forgot-password", status_code=202)
 def forgot(x: ResetRequest, request: Request, s: Session = Depends(db)):
+    require_local_auth()
     auth_rate(request, "forgot-password")
     u = s.scalar(select(User).where(User.email == x.email.lower()))
     if u:
-        raw = secrets.token_urlsafe(32)
-        u.reset_hash = sha(raw)
-        u.reset_expires = datetime.now(UTC) + timedelta(minutes=30)
+        now = datetime.now(UTC)
+        pending = (
+            u.reset_hash is not None
+            and u.reset_expires is not None
+            and u.reset_expires.replace(tzinfo=UTC) > now
+        )
+        # A still-valid pending reset is kept so repeated requests cannot
+        # invalidate a token the account holder is about to use.
+        if not pending:
+            raw = secrets.token_urlsafe(32)
+            u.reset_hash = sha(raw)
+            u.reset_expires = now + timedelta(minutes=30)
         audit(s, {"tenant": u.tenant_id, "sub": u.id}, "password.reset.requested")
         s.commit()
     return {"detail": "If the account exists, reset instructions will be delivered."}
 
 
 @app.post("/v1/auth/reset-password")
-def reset(x: Reset, s: Session = Depends(db)):
+def reset(x: Reset, request: Request, s: Session = Depends(db)):
+    require_local_auth()
+    auth_rate(request, "reset-password")
     u = s.scalar(select(User).where(User.reset_hash == sha(x.token)))
     if not u or not u.reset_expires or u.reset_expires.replace(tzinfo=UTC) < datetime.now(UTC):
         raise HTTPException(400, "invalid_or_expired_token")
