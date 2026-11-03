@@ -1,0 +1,143 @@
+name: Infra lint
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "mod/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-infra-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  actionlint:
+    name: actionlint (workflows)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      # sha256 of actionlint_1.7.12_linux_amd64.tar.gz, matches upstream actionlint_1.7.12_checksums.txt
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Install pinned actionlint
+        run: |
+          set -Eeuo pipefail
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl --silent --show-error --fail --location \
+            --output "${RUNNER_TEMP}/${archive}" \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+          echo "${ACTIONLINT_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum --check --strict
+          mkdir -p "${RUNNER_TEMP}/actionlint"
+          tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}/actionlint" actionlint
+          "${RUNNER_TEMP}/actionlint/actionlint" -version
+      - name: Lint GitHub Actions workflows
+        # actionlint picks up .github/actionlint.yaml (self-hosted runner labels) automatically.
+        run: |
+          set -Eeuo pipefail
+          "${RUNNER_TEMP}/actionlint/actionlint" -color -shellcheck= -pyflakes=
+
+  shellcheck:
+    name: shellcheck (scripts, advisory)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Install shellcheck
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends shellcheck
+          shellcheck --version
+      - name: Run shellcheck over bash scripts
+        id: shellcheck
+        # Advisory until the scripts/ cleanup milestone lands; warnings are summarised, not blocking.
+        continue-on-error: true
+        run: |
+          set -Eeuo pipefail
+          mapfile -t candidates < <(find scripts -type f ! -name '*.py' ! -name '*.mjs' ! -name '*.js' | sort)
+          bash_files=()
+          for f in "${candidates[@]}"; do
+            if head -c 200 "$f" | head -n 1 | grep -Eq '^#!.*\b(ba)?sh\b' || [[ "$f" == *.sh ]] || [[ "$f" == *.bash ]]; then
+              bash_files+=("$f")
+            fi
+          done
+          echo "Bash scripts detected: ${#bash_files[@]}"
+          printf '%s\n' "${bash_files[@]}"
+          report="${RUNNER_TEMP}/shellcheck.json"
+          status=0
+          shellcheck -S warning -f json1 "${bash_files[@]}" > "$report" || status=$?
+          count="$(jq '.comments | length' "$report")"
+          files_with_findings="$(jq '[.comments[].file] | unique | length' "$report")"
+          {
+            echo "## shellcheck (advisory, \`-S warning\`)"
+            echo
+            echo "- Bash scripts checked: ${#bash_files[@]}"
+            echo "- Findings (warning and above): ${count} across ${files_with_findings} file(s)"
+            if [ "$count" != 0 ]; then
+              echo
+              echo "| Code | Count |"
+              echo "|---|---|"
+              jq -r '.comments | group_by(.code) | map({code: .[0].code, n: length}) | sort_by(-.n)[] | "| SC\(.code) | \(.n) |"' "$report"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          shellcheck -S warning -f gcc "${bash_files[@]}" || true
+          exit "$status"
+
+  hadolint:
+    name: hadolint (Dockerfiles, advisory)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      HADOLINT_VERSION: 2.15.1
+      # sha256 of hadolint-Linux-x86_64 from the v2.15.1 release
+      HADOLINT_SHA256: c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - name: Install pinned hadolint
+        run: |
+          set -Eeuo pipefail
+          curl --silent --show-error --fail --location \
+            --output "${RUNNER_TEMP}/hadolint" \
+            "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-Linux-x86_64"
+          echo "${HADOLINT_SHA256}  ${RUNNER_TEMP}/hadolint" | sha256sum --check --strict
+          chmod +x "${RUNNER_TEMP}/hadolint"
+          "${RUNNER_TEMP}/hadolint" --version
+      - name: Run hadolint over every Dockerfile
+        id: hadolint
+        # Advisory for now; findings are summarised, not blocking.
+        continue-on-error: true
+        run: |
+          set -Eeuo pipefail
+          mapfile -t dockerfiles < <(find . -path ./.git -prune -o -path '*/node_modules' -prune -o -type f \( -name 'Dockerfile*' -o -name '*.Dockerfile' \) -print | sort)
+          echo "Dockerfiles detected: ${#dockerfiles[@]}"
+          printf '%s\n' "${dockerfiles[@]}"
+          report="${RUNNER_TEMP}/hadolint.json"
+          status=0
+          "${RUNNER_TEMP}/hadolint" --no-fail --format json "${dockerfiles[@]}" > "$report" || status=$?
+          count="$(jq 'length' "$report")"
+          {
+            echo "## hadolint (advisory)"
+            echo
+            echo "- Dockerfiles checked: ${#dockerfiles[@]}"
+            echo "- Findings: ${count}"
+            if [ "$count" != 0 ]; then
+              echo
+              echo "| Level | Code | Count |"
+              echo "|---|---|---|"
+              jq -r 'group_by(.level, .code) | map({level: .[0].level, code: .[0].code, n: length}) | sort_by(.level, -.n)[] | "| \(.level) | \(.code) | \(.n) |"' "$report"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          "${RUNNER_TEMP}/hadolint" --format tty "${dockerfiles[@]}" || status=$?
+          exit "$status"
