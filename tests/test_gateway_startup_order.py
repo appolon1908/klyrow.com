@@ -48,7 +48,7 @@ def test_billing_settings_are_resolved_before_engine_is_constructed():
 
     source = open(main_module.__file__, encoding="utf-8").read()
     billing_gate_index = source.index("_validate_billing_configuration_before_startup()")
-    engine_index = source.index("engine=create_engine(DATABASE_URL")
+    engine_index = source.index("engine = create_engine(DATABASE_URL")
     assert billing_gate_index < engine_index
 
 

@@ -669,7 +669,8 @@ def middleware_inbound_payload(
 
 def smtp_authorize(s: Session, payload: SmtpPreflightIn, tenant_id: str) -> SmtpCredential:
     credential = s.scalar(select(SmtpCredential).where(SmtpCredential.username == payload.username))
-    # Return one indistinguishable denial for missing, foreign, revoked, expired, or invalid credentials.
+    # Return one indistinguishable denial for missing, foreign, revoked, expired,
+    # or invalid credentials.
     if not credential or credential.tenant_id != tenant_id or credential.status != "ACTIVE":
         raise HTTPException(401, "smtp_authentication_failed")
     expiry = credential.expires_at
@@ -1887,13 +1888,6 @@ def smtp_credential_create(payload: SmtpCredentialIn, ctx=Depends(auth), s: Sess
         expires_at=now() + timedelta(days=payload.expires_in_days),
     )
     s.add(item)
-    result = {
-        "credential_id": item.id,
-        "username": item.username,
-        "password": secret,
-        "secret_display": "ONCE",
-        "expires_at": item.expires_at.isoformat(),
-    }
     audit_provider(s, ctx, "smtp_credential.created", "accepted", resource_id=item.id)
     s.commit()
     return {

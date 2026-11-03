@@ -113,7 +113,7 @@ def test_security_schemes_and_origin_boundaries_are_explicit():
         "type": "apiKey",
         "in": "header",
         "name": "X-Klyrow-CSRF",
-        "description": "Required session-bound CSRF credential for authenticated browser mutations.",
+        "description": "Required session-bound CSRF credential for authenticated browser mutations.",  # noqa: E501  # long schema description
     }
     assert schema["paths"]["/auth/session"]["get"]["security"] == [{}, {"browserSession": []}]
     assert schema["paths"]["/v1/me"]["get"]["security"] == [{"bearerAuth": []}]

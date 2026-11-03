@@ -106,7 +106,7 @@ def test_ses_feedback_updates_only_matched_webmail_under_runtime_rls():
             connection.execute(text(f'GRANT USAGE ON SCHEMA "{schema}" TO "{role}"'))
             connection.execute(
                 text(
-                    f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "{schema}" TO "{role}"'
+                    f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "{schema}" TO "{role}"'  # noqa: E501  # SQL grant statement
                 )
             )
             connection.execute(text("ALTER TABLE webmail_messages ENABLE ROW LEVEL SECURITY"))

@@ -175,7 +175,7 @@ def warmup(x: WarmupIn, ctx=Depends(auth), s: Session = Depends(db)):
     ):
         raise HTTPException(404, "verified_domain_not_found")
     if any(value < 1 for value in x.daily_limits) or any(
-        b < a for a, b in zip(x.daily_limits, x.daily_limits[1:])
+        b < a for a, b in zip(x.daily_limits, x.daily_limits[1:], strict=False)
     ):
         raise HTTPException(422, "warmup_limits_must_increase")
     item = s.scalar(

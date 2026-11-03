@@ -372,17 +372,17 @@ def build_openapi(app: FastAPI) -> dict[str, Any]:
                 "type": "apiKey",
                 "in": "header",
                 "name": "X-Klyrow-CSRF",
-                "description": "Required session-bound CSRF credential for authenticated browser mutations.",
+                "description": "Required session-bound CSRF credential for authenticated browser mutations.",  # noqa: E501  # long schema description
             },
             "serviceBearer": {
                 "type": "http",
                 "scheme": "bearer",
-                "description": "Dedicated service credential accepted only by handlers that use the service authenticator.",
+                "description": "Dedicated service credential accepted only by handlers that use the service authenticator.",  # noqa: E501  # long schema description
             },
             "metricsBearer": {
                 "type": "http",
                 "scheme": "bearer",
-                "description": "Dedicated metrics credential; the public edge returns 404 for this route.",
+                "description": "Dedicated metrics credential; the public edge returns 404 for this route.",  # noqa: E501  # long schema description
             },
             "klyrowWebhookSignature": {
                 "type": "apiKey",

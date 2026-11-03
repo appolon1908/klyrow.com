@@ -393,7 +393,10 @@ def capture_provider_inbound(
             {
                 **metadata,
                 "id": attachment_id,
-                "download_url": f"/app/api/mailboxes/{mailbox.id}/messages/{item_id}/attachments/{attachment_id}",
+                "download_url": (
+                    f"/app/api/mailboxes/{mailbox.id}/messages/{item_id}"
+                    f"/attachments/{attachment_id}"
+                ),
             }
         )
         stored_attachments.append(

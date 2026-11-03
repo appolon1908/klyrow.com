@@ -1776,7 +1776,7 @@ def startup():
             if os.getenv("KLYROW_REQUIRE_LEAST_PRIVILEGE_DB", "true").lower() == "true":
                 role, *privileges = connection.execute(
                     text(
-                        "SELECT rolname, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls FROM pg_roles WHERE rolname=current_user"
+                        "SELECT rolname, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls FROM pg_roles WHERE rolname=current_user"  # noqa: E501  # long literal text
                     )
                 ).one()
                 if role != os.getenv("KLYROW_DATABASE_RUNTIME_ROLE", "klyrow_runtime"):
@@ -2348,7 +2348,7 @@ async def headers(request, call_next):
                 "X-Frame-Options": "DENY",
                 "Referrer-Policy": "no-referrer",
                 "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-                "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'",
+                "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'",  # noqa: E501  # long literal text
             }
         )
         return response
@@ -3576,7 +3576,7 @@ async def postal_hook(
     secret = runtime_secret("KLYROW_WEBHOOK_SECRET").encode()
     try:
         ts = int(x_klyrow_timestamp)
-    except:
+    except (TypeError, ValueError):
         raise HTTPException(401, "invalid_timestamp")
     if abs(time.time() - ts) > 300:
         raise HTTPException(401, "expired_signature")

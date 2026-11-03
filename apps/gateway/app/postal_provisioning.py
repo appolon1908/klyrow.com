@@ -17,6 +17,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .main import (
     DB,
+    SAFE_MODE,  # noqa: F401  # tests monkeypatch it
     SECRET,
     Base,
     Tenant,

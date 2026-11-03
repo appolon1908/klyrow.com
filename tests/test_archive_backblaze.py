@@ -74,7 +74,7 @@ class BackblazeTests(unittest.TestCase):
     def test_wrong_version_or_encryption_is_rejected(self):
         for field, value in (("VersionId", "wrong"), ("ServerSideEncryption", "none")):
 
-            def wrong(*args):
+            def wrong(*args, field=field, value=value):
                 result = self.fake_aws(*args)
                 if args[2] == "get-object":
                     result[field] = value

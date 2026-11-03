@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
+from test_middleware_email_contract import gateway as gateway  # pytest fixture re-export
 
 from apps.gateway.app import billing, service_worker
 

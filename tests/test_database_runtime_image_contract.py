@@ -152,7 +152,9 @@ def test_rehearsal_waits_past_temporary_socket_server(tmp_path) -> None:
         import json, os, sys
         from pathlib import Path
         path = Path(os.environ["REHEARSAL_STATE"])
-        state = json.loads(path.read_text()) if path.exists() else {"probes": 0, "attempt": 0, "writes": 0}
+        state = {"probes": 0, "attempt": 0, "writes": 0}
+        if path.exists():
+            state = json.loads(path.read_text())
         args = sys.argv[1:]
         code = 0
         if args[0] in {"run", "start"}:

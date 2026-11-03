@@ -70,7 +70,7 @@ def webmail_postal_observability(
 
     return {
         "generated_at": now.isoformat(),
-        "architecture": "Public/browser -> Caddy -> Kong -> Middleware -> approved Klyrow/Postal adapter; no direct cross-system business writes.",
+        "architecture": "Public/browser -> Caddy -> Kong -> Middleware -> approved Klyrow/Postal adapter; no direct cross-system business writes.",  # noqa: E501  # long literal text
         "inbound": {
             "accepted": inbound_accepted,
             "quarantined": inbound_quarantined,
@@ -174,11 +174,17 @@ def webmail_postal_incidents(ctx: dict = Depends(browser_context), session: Sess
             "Inspect provider outcome; reconcile indeterminate work before retry.",
         )
     if snapshot["health"]["reconciliation"] != "healthy":
+        reconciliation = snapshot["reconciliation"]
+        unresolved = (
+            reconciliation["retry"]
+            + reconciliation["dead_letter"]
+            + reconciliation["indeterminate"]
+        )
         add(
             "reconciliation_unresolved",
             snapshot["health"]["reconciliation"],
             "Middleware reconciliation",
-            f"{snapshot['reconciliation']['retry'] + snapshot['reconciliation']['dead_letter'] + snapshot['reconciliation']['indeterminate']} unresolved items.",
+            f"{unresolved} unresolved items.",
             "Resolve authoritative provider state before replay.",
         )
     return {"generated_at": snapshot["generated_at"], "count": len(incidents), "items": incidents}
@@ -335,7 +341,7 @@ def billing_suite_observability(
         "payment_attempts": {"total": attempts, "captured": captured, "failed": failed},
         "ledger": {"invoices": invoices, "payments": payments, "refunds": refunds},
         "health": "attention" if failed > 0 else "healthy",
-        "authority": "Klyrow billing ledger; provider effects only through Middleware billing adapters",
+        "authority": "Klyrow billing ledger; provider effects only through Middleware billing adapters",  # noqa: E501  # long literal text
         "cross_system_path": ["Caddy", "Kong", "Middleware", "billing-adapter", "Klyrow/provider"],
         "direct_cross_system_writes": False,
         "sensitive_payment_data_returned": False,

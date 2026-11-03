@@ -296,7 +296,6 @@ def _reject_endpoint_mismatch(
 
 
 def _reject_inline_secret(provider: str, mode: str, environment: Mapping[str, str] | None) -> None:
-    source = os.environ if environment is None else environment
     if mode == "production" and _text(f"KLYROW_{provider.upper()}_SECRET", environment):
         raise BillingConfigError(
             "production_inline_secret_rejected",
@@ -513,7 +512,7 @@ def load_billing_settings(environment: Mapping[str, str] | None = None) -> Billi
     if webhook_processing_enabled and not active_providers:
         raise BillingConfigError(
             "webhook_processing_requires_provider",
-            "KLYROW_BILLING_WEBHOOK_PROCESSING_ENABLED requires at least one configured provider verifier",
+            "KLYROW_BILLING_WEBHOOK_PROCESSING_ENABLED requires at least one configured provider verifier",  # noqa: E501  # long error message
         )
 
     return BillingSettings(

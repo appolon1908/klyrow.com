@@ -372,7 +372,7 @@ def test_inbound_exact_route_mime_idempotency_and_quarantine():
 
 
 def test_inbound_dangerous_filename_rejected():
-    raw = b'From: x@example.net\r\nTo: support@codestra.co\r\nMessage-ID: <unsafe@example.net>\r\nContent-Disposition: attachment; filename="../x.exe"\r\n\r\nx'
+    raw = b'From: x@example.net\r\nTo: support@codestra.co\r\nMessage-ID: <unsafe@example.net>\r\nContent-Disposition: attachment; filename="../x.exe"\r\n\r\nx'  # noqa: E501  # raw message fixture
     payload = {
         **inbound_payload("postal-event-unsafe"),
         "raw_message_b64": base64.b64encode(raw).decode(),
@@ -1022,7 +1022,7 @@ def test_smtp_rechecks_domain_stream_quota_and_suppression_at_submission():
         {
             "mail_from": None,
             "rcpt_tos": [],
-            "original_content": b"From: sender@smtp-policy.example\r\nTo: capture@klyrow-sink.test\r\nSubject: test\r\n\r\nbody",
+            "original_content": b"From: sender@smtp-policy.example\r\nTo: capture@klyrow-sink.test\r\nSubject: test\r\n\r\nbody",  # noqa: E501  # raw message fixture
         },
     )()
     assert (

@@ -916,7 +916,6 @@ def test_retention_plan_cannot_apply_after_its_eligible_set_or_authority_changes
 ):
     with operation_db() as session:
         _, row = old_result(session)
-        original = row.payload_json
         first = purge_result_batch(session, **purge_kwargs())
         session.rollback()
         row = session.get(IntegrationResult, "result-a")

@@ -152,7 +152,7 @@ def test_scoped_api_and_smtp_credentials_are_hashed_and_tenant_scoped():
 def test_owner_cannot_be_removed_and_developer_cannot_manage_team():
     owner, tenant = owner_context()
     with DB() as session:
-        dev = session.query(TenantMember).filter_by(tenant_id=tenant, user_id="b").one()
+        session.query(TenantMember).filter_by(tenant_id=tenant, user_id="b").one()
     b = login("b")
     switched = client.post(f"/v1/organizations/{tenant}/switch", headers=b).json()
     developer = {"Authorization": "Bearer " + switched["access_token"]}

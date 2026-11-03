@@ -167,6 +167,7 @@ class Harness:
             "SAFE_MODE": False,
             "datetime": datetime,
             "timezone": timezone,
+            "UTC": UTC,
             "timedelta": timedelta,
         }
         exec(compile(ast.Module(body=nodes, type_ignores=[]), str(path), "exec"), ns)

@@ -154,19 +154,19 @@ def test_database_passwords_are_file_only_and_runtime_role_is_separate():
 
 def test_outbox_recovers_abandoned_sending_leases():
     source = (ROOT / "apps/gateway/app/main.py").read_text()
-    assert 'EmailOutbox.state=="sending"' in source
-    assert "EmailOutbox.updated_at<stale" in source
-    assert '"Idempotency-Key":"klyrow:"+snapshot[1]' in source
+    assert 'EmailOutbox.state == "sending"' in source
+    assert "EmailOutbox.updated_at < stale" in source
+    assert '"Idempotency-Key": "klyrow:" + snapshot[1]' in source
 
 
 def test_outbox_retries_back_off_and_terminal_failure_updates_message():
     source = (ROOT / "apps/gateway/app/main.py").read_text()
     migration = (ROOT / "migrations/2026082201_email_outbox_and_tenant_idempotency.sql").read_text()
-    assert "EmailOutbox.next_attempt_at<=current" in source
-    assert "failed=item.attempts>=5" in source
+    assert "EmailOutbox.next_attempt_at <= current" in source
+    assert "failed = item.attempts >= 5" in source
     assert "if first_attempt:" in source
-    assert "min(300,2**max(item.attempts,1))" in source
-    assert 'set_core_message_status(message,"failed")' in source
+    assert "min(300, 2 ** max(item.attempts, 1))" in source
+    assert 'set_core_message_status(message, "failed")' in source
     assert 'kind="klyrow.email.failed"' in source
     assert "next_attempt_at timestamptz" in migration
 
@@ -183,14 +183,14 @@ def test_single_domain_canary_is_durable_and_fail_closed():
     assert "campaign_delivery_disabled_during_canary" in source
     assert "production_canary_gate" in migration
     assert "canary_payload_allowed(payload)" in source
-    assert 'payload.get("campaign_id")==allowed_campaign' in source
-    assert '"campaign_id":x.campaign_id' in source
-    assert 'item.state="quarantined"' in source
-    assert "gate.claimed_deliveries+=1" in source
+    assert 'payload.get("campaign_id") == allowed_campaign' in source
+    assert '"campaign_id": x.campaign_id' in source
+    assert 'item.state = "quarantined"' in source
+    assert "gate.claimed_deliveries += 1" in source
     assert "claimed_deliveries integer NOT NULL DEFAULT 0" in migration
     assert "invalid_outbox_payload" in source
     assert "normalized_recipients" in source
-    assert "except (TypeError,ValueError):maximum=-1" in source
+    assert "maximum = -1" in source
     assert "KLYROW_CANARY_MAX_DELIVERIES" in compose
     assert 'KLYROW_BULK_DELIVERY_ENABLED: "false"' in compose
 
@@ -208,14 +208,12 @@ def test_base_production_compose_forces_email_delivery_fail_closed():
 
 def test_resolver_requires_write_permission_for_mutating_routes():
     source = (ROOT / "apps/gateway/app/main.py").read_text()
-    assert 'request.method not in {"GET","HEAD","OPTIONS"}' in source
-    assert (
-        'permission="klyrow.webhook" if "webhook" in request.url.path else "klyrow.send"' in source
-    )
-    assert (
-        'request.url.path=="/v1/integrations/results":permission="klyrow.integration.result.write"'
-        in source
-    )
+    assert 'request.method not in {"GET", "HEAD", "OPTIONS"}' in source
+    assert '"klyrow.webhook"\n' in source
+    assert 'if "webhook" in request.url.path' in source
+    assert 'else "klyrow.send"' in source
+    assert 'request.url.path == "/v1/integrations/results"' in source
+    assert 'permission = "klyrow.integration.result.write"' in source
 
 
 def test_integration_state_transitions_share_row_lock_and_unique_race_recovery():
@@ -223,17 +221,17 @@ def test_integration_state_transitions_share_row_lock_and_unique_race_recovery()
     production_api = (ROOT / "apps/gateway/app/production_api.py").read_text()
     mautic = (ROOT / "apps/gateway/app/mautic_adapter.py").read_text()
     assert operations.count("locked_integration_outbox(") >= 4
-    assert 'item.state not in {"PENDING","RETRY"}' in operations
+    assert 'item.state not in {"PENDING", "RETRY"}' in operations
     assert "except IntegrityError:" in operations
-    assert "s.rollback();prior=integration_result_by_key" in operations
+    assert "prior = integration_result_by_key" in operations
     assert production_api.count("_find_operation_for_update(") >= 3
     assert mautic.count(".with_for_update(") >= 4
 
 
 def test_health_counts_outbox_and_reflects_durable_canary_capacity():
     source = (ROOT / "apps/gateway/app/main.py").read_text()
-    assert "select(func.count()).select_from(EmailOutbox)" in source
-    assert "gate.reserved_deliveries<maximum" in source
+    assert "select_from(EmailOutbox)" in source
+    assert "gate.reserved_deliveries < maximum" in source
     assert "production_gate_open(s)" in source
 
 

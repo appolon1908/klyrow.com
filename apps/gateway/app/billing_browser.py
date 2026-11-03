@@ -320,7 +320,7 @@ def entitlements(
     "/usage/daily",
     response_model=UsageHistoryPage,
     responses=USAGE_HISTORY_ERRORS,
-    description="Daily UTC totals from the authoritative tenant usage ledger for the authenticated browser organization.",
+    description="Daily UTC totals from the authoritative tenant usage ledger for the authenticated browser organization.",  # noqa: E501  # long route description
 )
 def browser_usage_daily(
     query: Annotated[UsageHistoryQuery, Query()],
@@ -334,7 +334,7 @@ def browser_usage_daily(
     "/usage/monthly",
     response_model=UsageHistoryPage,
     responses=USAGE_HISTORY_ERRORS,
-    description="Monthly UTC totals from the authoritative tenant usage ledger for the authenticated browser organization.",
+    description="Monthly UTC totals from the authoritative tenant usage ledger for the authenticated browser organization.",  # noqa: E501  # long route description
 )
 def browser_usage_monthly(
     query: Annotated[UsageHistoryQuery, Query()],

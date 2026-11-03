@@ -165,7 +165,7 @@ class CampaignDispatchItem(Base):
             name="uq_campaign_dispatch_recipient",
         ),
         CheckConstraint(
-            "state IN ('PENDING','LEASED','RETRYING','DELIVERED','SUPPRESSED','FAILED','CANCELLED')",
+            "state IN ('PENDING','LEASED','RETRYING','DELIVERED','SUPPRESSED','FAILED','CANCELLED')",  # noqa: E501  # SQL check constraint
             name="ck_campaign_dispatch_item_state",
         ),
     )

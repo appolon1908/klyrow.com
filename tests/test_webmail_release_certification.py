@@ -209,7 +209,7 @@ def test_inbound_attachment_path_traversal_is_rejected():
     assert denied.value.detail == "unsafe_attachment_filename"
 
 
-def test_transactional_webmail_does_not_require_marketing_consent_but_hard_suppression_still_blocks():
+def test_transactional_webmail_does_not_require_marketing_consent_but_hard_suppression_still_blocks():  # noqa: E501  # descriptive test name
     reset_db()
     with DB() as session:
         session.add(Tenant(id="tenant-a", name="Tenant A", quota=100))

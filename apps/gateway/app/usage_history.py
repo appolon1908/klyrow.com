@@ -190,7 +190,7 @@ ERRORS = {
     "/v1/usage/daily",
     response_model=UsageHistoryPage,
     responses=ERRORS,
-    description="Daily UTC totals from the authoritative usage ledger. Periods without entries are omitted. Counts describe metered units, not recipient delivery.",
+    description="Daily UTC totals from the authoritative usage ledger. Periods without entries are omitted. Counts describe metered units, not recipient delivery.",  # noqa: E501  # long route description
 )
 def daily_usage(
     query: Annotated[UsageHistoryQuery, Query()],
@@ -204,7 +204,7 @@ def daily_usage(
     "/v1/usage/monthly",
     response_model=UsageHistoryPage,
     responses=ERRORS,
-    description="Monthly UTC totals within the requested date window. Boundary months may be partial. Periods without entries are omitted.",
+    description="Monthly UTC totals within the requested date window. Boundary months may be partial. Periods without entries are omitted.",  # noqa: E501  # long route description
 )
 def monthly_usage(
     query: Annotated[UsageHistoryQuery, Query()],

@@ -4,6 +4,7 @@ import inspect
 
 import pytest
 from fastapi import HTTPException
+from test_middleware_email_contract import gateway as gateway  # pytest fixture re-export
 
 from apps.gateway.app import messaging, production_api, provider, saas
 

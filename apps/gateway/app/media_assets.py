@@ -200,7 +200,7 @@ class MediaAsset(Base):
     idempotency_key: Mapped[str | None] = mapped_column(String, nullable=True)
     __table_args__ = (
         CheckConstraint(
-            "status IN ('PENDING_UPLOAD','UPLOADED','VALIDATING','READY','REJECTED','QUARANTINED','ARCHIVED','DELETED')",
+            "status IN ('PENDING_UPLOAD','UPLOADED','VALIDATING','READY','REJECTED','QUARANTINED','ARCHIVED','DELETED')",  # noqa: E501  # SQL check constraint
             name="ck_media_asset_status",
         ),
         UniqueConstraint("tenant_id", "idempotency_key", name="uq_media_asset_tenant_idempotency"),
@@ -785,7 +785,7 @@ def media_archive(
 @router.delete("/app/api/media/{asset_id}")
 def media_delete(
     asset_id: str,
-    x: MutationIn = Body(default=MutationIn()),
+    x: MutationIn = Body(default=MutationIn()),  # noqa: B008  # FastAPI body default
     ctx=Depends(browser_context_dependency),
     _session=Depends(csrf_dependency),
     s: Session = Depends(db),

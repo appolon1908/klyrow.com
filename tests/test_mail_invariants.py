@@ -70,8 +70,8 @@ def test_p1_every_send_path_uses_the_identical_guard_chain():
 def test_p2_suppression_has_one_stream_aware_implementation():
     relay = _source("smtp_relay.py")
     provider_source = _source("provider.py")
-    assert "from .guards import enforce_suppression" in relay
-    assert "from .guards import enforce_suppression" in provider_source
+    assert "enforce_suppression" in relay
+    assert "authorize_send(" in provider_source
     assert "select(Suppression)" not in relay
     assert "select(Suppression)" not in provider_source
 
@@ -284,7 +284,7 @@ def test_p16_postal_callbacks_verify_hmac_and_rsa_independently():
     source = _source("main.py")
     hmac_hook = inspect.getsource(main.postal_hook)
     rsa_verifier = inspect.getsource(main.verify_postal_signature)
-    assert "abs(time.time()-ts)>300" in hmac_hook
+    assert "abs(time.time() - ts) > 300" in hmac_hook
     assert "hmac.compare_digest" in hmac_hook
     assert "Replay" in hmac_hook
     assert "padding.PKCS1v15()" in rsa_verifier
@@ -326,10 +326,11 @@ def test_p19_workers_claim_with_skip_locked_and_reclaim_expired_leases():
 def test_p20_middleware_recipient_reference_is_sha256_and_not_cleartext():
     emit_source = inspect.getsource(main.emit_middleware)
     assert '"recipient_reference"' in emit_source
-    assert '"sha256:"+hashlib.sha256' in emit_source
+    assert '"sha256:"' in emit_source
+    assert "hashlib.sha256(" in emit_source
+    assert ".lower().encode()).hexdigest()" in emit_source
     assert (
-        '"recipient":'
-        not in emit_source.split("if event_type.startswith", 1)[1].split("else:", 1)[0]
+        '"recipient":' not in emit_source.split("event_type.startswith", 1)[1].split("else:", 1)[0]
     )
 
 

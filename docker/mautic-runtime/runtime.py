@@ -124,7 +124,7 @@ def run_jobs(role, counts):
                             raise RuntimeError("scheduled command failed")
                     elif time.monotonic() - started[child.pid] > 600:
                         raise RuntimeError("scheduled command exceeded deadline")
-                slot = cron_slot(dt.datetime.now(dt.UTC))
+                slot = cron_slot(dt.datetime.now(dt.timezone.utc))  # noqa: UP017  # test stubs dt
                 if slot is not None and (last_slot is None or slot[0] > last_slot):
                     last_slot, command = slot
                     pending.append(command)

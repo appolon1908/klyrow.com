@@ -155,7 +155,7 @@ def billing_database(request, tmp_path):
             connection.execute(text(f'GRANT USAGE ON SCHEMA "{schema}" TO "{schema}"'))
             connection.execute(
                 text(
-                    f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "{schema}" TO "{schema}"'
+                    f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "{schema}" TO "{schema}"'  # noqa: E501  # SQL grant statement
                 )
             )
             for model in (

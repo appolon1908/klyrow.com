@@ -5,6 +5,7 @@ import socket
 import dns.resolver
 import pytest
 from sqlalchemy import select
+from test_middleware_email_contract import gateway as gateway  # pytest fixture re-export
 
 from apps.gateway.app import saas
 

@@ -75,7 +75,7 @@ class JourneyNodeExecution(Base):
         ),
         UniqueConstraint("tenant_id", "idempotency_key", name="uq_journey_node_idempotency"),
         CheckConstraint(
-            "state IN ('PENDING','READY','RUNNING','WAITING','COMPLETED','SKIPPED','RETRY','FAILED','CANCELLED')",
+            "state IN ('PENDING','READY','RUNNING','WAITING','COMPLETED','SKIPPED','RETRY','FAILED','CANCELLED')",  # noqa: E501  # SQL check constraint
             name="ck_journey_node_execution_state",
         ),
         CheckConstraint("attempt >= 0", name="ck_journey_node_execution_attempt"),

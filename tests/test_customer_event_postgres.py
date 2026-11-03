@@ -105,14 +105,14 @@ def test_migration_twice_preserves_old_writer_default(event_database):
         connection.execute(text("DROP TABLE customer_events"))
         connection.execute(
             text(
-                "CREATE TABLE customer_events (id VARCHAR PRIMARY KEY, tenant_id VARCHAR, profile_id VARCHAR, name VARCHAR, properties_json TEXT, occurred_at TIMESTAMPTZ NOT NULL)"
+                "CREATE TABLE customer_events (id VARCHAR PRIMARY KEY, tenant_id VARCHAR, profile_id VARCHAR, name VARCHAR, properties_json TEXT, occurred_at TIMESTAMPTZ NOT NULL)"  # noqa: E501  # SQL fixture statement
             )
         )
         connection.exec_driver_sql(migration)
         connection.exec_driver_sql(migration)
         received = connection.execute(
             text(
-                "INSERT INTO customer_events (id, tenant_id, profile_id, name, properties_json, occurred_at) VALUES ('old-writer','tenant','profile','old','{}',now()) RETURNING received_at"
+                "INSERT INTO customer_events (id, tenant_id, profile_id, name, properties_json, occurred_at) VALUES ('old-writer','tenant','profile','old','{}',now()) RETURNING received_at"  # noqa: E501  # SQL fixture statement
             )
         ).scalar_one()
         assert received is not None

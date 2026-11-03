@@ -89,8 +89,8 @@ def test_webmail_threading_headers_are_governed_and_persisted_for_delivery():
             headers={"Message-ID": "<safe@example.test>\r\nBcc: victim@example.test"},
         )
     main_source = (ROOT / "apps/gateway/app/main.py").read_text(encoding="utf-8")
-    assert "delivery_headers=dict(x.headers)" in main_source
-    assert 'delivery_payload["headers"]=delivery_headers' in main_source
+    assert "delivery_headers = dict(x.headers)" in main_source
+    assert 'delivery_payload["headers"] = delivery_headers' in main_source
 
 
 def test_live_domain_reconciliation_persists_only_attested_owner(monkeypatch):

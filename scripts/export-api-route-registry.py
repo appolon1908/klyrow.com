@@ -64,9 +64,8 @@ def build() -> list[dict]:
         audience = operation_audience(path)
         security, auth_model = operation_auth(method, path, audience)
         operation = openapi_operations.get(key, {})
-        operation_id = (
-            operation.get("operationId")
-            or f"runtime_{method}_{path.strip('/').replace('/', '_').replace('{', '').replace('}', '') or 'root'}"
+        operation_id = operation.get("operationId") or "runtime_" + method + "_" + (
+            path.strip("/").replace("/", "_").replace("{", "").replace("}", "") or "root"
         )
         mutation = method.lower() in {"post", "put", "patch", "delete"}
         rows.append(

@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import func, select
+from test_middleware_email_contract import gateway as gateway  # pytest fixture re-export
 
 from apps.gateway.app import main as core
 from apps.gateway.app.messaging import CampaignDefinition

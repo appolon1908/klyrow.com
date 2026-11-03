@@ -373,7 +373,9 @@ def register_admin_routes(core_require):
 
     @router.post("/admin/oidc-identities", status_code=201)
     def oidc_identity(
-        x: OidcIdentityIn, ctx=Depends(core_require("platform_admin")), s: Session = Depends(db)
+        x: OidcIdentityIn,
+        ctx=Depends(core_require("platform_admin")),  # noqa: B008  # FastAPI dependency factory
+        s: Session = Depends(db),
     ):
         issuer = "https://auth.codestra.co/realms/codestra"
         user = s.get(_user_model(), x.user_id)

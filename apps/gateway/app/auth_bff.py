@@ -10,6 +10,7 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlencode, urlsplit
 
 import httpx
@@ -23,6 +24,9 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .db_base import Base
 from .tenancy import ROLE_PERMISSIONS, OidcIdentity, TenantMember
+
+if TYPE_CHECKING:
+    from .main import User
 
 
 def _main_module():
