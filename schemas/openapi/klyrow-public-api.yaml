@@ -1,31 +1,6 @@
 {
   "components": {
     "schemas": {
-      "AcceptIn": {
-        "properties": {
-          "display_email": {
-            "anyOf": [
-              {
-                "format": "email",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Display Email"
-          },
-          "token": {
-            "title": "Token",
-            "type": "string"
-          }
-        },
-        "required": [
-          "token"
-        ],
-        "title": "AcceptIn",
-        "type": "object"
-      },
       "AiIn": {
         "properties": {
           "capability": {
@@ -23163,49 +23138,6 @@
         "x-klyrow-enforced-auth-dependencies": [
           "auth"
         ]
-      }
-    },
-    "/v1/team/invitations/accept": {
-      "post": {
-        "operationId": "accept_legacy_invitation_v1_team_invitations_accept_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AcceptIn"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "security": [],
-        "summary": "Accept Legacy Invitation",
-        "tags": [
-          "Tenant authority"
-        ],
-        "x-klyrow-audience": "PUBLIC",
-        "x-klyrow-auth-model": "NONE_OR_BODY_BOUND_SINGLE_USE_TOKEN",
-        "x-klyrow-enforced-auth-dependencies": []
       }
     },
     "/v1/team/members": {

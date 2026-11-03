@@ -29,9 +29,6 @@ from .browser_security_fixes import (
 from .browser_security_fixes import (
     install_browser_security_fixes,
 )
-from .browser_security_fixes import (
-    legacy_router as legacy_security_router,
-)
 from .browser_step_up_deadline import (
     install_step_up_deadline_guard,
 )
@@ -108,7 +105,6 @@ if not getattr(app.state, "klyrow_browser_api_routes_registered", False):
     auth_bff._identity_context = resolve_identity_context_with_provisioning
     for platform_router in (
         browser_security_router,
-        legacy_security_router,
         auth_bff_router,
         platform_owner_router,
         browser_auth_actions_router,
