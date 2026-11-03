@@ -9,11 +9,10 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from apps.gateway.app import postal_callback_attribution as callback
 from apps.gateway.app.main import (
+    DB,
     Audit,
     Base,
-    DB,
     EmailOutbox,
     Event,
     Message,
@@ -22,6 +21,7 @@ from apps.gateway.app.main import (
     Tenant,
     engine,
 )
+from apps.gateway.app import postal_callback_attribution as callback
 from apps.gateway.app.platform import app
 from apps.gateway.app.tenant_postal_delivery import attributed_postal_payload
 
@@ -96,9 +96,7 @@ def test_tenant_delivery_payload_contains_opaque_local_callback_tag():
     assert "tenant_id" not in payload
 
 
-def test_signed_callback_resolves_tenant_from_local_outbound_mapping(
-    tmp_path, monkeypatch
-):
+def test_signed_callback_resolves_tenant_from_local_outbound_mapping(tmp_path, monkeypatch):
     Base.metadata.create_all(engine)
     private_key = _configure_signing_key(tmp_path, monkeypatch)
     monkeypatch.setenv("KLYROW_TENANT_POSTAL_PROVISIONING_ENABLED", "true")
@@ -110,9 +108,7 @@ def test_signed_callback_resolves_tenant_from_local_outbound_mapping(
     event_id = f"event-{suffix}"
     recipient = f"bounce-{suffix}@example.com"
     monkeypatch.setenv("KLYROW_POSTAL_TENANT_ID", wrong_tenant)
-    monkeypatch.setattr(
-        callback.core, "emit_middleware", AsyncMock(return_value=True)
-    )
+    monkeypatch.setattr(callback.core, "emit_middleware", AsyncMock(return_value=True))
 
     with DB() as session:
         session.add_all(
@@ -191,9 +187,7 @@ def test_signed_callback_resolves_tenant_from_local_outbound_mapping(
         assert audit is not None
 
 
-def test_tenant_callback_fails_closed_when_no_local_attribution_exists(
-    tmp_path, monkeypatch
-):
+def test_tenant_callback_fails_closed_when_no_local_attribution_exists(tmp_path, monkeypatch):
     Base.metadata.create_all(engine)
     private_key = _configure_signing_key(tmp_path, monkeypatch)
     monkeypatch.setenv("KLYROW_TENANT_POSTAL_PROVISIONING_ENABLED", "true")

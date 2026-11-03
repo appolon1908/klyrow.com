@@ -1,4 +1,5 @@
 """Fail-closed Amazon SES SMTP transport behind the canonical Klyrow outbox."""
+
 from __future__ import annotations
 
 import asyncio
@@ -35,8 +36,9 @@ class _GovernedReplyHeader:
         kwds["parse_tree"] = None
 
     def fold(self, *, policy):
-        value = Header(str(self), charset="us-ascii", header_name=self.name,
-                       maxlinelen=998).encode(linesep=policy.linesep)
+        value = Header(str(self), charset="us-ascii", header_name=self.name, maxlinelen=998).encode(
+            linesep=policy.linesep
+        )
         return self.name + ": " + value + policy.linesep
 
 
@@ -105,7 +107,12 @@ def _submit_smtp(payload: dict, *, correlation_id: str) -> str:
         raise RuntimeError("ses_canary_flag_invalid")
 
     subject = payload.get("subject")
-    if not isinstance(subject, str) or not 1 <= len(subject) <= 200 or "\r" in subject or "\n" in subject:
+    if (
+        not isinstance(subject, str)
+        or not 1 <= len(subject) <= 200
+        or "\r" in subject
+        or "\n" in subject
+    ):
         raise RuntimeError("ses_subject_invalid")
     plain = payload.get("plain_body") or ""
     html = payload.get("html_body") or ""
@@ -115,12 +122,22 @@ def _submit_smtp(payload: dict, *, correlation_id: str) -> str:
         raise RuntimeError("ses_body_required")
 
     headers = payload.get("headers", {})
-    if not isinstance(headers, dict) or not set(headers) <= {"Message-ID", "In-Reply-To", "References"}:
+    if not isinstance(headers, dict) or not set(headers) <= {
+        "Message-ID",
+        "In-Reply-To",
+        "References",
+    }:
         raise RuntimeError("ses_headers_invalid")
-    if any(not isinstance(value, str) or not value or len(value) > 4096
-           or not value.isascii() or "\r" in value or "\n" in value
-           or any(len(token) > 997 for token in value.split())
-           for value in headers.values()):
+    if any(
+        not isinstance(value, str)
+        or not value
+        or len(value) > 4096
+        or not value.isascii()
+        or "\r" in value
+        or "\n" in value
+        or any(len(token) > 997 for token in value.split())
+        for value in headers.values()
+    ):
         raise RuntimeError("ses_headers_invalid")
 
     username = _secret_file("KLYROW_SES_SMTP_USERNAME_FILE")
@@ -132,7 +149,9 @@ def _submit_smtp(payload: dict, *, correlation_id: str) -> str:
     for name, value in headers.items():
         msg[name] = value
     msg["X-SES-CONFIGURATION-SET"] = SES_CONFIG_SET
-    msg["X-SES-MESSAGE-TAGS"] = "application=klyrow,environment=" + ("staging" if canary_only == "true" else "production")
+    msg["X-SES-MESSAGE-TAGS"] = "application=klyrow,environment=" + (
+        "staging" if canary_only == "true" else "production"
+    )
     msg.set_content(plain or "HTML content available.")
     if html:
         msg.add_alternative(html, subtype="html")
@@ -164,9 +183,7 @@ def _submit_smtp(payload: dict, *, correlation_id: str) -> str:
             except OSError:
                 # smtplib disconnects also derive from OSError. Once DATA is
                 # attempted, acceptance cannot be disproved by a lost reply.
-                submission_error = ProviderSubmissionIndeterminate(
-                    "ses_submission_outcome_unknown"
-                )
+                submission_error = ProviderSubmissionIndeterminate("ses_submission_outcome_unknown")
                 raise submission_error from None
             if 400 <= status <= 599:
                 raise smtplib.SMTPDataError(status, details)
@@ -175,7 +192,9 @@ def _submit_smtp(payload: dict, *, correlation_id: str) -> str:
                     "ses_submission_reply_unrecognized"
                 )
                 raise submission_error from None
-            response = details.decode("ascii", "ignore") if isinstance(details, bytes) else str(details)
+            response = (
+                details.decode("ascii", "ignore") if isinstance(details, bytes) else str(details)
+            )
             match = re.search(r"\bOk\s+([A-Za-z0-9_-]{10,150})\b", response)
             if not match:
                 # Acceptance is known, but a local correlation ID must never be

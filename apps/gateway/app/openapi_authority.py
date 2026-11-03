@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import hashlib
 from collections import Counter
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
-
 
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "options", "head", "trace"}
 MUTATION_METHODS = {"post", "put", "patch", "delete"}
@@ -136,9 +136,7 @@ def operation_audience(path: str) -> str:
     return "PUBLIC"
 
 
-def operation_auth(
-    method: str, path: str, audience: str
-) -> tuple[list[dict[str, list[str]]], str]:
+def operation_auth(method: str, path: str, audience: str) -> tuple[list[dict[str, list[str]]], str]:
     if audience == "BROWSER_BFF":
         if (method, path) in BROWSER_ANONYMOUS:
             return [], "OIDC_PRE_SESSION_OR_SIGNED_BROWSER_ACTION"
@@ -180,8 +178,7 @@ def _header_parameter(operation: dict[str, Any], name: str) -> dict[str, Any] | 
         (
             item
             for item in operation.get("parameters", [])
-            if item.get("in") == "header"
-            and str(item.get("name", "")).lower() == normalized
+            if item.get("in") == "header" and str(item.get("name", "")).lower() == normalized
         ),
         None,
     )
@@ -197,8 +194,7 @@ def _require_header_parameter(
     parameter = _header_parameter(operation, name)
     if parameter is None:
         raise RuntimeError(
-            f"required runtime header is absent from OpenAPI: "
-            f"{method.upper()} {path} {name}"
+            f"required runtime header is absent from OpenAPI: {method.upper()} {path} {name}"
         )
     parameter["required"] = True
 
@@ -264,9 +260,7 @@ def runtime_routes(app: FastAPI) -> list[tuple[str, str, bool, str]]:
     return sorted(rows)
 
 
-def runtime_route_fingerprint(
-    rows: Iterable[tuple[str, str, bool, str]]
-) -> str:
+def runtime_route_fingerprint(rows: Iterable[tuple[str, str, bool, str]]) -> str:
     canonical = "\n".join(
         f"{method.upper()} {path}\tinclude_in_schema={str(include).lower()}\tname={name}"
         for method, path, include, name in rows
@@ -320,17 +314,18 @@ def _validate_dependency_security(
     dependencies = set().union(*(_dependency_names(route) for route in routes))
     schemes = _security_scheme_names(security)
     enforced = sorted(
-        dependency
-        for dependency in dependencies
-        if dependency in RECOGNIZED_AUTH_DEPENDENCIES
+        dependency for dependency in dependencies if dependency in RECOGNIZED_AUTH_DEPENDENCIES
     )
     for dependency in enforced:
         required_scheme = RECOGNIZED_AUTH_DEPENDENCIES[dependency]
         # The observability guard narrows its underlying auth dependency to
         # service identities with an explicit observability grant.
-        if dependency == "auth" and dependencies.intersection({
-            "require_observability_read", "require_observability_write",
-        }):
+        if dependency == "auth" and dependencies.intersection(
+            {
+                "require_observability_read",
+                "require_observability_write",
+            }
+        ):
             required_scheme = "serviceBearer"
         if required_scheme not in schemes:
             raise RuntimeError(
@@ -346,8 +341,7 @@ def _validate_idempotency_registry(app: FastAPI) -> set[tuple[str, str]]:
         unclassified = sorted(discovered - CLASSIFIED_IDEMPOTENCY)
         stale = sorted(CLASSIFIED_IDEMPOTENCY - discovered)
         raise RuntimeError(
-            "runtime idempotency registry mismatch: "
-            f"unclassified={unclassified!r} stale={stale!r}"
+            f"runtime idempotency registry mismatch: unclassified={unclassified!r} stale={stale!r}"
         )
     return discovered
 
@@ -417,15 +411,12 @@ def build_openapi(app: FastAPI) -> dict[str, Any]:
             routes = route_index.get(operation_key)
             if not routes:
                 raise RuntimeError(
-                    f"OpenAPI operation has no canonical APIRoute: "
-                    f"{method.upper()} {path}"
+                    f"OpenAPI operation has no canonical APIRoute: {method.upper()} {path}"
                 )
 
             audience = operation_audience(path)
             if audience not in AUDIENCES:
-                raise RuntimeError(
-                    f"unknown OpenAPI audience for {method.upper()} {path}"
-                )
+                raise RuntimeError(f"unknown OpenAPI audience for {method.upper()} {path}")
             security, auth_model = operation_auth(method, path, audience)
             enforced_dependencies = _validate_dependency_security(
                 routes,
@@ -483,9 +474,7 @@ def build_openapi(app: FastAPI) -> dict[str, Any]:
             operation_count += 1
 
     documented_idempotency = {
-        operation
-        for operation in runtime_idempotency
-        if operation in documented_operations
+        operation for operation in runtime_idempotency if operation in documented_operations
     }
     hidden_idempotency = sorted(runtime_idempotency - documented_operations)
     expected_documented = CLASSIFIED_IDEMPOTENCY - set(hidden_idempotency)
@@ -497,16 +486,12 @@ def build_openapi(app: FastAPI) -> dict[str, Any]:
         )
 
     schema["x-klyrow-operation-count"] = operation_count
-    schema["x-klyrow-audience-counts"] = {
-        name: counts[name] for name in sorted(AUDIENCES)
-    }
+    schema["x-klyrow-audience-counts"] = {name: counts[name] for name in sorted(AUDIENCES)}
     schema["x-klyrow-runtime-operation-count"] = len(runtime_rows)
     schema["x-klyrow-hidden-operation-count"] = sum(
         1 for _method, _path, include, _name in runtime_rows if not include
     )
-    schema["x-klyrow-runtime-operation-sha256"] = runtime_route_fingerprint(
-        runtime_rows
-    )
+    schema["x-klyrow-runtime-operation-sha256"] = runtime_route_fingerprint(runtime_rows)
     schema["x-klyrow-hidden-idempotency-routes"] = [
         {
             "method": method.upper(),

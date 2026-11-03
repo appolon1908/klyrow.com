@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from apps.gateway.app.openapi_authority import runtime_routes
 from apps.gateway.app.platform import app
 
-
 client = TestClient(app, base_url="https://app.klyrow.test")
 
 

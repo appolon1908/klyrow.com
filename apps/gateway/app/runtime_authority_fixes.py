@@ -15,16 +15,14 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import select
 
 from . import main as core
-from . import production_api
-from . import tenancy_onboarding
-from . import webmail
+from . import production_api, tenancy_onboarding, webmail
 from .durable_results import read_control_response, seal_control_response
 from .provider_reconciliation_fixes import install_provider_reconciliation_fixes
 
@@ -106,7 +104,7 @@ async def send_with_scoped_legacy_compatibility(
     message: core.MailIn,
     context: dict[str, Any],
     session: Any,
-    idempotency_key: Optional[str],
+    idempotency_key: str | None,
     *,
     _production_authorization: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -182,9 +180,7 @@ async def send_with_scoped_legacy_compatibility(
     )
     if _production_authorization is None:
         core.enforce_production_canary(message, session)
-    if message.stream == "marketing" and (
-        message.campaign_id or not core.SAFE_MODE
-    ):
+    if message.stream == "marketing" and (message.campaign_id or not core.SAFE_MODE):
         core.enforce_campaign_canary(message, context, session)
 
     sender = message.sender.lower()
@@ -218,7 +214,7 @@ async def send_with_scoped_legacy_compatibility(
         if not exact:
             raise HTTPException(403, "sender_address_not_allowed")
 
-    since = datetime.now(timezone.utc) - timedelta(days=1)
+    since = datetime.now(UTC) - timedelta(days=1)
     count = len(
         session.scalars(
             select(core.Message).where(
@@ -241,12 +237,8 @@ async def send_with_scoped_legacy_compatibility(
     )
     message_id = str(uuid.uuid4())
     status = "accepted" if core.SAFE_MODE else "queued"
-    operation_id = str(
-        message.callback_metadata.get("operation_id") or message_id
-    )
-    correlation_id = str(
-        message.callback_metadata.get("correlation_id") or message_id
-    )
+    operation_id = str(message.callback_metadata.get("operation_id") or message_id)
+    correlation_id = str(message.callback_metadata.get("correlation_id") or message_id)
     result = {
         "id": message_id,
         "provider_message_id": message_id,
@@ -289,7 +281,13 @@ async def send_with_scoped_legacy_compatibility(
             tenant_id=context["tenant"],
             request_hash=request_hash,
             resource_id=message_id,
-            response_json=seal_control_response(result, tenant_id=context["tenant"], storage_key=storage_key, request_hash=request_hash, resource_id=message_id),
+            response_json=seal_control_response(
+                result,
+                tenant_id=context["tenant"],
+                storage_key=storage_key,
+                request_hash=request_hash,
+                resource_id=message_id,
+            ),
         )
     )
     session.add(
@@ -318,9 +316,7 @@ async def send_with_scoped_legacy_compatibility(
             "stream": message.stream,
         }
         if _production_authorization is not None:
-            delivery_payload["_codestra_production_authorization"] = (
-                _production_authorization
-            )
+            delivery_payload["_codestra_production_authorization"] = _production_authorization
         delivery_headers = dict(message.headers)
         if message.stream == "marketing":
             delivery_headers.update(

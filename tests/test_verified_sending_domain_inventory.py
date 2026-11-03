@@ -3,13 +3,9 @@ import json
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).parents[1]
 INVENTORY = ROOT / "evidence/runtime/verified-sending-domains-20260827.json"
-BOUNCE_SPF_MANIFEST = (
-    ROOT
-    / "docs/evidence/production-20260830/GODADDY_BOUNCE_SPF_MANIFEST.csv"
-)
+BOUNCE_SPF_MANIFEST = ROOT / "docs/evidence/production-20260830/GODADDY_BOUNCE_SPF_MANIFEST.csv"
 EXPECTED = [
     "beyvra.com",
     "breero.com",

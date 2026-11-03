@@ -13,8 +13,8 @@ import hashlib
 import json
 import os
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from fastapi.encoders import jsonable_encoder
@@ -32,11 +32,6 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from .billing import BillingPlan, BillingPrice, BillingSubscription, Wallet
-from .capabilities import (
-    has_permission as _has_permission,
-    require_permission as _require_permission,
-)
 from .main import (
     Base,
     Contact,
@@ -47,7 +42,6 @@ from .main import (
     Message,
     MiddlewareCommandOperation,
     Suppression,
-    Tenant,
     User,
     audit,
     auth,
@@ -55,48 +49,51 @@ from .main import (
     scoped_idempotency_key,
     semantic_request_hash,
 )
+from .billing import BillingPlan, BillingPrice, BillingSubscription, Wallet
+from .capabilities import (
+    has_permission as _has_permission,
+)
+from .capabilities import (
+    require_permission as _require_permission,
+)
+from .durable_results import (
+    read_control_response,
+    result_readback,
+    seal_control_response,
+)
+from .mautic_contract import SUPPORTED_MAUTIC_COMMANDS
 from .messaging import (
     Template,
     TemplateUpdate,
     TemplateVersion,
     template_update,
-    validate_html,
 )
-from .mautic_contract import SUPPORTED_MAUTIC_COMMANDS
 from .operations import (
     IntegrationOutbox,
     IntegrationResult,
     require_safe_integration_recovery,
 )
-from .durable_results import (
-    read_control_response,
-    seal_control_response,
-    result_readback,
-)
 from .tenancy import (
-    Organization,
     ROLE_PERMISSIONS,
+    Organization,
     RoleIn,
     TenantMember,
     manage,
     role_change,
 )
 
-
 router = APIRouter(tags=["Production API"])
-now = lambda: datetime.now(timezone.utc)
+now = lambda: datetime.now(UTC)
 
 
 class ContactList(Base):
     __tablename__ = "contact_lists"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "name", name="uq_contact_list_tenant_name"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "name", name="uq_contact_list_tenant_name"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     tenant_id: Mapped[str] = mapped_column(String, index=True)
     name: Mapped[str] = mapped_column(String)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
@@ -121,7 +118,7 @@ class TemplateVersionPage(BaseModel):
 def _version_view(item: TemplateVersion) -> TemplateVersionView:
     created_at = item.created_at
     if created_at.tzinfo is None:
-        created_at = created_at.replace(tzinfo=timezone.utc)
+        created_at = created_at.replace(tzinfo=UTC)
     return TemplateVersionView(
         id=item.id,
         template_id=item.template_id,
@@ -130,16 +127,14 @@ def _version_view(item: TemplateVersion) -> TemplateVersionView:
         html_body=item.html_body,
         text_body=item.text_body,
         variables=json.loads(item.variables_json),
-        created_at=created_at.astimezone(timezone.utc),
+        created_at=created_at.astimezone(UTC),
     )
 
 
 def _owned_template(session: Session, tenant: str, template_id: str) -> None:
     if (
         session.scalar(
-            select(Template.id).where(
-                Template.id == template_id, Template.tenant_id == tenant
-            )
+            select(Template.id).where(Template.id == template_id, Template.tenant_id == tenant)
         )
         is None
     ):
@@ -169,28 +164,19 @@ def template_versions(
     )
     if cursor is not None:
         try:
-            raw = base64.b64decode(cursor, altchars=b"-_", validate=True).decode(
-                "ascii"
-            )
-            if (
-                not raw.isascii()
-                or not raw.isdecimal()
-                or len(raw) > 10
-                or int(raw) < 1
-            ):
+            raw = base64.b64decode(cursor, altchars=b"-_", validate=True).decode("ascii")
+            if not raw.isascii() or not raw.isdecimal() or len(raw) > 10 or int(raw) < 1:
                 raise ValueError("invalid version cursor")
         except (ValueError, UnicodeError, binascii.Error) as exc:
             raise HTTPException(422, "invalid_cursor") from exc
         query = query.where(TemplateVersion.version < int(raw))
-    items = s.scalars(
-        query.order_by(TemplateVersion.version.desc()).limit(limit + 1)
-    ).all()
+    items = s.scalars(query.order_by(TemplateVersion.version.desc()).limit(limit + 1)).all()
     page = items[:limit]
     next_cursor = None
     if len(items) > limit:
-        next_cursor = base64.urlsafe_b64encode(
-            str(page[-1].version).encode("ascii")
-        ).decode("ascii")
+        next_cursor = base64.urlsafe_b64encode(str(page[-1].version).encode("ascii")).decode(
+            "ascii"
+        )
     return TemplateVersionPage(
         items=[_version_view(item) for item in page], next_cursor=next_cursor
     )
@@ -233,31 +219,31 @@ class DomainPatch(BaseModel):
 
 
 class ContactPatch(BaseModel):
-    name: Optional[str] = Field(default=None, max_length=200)
-    subscribed: Optional[bool] = None
-    metadata: Optional[dict[str, Any]] = None
+    name: str | None = Field(default=None, max_length=200)
+    subscribed: bool | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class ListIn(BaseModel):
     name: str = Field(min_length=1, max_length=160)
-    description: Optional[str] = Field(default=None, max_length=2000)
+    description: str | None = Field(default=None, max_length=2000)
 
 
 class ListPatch(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=160)
-    description: Optional[str] = Field(default=None, max_length=2000)
-    active: Optional[bool] = None
+    name: str | None = Field(default=None, min_length=1, max_length=160)
+    description: str | None = Field(default=None, max_length=2000)
+    active: bool | None = None
 
 
 class CampaignPatch(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=200)
-    subject: Optional[str] = Field(default=None, max_length=998)
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    subject: str | None = Field(default=None, max_length=998)
 
 
 class CampaignDispatchConfiguration(BaseModel):
     sender_id: str = Field(min_length=1, max_length=200)
     template_id: str = Field(min_length=1, max_length=200)
-    segment_id: Optional[str] = Field(default=None, max_length=200)
+    segment_id: str | None = Field(default=None, max_length=200)
 
 
 class CampaignSchedule(BaseModel):
@@ -274,9 +260,9 @@ class MauticCommand(BaseModel):
     aggregate_id: str = Field(min_length=1, max_length=200)
     payload: dict[str, Any] = Field(default_factory=dict)
     request_id: str = Field(min_length=8, max_length=200)
-    operation_id: Optional[str] = None
+    operation_id: str | None = None
     timestamp: datetime
-    trace_context: Optional[str] = Field(default=None, max_length=512)
+    trace_context: str | None = Field(default=None, max_length=512)
 
     @field_validator("command")
     @classmethod
@@ -287,17 +273,13 @@ class MauticCommand(BaseModel):
 
 
 def _tenant_item(s: Session, model: Any, item_id: str, tenant_id: str) -> Any:
-    item = s.scalar(
-        select(model).where(model.id == item_id, model.tenant_id == tenant_id)
-    )
+    item = s.scalar(select(model).where(model.id == item_id, model.tenant_id == tenant_id))
     if item is None:
         raise HTTPException(404, "not_found")
     return item
 
 
-def _tenant_item_for_update(
-    s: Session, model: Any, item_id: str, tenant_id: str
-) -> Any:
+def _tenant_item_for_update(s: Session, model: Any, item_id: str, tenant_id: str) -> Any:
     item = s.scalar(
         select(model)
         .where(model.id == item_id, model.tenant_id == tenant_id)
@@ -409,9 +391,7 @@ def _operation_json(
                     IntegrationResult.tenant_id == item.tenant_id,
                     IntegrationResult.source == item.target,
                 )
-                .order_by(
-                    IntegrationResult.created_at.desc(), IntegrationResult.id.desc()
-                )
+                .order_by(IntegrationResult.created_at.desc(), IntegrationResult.id.desc())
             )
         late_observation = (
             item.target == "MAUTIC"
@@ -427,16 +407,16 @@ def _operation_json(
             is not None
         )
     result, result_metadata = result_readback(persisted_result)
-    missing_result = item.state == "COMPLETED" and result_metadata[
-        "availability"
-    ] not in {"AVAILABLE", "PURGED"}
+    missing_result = item.state == "COMPLETED" and result_metadata["availability"] not in {
+        "AVAILABLE",
+        "PURGED",
+    }
     return {
         "operation_id": item.id,
         "status": state,
         "result": result,
         "result_metadata": result_metadata,
-        "error": item.last_error
-        or ("operation_result_unavailable" if missing_result else None),
+        "error": item.last_error or ("operation_result_unavailable" if missing_result else None),
         "retryability": item.state == "RETRY" and not late_observation,
         "reconciliation_required": item.state == "DEAD_LETTER"
         or missing_result
@@ -595,16 +575,11 @@ def _authorize_operation_mutation(ctx: dict[str, Any], item: Any) -> None:
         return
     elif isinstance(item, IntegrationOutbox) and item.target == "N8N":
         permission = "webhook.manage"
-    elif (
-        isinstance(item, IntegrationOutbox)
-        and item.target == "MIDDLEWARE_OBSERVABILITY"
-    ):
+    elif isinstance(item, IntegrationOutbox) and item.target == "MIDDLEWARE_OBSERVABILITY":
         permission = "klyrow.observability.write"
     elif isinstance(item, IntegrationOutbox) and item.target == "ODOO":
         permission = (
-            "support.manage"
-            if item.event_type == "SupportTicketCreatedV1"
-            else "billing.manage"
+            "support.manage" if item.event_type == "SupportTicketCreatedV1" else "billing.manage"
         )
     else:
         permission = None
@@ -639,9 +614,7 @@ def health_ready(s: Session = Depends(db)) -> dict[str, str]:
 
 
 @router.get("/v1/me/permissions")
-def my_permissions(
-    ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> dict[str, Any]:
+def my_permissions(ctx: dict = Depends(auth), s: Session = Depends(db)) -> dict[str, Any]:
     membership = s.scalar(
         select(TenantMember).where(
             TenantMember.tenant_id == ctx["tenant"],
@@ -779,9 +752,7 @@ def organization_member_patch(
 
 
 @router.get("/v1/domains/{domain_id}")
-def domain_detail(
-    domain_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> Any:
+def domain_detail(domain_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)) -> Any:
     return _tenant_item(s, Domain, domain_id, ctx["tenant"])
 
 
@@ -802,9 +773,7 @@ def domain_patch(
 
 
 @router.delete("/v1/domains/{domain_id}", status_code=204)
-def domain_delete(
-    domain_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> Response:
+def domain_delete(domain_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)) -> Response:
     manage(ctx, s)
     item = _tenant_item(s, Domain, domain_id, ctx["tenant"])
     if item.verified:
@@ -849,9 +818,7 @@ def message_cancel(
     message_id: str,
     ctx: dict = Depends(auth),
     s: Session = Depends(db),
-    idempotency_key: str = Header(
-        alias="Idempotency-Key", min_length=8, max_length=200
-    ),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
 ) -> dict[str, Any]:
     _require_permission(ctx, "mail.send")
     item = _tenant_item_for_update(s, Message, message_id, ctx["tenant"])
@@ -940,9 +907,7 @@ def template_delete(
 
 
 @router.get("/v1/contacts/{contact_id}")
-def contact_detail(
-    contact_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> Any:
+def contact_detail(contact_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)) -> Any:
     return _tenant_item(s, Contact, contact_id, ctx["tenant"])
 
 
@@ -992,9 +957,7 @@ def lists(ctx: dict = Depends(auth), s: Session = Depends(db)) -> dict[str, Any]
 
 
 @router.post("/v1/lists", status_code=201)
-def list_create(
-    body: ListIn, ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> Any:
+def list_create(body: ListIn, ctx: dict = Depends(auth), s: Session = Depends(db)) -> Any:
     _require_permission(ctx, "contact.manage")
     item = ContactList(
         id=str(uuid.uuid4()),
@@ -1010,9 +973,7 @@ def list_create(
 
 
 @router.get("/v1/lists/{list_id}")
-def list_detail(
-    list_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> Any:
+def list_detail(list_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)) -> Any:
     return jsonable_encoder(_tenant_item(s, ContactList, list_id, ctx["tenant"]))
 
 
@@ -1032,9 +993,7 @@ def list_patch(
 
 
 @router.delete("/v1/lists/{list_id}", status_code=204)
-def list_delete(
-    list_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> Response:
+def list_delete(list_id: str, ctx: dict = Depends(auth), s: Session = Depends(db)) -> Response:
     _require_permission(ctx, "contact.manage")
     item = _tenant_item(s, ContactList, list_id, ctx["tenant"])
     s.delete(item)
@@ -1098,9 +1057,7 @@ def campaign_dispatch_configuration(
     "/v1/campaigns/{campaign_id}/schedule",
     status_code=202,
     responses={
-        409: {
-            "description": "Campaign dispatcher unavailable; scheduling is not accepted."
-        }
+        409: {"description": "Campaign dispatcher unavailable; scheduling is not accepted."}
     },
 )
 def campaign_schedule(
@@ -1108,20 +1065,20 @@ def campaign_schedule(
     body: CampaignSchedule,
     ctx: dict = Depends(auth),
     s: Session = Depends(db),
-    idempotency_key: str = Header(
-        alias="Idempotency-Key", min_length=8, max_length=200
-    ),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
 ) -> dict[str, Any]:
     from .main import Campaign
 
     _require_permission(ctx, "campaign.manage")
     item = _tenant_item_for_update(s, Campaign, campaign_id, ctx["tenant"])
-    if body.scheduled_at.astimezone(timezone.utc) <= now():
+    if body.scheduled_at.astimezone(UTC) <= now():
         raise HTTPException(422, "schedule_must_be_future")
     from .campaign_dispatcher import (
         CampaignAudienceSnapshot,
-        enabled as campaign_dispatcher_enabled,
         schedule_campaign,
+    )
+    from .campaign_dispatcher import (
+        enabled as campaign_dispatcher_enabled,
     )
 
     if not campaign_dispatcher_enabled():
@@ -1136,7 +1093,7 @@ def campaign_schedule(
     )
     if prior is not None:
         return prior
-    run = schedule_campaign(s, item, body.scheduled_at.astimezone(timezone.utc))
+    run = schedule_campaign(s, item, body.scheduled_at.astimezone(UTC))
     audience_count = int(
         s.scalar(
             select(func.count())
@@ -1174,9 +1131,7 @@ def campaign_pause(
     campaign_id: str,
     ctx: dict = Depends(auth),
     s: Session = Depends(db),
-    idempotency_key: str = Header(
-        alias="Idempotency-Key", min_length=8, max_length=200
-    ),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
 ) -> dict[str, Any]:
     from .main import Campaign
     from .campaign_dispatcher import pause_campaign
@@ -1213,9 +1168,7 @@ def campaign_resume(
     campaign_id: str,
     ctx: dict = Depends(auth),
     s: Session = Depends(db),
-    idempotency_key: str = Header(
-        alias="Idempotency-Key", min_length=8, max_length=200
-    ),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
 ) -> dict[str, Any]:
     from .main import Campaign
     from .campaign_dispatcher import resume_campaign
@@ -1252,9 +1205,7 @@ def campaign_cancel(
     campaign_id: str,
     ctx: dict = Depends(auth),
     s: Session = Depends(db),
-    idempotency_key: str = Header(
-        alias="Idempotency-Key", min_length=8, max_length=200
-    ),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
 ) -> dict[str, Any]:
     from .main import Campaign
 
@@ -1308,9 +1259,19 @@ def campaign_test(
     if item.status in {"completed", "cancelled"}:
         raise HTTPException(409, "campaign_terminal")
     audit(s, ctx, "campaign.test_fixture_completed")
-    result = {"id": item.id, "status": item.status, "provider_submission": False, "internal_sink": True}
+    result = {
+        "id": item.id,
+        "status": item.status,
+        "provider_submission": False,
+        "internal_sink": True,
+    }
     _idempotency_complete(
-        s, ctx, storage_key=storage_key, request_hash=request_hash, resource=campaign_id, response=result
+        s,
+        ctx,
+        storage_key=storage_key,
+        request_hash=request_hash,
+        resource=campaign_id,
+        response=result,
     )
     s.commit()
     return result
@@ -1393,7 +1354,9 @@ def suppression_check(
 ) -> dict[str, Any]:
     value = str(email).lower()
     item = s.scalar(
-        select(Suppression).where(Suppression.tenant_id == ctx["tenant"], Suppression.email == value)
+        select(Suppression).where(
+            Suppression.tenant_id == ctx["tenant"], Suppression.email == value
+        )
     )
     return {"email": value, "suppressed": item is not None, "reason": item.reason if item else None}
 
@@ -1421,22 +1384,16 @@ def complaints(ctx: dict = Depends(auth), s: Session = Depends(db)) -> dict[str,
 
 
 @router.get("/v1/billing/account")
-def billing_account(
-    ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> dict[str, Any]:
+def billing_account(ctx: dict = Depends(auth), s: Session = Depends(db)) -> dict[str, Any]:
     subscription = s.scalar(
-        select(BillingSubscription).where(
-            BillingSubscription.tenant_id == ctx["tenant"]
-        )
+        select(BillingSubscription).where(BillingSubscription.tenant_id == ctx["tenant"])
     )
     wallet = s.get(Wallet, ctx["tenant"])
     return {"tenant_id": ctx["tenant"], "subscription": subscription, "wallet": wallet}
 
 
 @router.get("/v1/billing/plans")
-def billing_plans(
-    ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> dict[str, Any]:
+def billing_plans(ctx: dict = Depends(auth), s: Session = Depends(db)) -> dict[str, Any]:
     del ctx
     plans = s.scalars(
         select(BillingPlan).where(BillingPlan.active == True).order_by(BillingPlan.name)
@@ -1447,9 +1404,7 @@ def billing_plans(
                 "plan": plan,
                 "prices": s.scalars(
                     select(BillingPrice)
-                    .where(
-                        BillingPrice.plan_id == plan.id, BillingPrice.retired_at == None
-                    )
+                    .where(BillingPrice.plan_id == plan.id, BillingPrice.retired_at == None)
                     .order_by(BillingPrice.version.desc())
                 ).all(),
             }
@@ -1532,9 +1487,7 @@ def operation_cancel(
     operation_id: str,
     ctx: dict = Depends(auth),
     s: Session = Depends(db),
-    idempotency_key: str = Header(
-        alias="Idempotency-Key", min_length=8, max_length=200
-    ),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
 ) -> dict[str, Any]:
     item = _find_operation_for_update(s, operation_id, ctx["tenant"])
     _authorize_operation_mutation(ctx, item)
@@ -1581,9 +1534,7 @@ def operation_reconcile(
     operation_id: str,
     ctx: dict = Depends(auth),
     s: Session = Depends(db),
-    idempotency_key: str = Header(
-        alias="Idempotency-Key", min_length=8, max_length=200
-    ),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
 ) -> dict[str, Any]:
     item = _find_operation_for_update(s, operation_id, ctx["tenant"])
     _authorize_operation_mutation(ctx, item)
@@ -1628,9 +1579,7 @@ def operation_reconcile(
 
 
 @router.get("/v1/providers/postal/health")
-def postal_health(
-    ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> dict[str, Any]:
+def postal_health(ctx: dict = Depends(auth), s: Session = Depends(db)) -> dict[str, Any]:
     pending = (
         s.scalar(
             select(func.count())
@@ -1655,10 +1604,7 @@ def postal_health(
     )
     configured = bool(
         os.getenv("KLYROW_POSTAL_API_URL")
-        and (
-            os.getenv("KLYROW_POSTAL_API_KEY_FILE")
-            or os.getenv("KLYROW_POSTAL_API_KEY")
-        )
+        and (os.getenv("KLYROW_POSTAL_API_KEY_FILE") or os.getenv("KLYROW_POSTAL_API_KEY"))
     )
     return {
         "provider": "postal",
@@ -1670,9 +1616,7 @@ def postal_health(
 
 
 @router.get("/v1/providers/postal/status")
-def postal_status(
-    ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> dict[str, Any]:
+def postal_status(ctx: dict = Depends(auth), s: Session = Depends(db)) -> dict[str, Any]:
     return {
         **postal_health(ctx, s),
         "timeout_seconds": 10,
@@ -1688,12 +1632,8 @@ def mautic_command(
     body: MauticCommand,
     ctx: dict = Depends(auth),
     s: Session = Depends(db),
-    idempotency_key: str = Header(
-        alias="Idempotency-Key", min_length=8, max_length=200
-    ),
-    x_correlation_id: str = Header(
-        alias="X-Correlation-ID", min_length=8, max_length=200
-    ),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
+    x_correlation_id: str = Header(alias="X-Correlation-ID", min_length=8, max_length=200),
 ) -> dict[str, Any]:
     _require_mautic_permission(ctx, body.command)
     from .mautic_adapter import mautic_request
@@ -1798,9 +1738,7 @@ def mautic_command(
 
 
 @router.get("/v1/integrations/mautic/operations")
-def mautic_operations(
-    ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> dict[str, Any]:
+def mautic_operations(ctx: dict = Depends(auth), s: Session = Depends(db)) -> dict[str, Any]:
     rows = s.scalars(
         select(IntegrationOutbox)
         .where(
@@ -1810,11 +1748,7 @@ def mautic_operations(
         .order_by(IntegrationOutbox.created_at.desc())
         .limit(200)
     ).all()
-    visible = [
-        item
-        for item in rows
-        if _has_permission(ctx, _mautic_permission(item.event_type))
-    ]
+    visible = [item for item in rows if _has_permission(ctx, _mautic_permission(item.event_type))]
     return {"items": _operations_json(visible, s)}
 
 
@@ -1834,9 +1768,7 @@ def mautic_reconcile(
     operation_id: str,
     ctx: dict = Depends(auth),
     s: Session = Depends(db),
-    idempotency_key: str = Header(
-        alias="Idempotency-Key", min_length=8, max_length=200
-    ),
+    idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=200),
 ) -> dict[str, Any]:
     item = _tenant_item(s, IntegrationOutbox, operation_id, ctx["tenant"])
     if item.target != "MAUTIC":
@@ -1863,9 +1795,7 @@ def system_capabilities(ctx: dict = Depends(auth)) -> dict[str, Any]:
 
 
 @router.get("/v1/system/readiness")
-def system_readiness(
-    ctx: dict = Depends(auth), s: Session = Depends(db)
-) -> dict[str, Any]:
+def system_readiness(ctx: dict = Depends(auth), s: Session = Depends(db)) -> dict[str, Any]:
     s.execute(text("SELECT 1"))
     postal = postal_health(ctx, s)
     return {

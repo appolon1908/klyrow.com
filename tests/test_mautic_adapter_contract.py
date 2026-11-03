@@ -1,20 +1,20 @@
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
 import pytest
 from fastapi import HTTPException
 
+from apps.gateway.app.main import middleware_operation
 from apps.gateway.app.mautic_adapter import (
     MAUTIC_ORIGIN_HEADERS,
     SUPPORTED_MAUTIC_COMMANDS,
-    _success,
     _oauth_access_token,
+    _success,
     mautic_request,
 )
 from apps.gateway.app.operations import IntegrationOutbox, IntegrationResult
-from apps.gateway.app.main import middleware_operation
 from apps.gateway.app.production_api import (
     MauticCommand,
     _mautic_permission,
@@ -126,7 +126,7 @@ def test_api_command_vocabulary_exactly_matches_the_dispatcher():
             aggregate_id="aggregate-1",
             payload=payload,
             request_id="request-1",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         mautic_request(command, payload)
     with pytest.raises(ValueError, match="mautic_command_unsupported"):
@@ -134,12 +134,12 @@ def test_api_command_vocabulary_exactly_matches_the_dispatcher():
             command="event.record.v1",
             aggregate_id="aggregate-1",
             request_id="request-2",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
 
 def test_completed_operation_returns_its_tenant_scoped_persisted_result():
-    timestamp = datetime.now(timezone.utc)
+    timestamp = datetime.now(UTC)
     outbox = IntegrationOutbox(
         id="operation-1",
         tenant_id="tenant-a",
@@ -173,17 +173,28 @@ def test_completed_operation_returns_its_tenant_scoped_persisted_result():
 
 
 def test_generic_operation_route_returns_integration_result():
-    timestamp = datetime.now(timezone.utc)
+    timestamp = datetime.now(UTC)
     outbox = IntegrationOutbox(
-        id="operation-generic", tenant_id="tenant-a", target="MAUTIC",
-        event_type="sync.request.v1", aggregate_id="contacts",
-        payload_json="{}", idempotency_key="request-generic", state="COMPLETED",
-        attempts=1, created_at=timestamp, updated_at=timestamp,
+        id="operation-generic",
+        tenant_id="tenant-a",
+        target="MAUTIC",
+        event_type="sync.request.v1",
+        aggregate_id="contacts",
+        payload_json="{}",
+        idempotency_key="request-generic",
+        state="COMPLETED",
+        attempts=1,
+        created_at=timestamp,
+        updated_at=timestamp,
     )
     result = IntegrationResult(
-        id="result-generic", tenant_id="tenant-a", outbox_id=outbox.id,
-        source="MAUTIC", result_key="mautic:operation-generic",
-        payload_json='{"contacts":{"total":2}}', created_at=timestamp,
+        id="result-generic",
+        tenant_id="tenant-a",
+        outbox_id=outbox.id,
+        source="MAUTIC",
+        result_key="mautic:operation-generic",
+        payload_json='{"contacts":{"total":2}}',
+        created_at=timestamp,
     )
 
     class RouteSession:
@@ -211,9 +222,7 @@ def test_generic_operation_route_returns_integration_result():
 
 def test_mautic_provider_result_idempotency_uses_full_composite_scope():
     source = (ROOT / "apps/gateway/app/mautic_adapter.py").read_text()
-    lookup = source.split('result_key = "mautic:" + item.id', 1)[1].split(
-        "session.add(", 1
-    )[0]
+    lookup = source.split('result_key = "mautic:" + item.id', 1)[1].split("session.add(", 1)[0]
     assert "IntegrationResult.tenant_id == item.tenant_id" in lookup
     assert 'IntegrationResult.source == "MAUTIC"' in lookup
     assert "IntegrationResult.result_key == result_key" in lookup
@@ -222,9 +231,7 @@ def test_mautic_provider_result_idempotency_uses_full_composite_scope():
 def test_oauth_client_credentials_token_is_strictly_validated():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/oauth/v2/token"
-        assert request.headers["content-type"].startswith(
-            "application/x-www-form-urlencoded"
-        )
+        assert request.headers["content-type"].startswith("application/x-www-form-urlencoded")
         return httpx.Response(
             200,
             json={"access_token": "t" * 64, "token_type": "bearer", "expires_in": 900},
@@ -253,7 +260,7 @@ def test_mautic_mutations_require_the_command_specific_workspace_permission():
         aggregate_id="contact-1",
         payload={"provider_id": "1"},
         request_id="request-1",
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     with pytest.raises(HTTPException, match="mautic_command_permission_denied") as denied:
         mautic_command(
@@ -282,7 +289,7 @@ def test_invalid_mautic_payload_is_rejected_before_enqueue_or_provider_effect():
         aggregate_id="contact-1",
         payload={},
         request_id="request-invalid-payload",
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     with pytest.raises(HTTPException) as denied:
         mautic_command(
@@ -307,8 +314,8 @@ def test_processing_mautic_operation_cannot_report_successful_cancellation():
         idempotency_key="request-1",
         state="PROCESSING",
         attempts=1,
-        created_at=datetime.now(timezone.utc),
-        updated_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
 
     class ProcessingSession:
@@ -332,24 +339,33 @@ def test_processing_mautic_operation_cannot_report_successful_cancellation():
 
 
 def test_provider_completion_after_state_change_requires_reconciliation():
-    from apps.gateway.app.durable_results import integration_document
-    from sqlalchemy import select
-    from sqlalchemy import create_engine
+    from sqlalchemy import create_engine, select
     from sqlalchemy.orm import sessionmaker
+
     from apps.gateway.app.main import Base
+    from apps.gateway.app.durable_results import integration_document
+
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)
     sessions = sessionmaker(engine)
     with sessions() as session:
         item = IntegrationOutbox(
-            id="operation-raced", tenant_id="tenant-a", target="MAUTIC",
-            event_type="campaign.publish.v1", aggregate_id="campaign-1", payload_json="{}",
-            idempotency_key="request-1", state="CANCELLED", attempts=1,
+            id="operation-raced",
+            tenant_id="tenant-a",
+            target="MAUTIC",
+            event_type="campaign.publish.v1",
+            aggregate_id="campaign-1",
+            payload_json="{}",
+            idempotency_key="request-1",
+            state="CANCELLED",
+            attempts=1,
         )
         session.add(item)
         session.commit()
         assert _success(session, item.id, {"id": "provider-result"}, expected_attempt=1) is False
         session.refresh(item)
         assert item.state == "CANCELLED"
-        result = session.scalar(select(IntegrationResult).where(IntegrationResult.source == "MAUTIC_LATE"))
+        result = session.scalar(
+            select(IntegrationResult).where(IntegrationResult.source == "MAUTIC_LATE")
+        )
         assert integration_document(result)[0]["status"] == "RECONCILIATION_REQUIRED"

@@ -17,7 +17,6 @@ from typing import Any
 
 from cryptography.fernet import Fernet, InvalidToken
 
-
 LEGACY_PAYLOAD_VERSION = "fernet-v1"
 PAYLOAD_VERSION = "fernet-keyring-v2"
 DEFAULT_MAX_AGE_SECONDS = 3600
@@ -132,9 +131,7 @@ def decrypt_security_payload(payload: dict[str, Any]) -> bytes:
                 try:
                     return fernet.decrypt(ciphertext)
                 except InvalidToken as exc:
-                    raise SecurityPayloadError(
-                        "SECURITY payload ciphertext is invalid"
-                    ) from exc
+                    raise SecurityPayloadError("SECURITY payload ciphertext is invalid") from exc
         raise SecurityPayloadError("SECURITY payload decryption key is unavailable")
 
     # Backward compatibility for fernet-v1 rows created before key IDs existed.

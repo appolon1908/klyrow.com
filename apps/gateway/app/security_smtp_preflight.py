@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import timezone
+from datetime import UTC
 from typing import Any
 
 from sqlalchemy import select
@@ -94,13 +94,9 @@ def validate() -> dict[str, Any]:
         if not recipients:
             raise PreflightError("canary mode requires at least one exact recipient")
         if len(recipients) > canary_limit:
-            raise PreflightError(
-                "canary recipient count exceeds the reviewed delivery allowance"
-            )
+            raise PreflightError("canary recipient count exceeds the reviewed delivery allowance")
     elif mode == "production" and recipients:
-        raise PreflightError(
-            "production mode must clear the temporary canary recipient allowlist"
-        )
+        raise PreflightError("production mode must clear the temporary canary recipient allowlist")
 
     with DB() as session:
         tenant = session.get(Tenant, tenant_id)
@@ -110,15 +106,11 @@ def validate() -> dict[str, Any]:
         credential = session.scalar(
             select(SmtpCredential).where(SmtpCredential.username == username)
         )
-        if (
-            not credential
-            or credential.tenant_id != tenant_id
-            or credential.status != "ACTIVE"
-        ):
+        if not credential or credential.tenant_id != tenant_id or credential.status != "ACTIVE":
             raise PreflightError("dedicated SMTP credential is missing or inactive")
         expiry = credential.expires_at
         if expiry and expiry.tzinfo is None:
-            expiry = expiry.replace(tzinfo=timezone.utc)
+            expiry = expiry.replace(tzinfo=UTC)
         if expiry and expiry <= now():
             raise PreflightError("dedicated SMTP credential is expired")
         try:
@@ -129,9 +121,7 @@ def validate() -> dict[str, Any]:
         if stream != "SECURITY":
             raise PreflightError("dedicated SMTP credential is not SECURITY-only")
         if allowed_senders != [sender_address]:
-            raise PreflightError(
-                "dedicated SMTP credential must allow exactly the reviewed sender"
-            )
+            raise PreflightError("dedicated SMTP credential must allow exactly the reviewed sender")
 
         identity = session.scalar(
             select(SenderIdentity).where(
@@ -139,11 +129,7 @@ def validate() -> dict[str, Any]:
                 SenderIdentity.email == sender_address,
             )
         )
-        if (
-            not identity
-            or identity.status != "ACTIVE"
-            or identity.stream.upper() != "SECURITY"
-        ):
+        if not identity or identity.status != "ACTIVE" or identity.stream.upper() != "SECURITY":
             raise PreflightError("SECURITY sender identity is missing or inactive")
 
         domain = session.scalar(

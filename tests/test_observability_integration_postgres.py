@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 import json
 import os
-from threading import Barrier
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 
 import pytest
 from sqlalchemy import create_engine, func, select, text
@@ -21,10 +21,9 @@ os.environ.setdefault("KLYROW_SAFE_MODE", "true")
 os.environ.setdefault("KLYROW_ENV", "test")
 
 from apps.gateway.app.main import Audit, Tenant
+from apps.gateway.app import observability
 from apps.gateway.app.operations import IntegrationOutbox, IntegrationResult
 from apps.gateway.app.platform import app  # noqa: F401
-from apps.gateway.app import observability
-
 
 pytestmark = pytest.mark.skipif(
     not os.getenv("KLYROW_CONTRACT_POSTGRES_URL"),
@@ -116,9 +115,7 @@ def test_concurrent_incident_replay_serializes_to_one_row(
     assert sum(result["duplicates"] for result in results) == 1
     assert len({result["operations"][0] for result in results}) == 1
     with postgres_sessions() as session:
-        assert session.scalar(
-            select(func.count()).select_from(IntegrationOutbox)
-        ) == 1
+        assert session.scalar(select(func.count()).select_from(IntegrationOutbox)) == 1
         payload = json.loads(session.scalar(select(IntegrationOutbox)).payload_json)
         assert payload["resource_version"] == 1
 
@@ -161,9 +158,7 @@ def test_postgres_claim_and_completion_are_fenced_and_durable(
         assert completed.state == "COMPLETED"
         assert completed.lease_expires_at is None
         result = session.scalar(
-            select(IntegrationResult).where(
-                IntegrationResult.outbox_id == operation_id
-            )
+            select(IntegrationResult).where(IntegrationResult.outbox_id == operation_id)
         )
         assert result is not None
         assert result.source == observability.MIDDLEWARE_TARGET
@@ -178,9 +173,7 @@ def test_postgres_claim_and_completion_are_fenced_and_durable(
     )
     with postgres_sessions() as session:
         assert session.get(IntegrationOutbox, operation_id).state == "COMPLETED"
-        assert session.scalar(
-            select(func.count()).select_from(IntegrationResult)
-        ) == 1
+        assert session.scalar(select(func.count()).select_from(IntegrationResult)) == 1
 
 
 def test_postgres_permanent_failure_dead_letters_without_null_schedule(

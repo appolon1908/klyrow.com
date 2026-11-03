@@ -13,9 +13,7 @@ import os
 import re
 from collections.abc import Mapping
 
-APPROVED_STREAMS = frozenset(
-    {"TRANSACTIONAL", "SECURITY", "SYSTEM", "MARKETING", "BULK"}
-)
+APPROVED_STREAMS = frozenset({"TRANSACTIONAL", "SECURITY", "SYSTEM", "MARKETING", "BULK"})
 _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 _FALSE_VALUES = frozenset({"0", "false", "no", "off", ""})
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -63,9 +61,7 @@ def select_credential_stream(raw: str) -> str:
 
     streams = parse_allowed_streams(raw)
     if len(streams) != 1:
-        raise SmtpPolicyError(
-            "SMTP credentials must be dedicated to exactly one message stream"
-        )
+        raise SmtpPolicyError("SMTP credentials must be dedicated to exactly one message stream")
     return next(iter(streams))
 
 
@@ -124,9 +120,7 @@ def security_canary_max_deliveries(
             "KLYROW_SECURITY_SMTP_CANARY_MAX_DELIVERIES must be an integer"
         ) from exc
     if not 1 <= value <= 10:
-        raise SmtpPolicyError(
-            "KLYROW_SECURITY_SMTP_CANARY_MAX_DELIVERIES must be between 1 and 10"
-        )
+        raise SmtpPolicyError("KLYROW_SECURITY_SMTP_CANARY_MAX_DELIVERIES must be between 1 and 10")
     return value
 
 

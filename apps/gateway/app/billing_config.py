@@ -10,6 +10,7 @@ and is never stored beyond the boolean "is this configured" fact needed by
 :class:`StripeSettings`/:class:`PayPalSettings`/:class:`StablecoinSettings`.
 Nothing here ever returns, logs, or chains a secret path or secret value.
 """
+
 from __future__ import annotations
 
 import os
@@ -96,11 +97,17 @@ def _read_secret_file(var_name: str, environment: Mapping[str, str] | None) -> s
     except OSError:
         raise BillingConfigError("secret_file_unavailable", f"{var_name} is unavailable") from None
     if stat.S_ISLNK(info.st_mode):
-        raise BillingConfigError("secret_file_symlink_rejected", f"{var_name} must not be a symlink") from None
+        raise BillingConfigError(
+            "secret_file_symlink_rejected", f"{var_name} must not be a symlink"
+        ) from None
     if not stat.S_ISREG(info.st_mode):
-        raise BillingConfigError("secret_file_not_regular", f"{var_name} must be a regular file") from None
+        raise BillingConfigError(
+            "secret_file_not_regular", f"{var_name} must be a regular file"
+        ) from None
     if os.name == "posix" and info.st_mode & stat.S_IWOTH:
-        raise BillingConfigError("secret_file_world_writable", f"{var_name} must not be world-writable") from None
+        raise BillingConfigError(
+            "secret_file_world_writable", f"{var_name} must not be world-writable"
+        ) from None
     try:
         with open(path_value, "rb") as handle:
             content = handle.read(_MAX_SECRET_BYTES + 1)
@@ -111,10 +118,14 @@ def _read_secret_file(var_name: str, environment: Mapping[str, str] | None) -> s
     try:
         text = content.decode("utf-8")
     except UnicodeDecodeError:
-        raise BillingConfigError("secret_file_invalid_encoding", f"{var_name} must be UTF-8 encoded") from None
+        raise BillingConfigError(
+            "secret_file_invalid_encoding", f"{var_name} must be UTF-8 encoded"
+        ) from None
     value = text.strip()
     if not value:
-        raise BillingConfigError("secret_file_empty", f"{var_name} must be a non-empty secret file") from None
+        raise BillingConfigError(
+            "secret_file_empty", f"{var_name} must be a non-empty secret file"
+        ) from None
     return value
 
 
@@ -182,7 +193,11 @@ class BillingSettings:
     def active_providers(self) -> tuple[str, ...]:
         return tuple(
             name
-            for name, settings in (("stripe", self.stripe), ("paypal", self.paypal), ("stablecoin", self.stablecoin))
+            for name, settings in (
+                ("stripe", self.stripe),
+                ("paypal", self.paypal),
+                ("stablecoin", self.stablecoin),
+            )
             if settings.enabled
         )
 
@@ -191,7 +206,11 @@ class BillingSettings:
         if not self.enabled:
             reasons.append("billing_disabled")
         providers: dict[str, str] = {}
-        for name, settings in (("stripe", self.stripe), ("paypal", self.paypal), ("stablecoin", self.stablecoin)):
+        for name, settings in (
+            ("stripe", self.stripe),
+            ("paypal", self.paypal),
+            ("stablecoin", self.stablecoin),
+        ):
             if not settings.enabled:
                 providers[name] = "disabled"
             else:
@@ -231,7 +250,9 @@ def _environment_mode(provider: str, environment: Mapping[str, str] | None) -> s
     name = f"KLYROW_{provider.upper()}_ENVIRONMENT"
     value = _text(name, environment, "sandbox").lower()
     if value not in _ENVIRONMENTS:
-        raise BillingConfigError("provider_environment_invalid", f"{name} must be sandbox or production")
+        raise BillingConfigError(
+            "provider_environment_invalid", f"{name} must be sandbox or production"
+        )
     return value
 
 
@@ -239,40 +260,65 @@ def _reject_key_shape_mismatch(provider: str, mode: str, secret_value: str) -> N
     if mode == "sandbox":
         for prefix in _PRODUCTION_KEY_PREFIXES.get(provider, ()):
             if secret_value.startswith(prefix):
-                raise BillingConfigError("sandbox_production_key_rejected", f"{provider} sandbox must not use a production key")
+                raise BillingConfigError(
+                    "sandbox_production_key_rejected",
+                    f"{provider} sandbox must not use a production key",
+                )
     else:
         for prefix in _SANDBOX_KEY_PREFIXES.get(provider, ()):
             if secret_value.startswith(prefix):
-                raise BillingConfigError("production_sandbox_key_rejected", f"{provider} production must not use a sandbox key")
+                raise BillingConfigError(
+                    "production_sandbox_key_rejected",
+                    f"{provider} production must not use a sandbox key",
+                )
 
 
-def _reject_endpoint_mismatch(provider: str, mode: str, environment: Mapping[str, str] | None) -> None:
+def _reject_endpoint_mismatch(
+    provider: str, mode: str, environment: Mapping[str, str] | None
+) -> None:
     endpoint = _text(f"KLYROW_{provider.upper()}_API_BASE_URL", environment).lower()
     if not endpoint:
         return
     if mode == "sandbox":
         for marker in _PRODUCTION_ENDPOINT_MARKERS.get(provider, ()):
             if marker in endpoint:
-                raise BillingConfigError("sandbox_production_endpoint_rejected", f"{provider} sandbox must not target a production endpoint")
+                raise BillingConfigError(
+                    "sandbox_production_endpoint_rejected",
+                    f"{provider} sandbox must not target a production endpoint",
+                )
     else:
         for marker in _SANDBOX_ENDPOINT_MARKERS.get(provider, ()):
             if marker in endpoint:
-                raise BillingConfigError("production_sandbox_endpoint_rejected", f"{provider} production must not target a sandbox endpoint")
+                raise BillingConfigError(
+                    "production_sandbox_endpoint_rejected",
+                    f"{provider} production must not target a sandbox endpoint",
+                )
 
 
 def _reject_inline_secret(provider: str, mode: str, environment: Mapping[str, str] | None) -> None:
     source = os.environ if environment is None else environment
     if mode == "production" and _text(f"KLYROW_{provider.upper()}_SECRET", environment):
-        raise BillingConfigError("production_inline_secret_rejected", f"{provider} production must not use an inline secret")
+        raise BillingConfigError(
+            "production_inline_secret_rejected",
+            f"{provider} production must not use an inline secret",
+        )
 
 
-def _validate_currency_allowlist(provider: str, mode: str, environment: Mapping[str, str] | None) -> tuple[str, ...]:
+def _validate_currency_allowlist(
+    provider: str, mode: str, environment: Mapping[str, str] | None
+) -> tuple[str, ...]:
     values = _csv(f"KLYROW_{provider.upper()}_CURRENCY_ALLOWLIST", environment)
     if mode == "production":
         if not values:
-            raise BillingConfigError("production_missing_currency_allowlist", f"{provider} production requires a currency allowlist")
+            raise BillingConfigError(
+                "production_missing_currency_allowlist",
+                f"{provider} production requires a currency allowlist",
+            )
         if any(not _CURRENCY.fullmatch(value) for value in values):
-            raise BillingConfigError("currency_allowlist_invalid", f"{provider} currency allowlist must use ISO 4217 codes")
+            raise BillingConfigError(
+                "currency_allowlist_invalid",
+                f"{provider} currency allowlist must use ISO 4217 codes",
+            )
     return values
 
 
@@ -297,7 +343,9 @@ def _validate_provider_common(
 
     production_approved = _boolean(f"KLYROW_{provider.upper()}_PRODUCTION_APPROVED", environment)
     if mode == "production" and not production_approved:
-        raise BillingConfigError("production_requires_approval", f"{provider} production requires explicit approval")
+        raise BillingConfigError(
+            "production_requires_approval", f"{provider} production requires explicit approval"
+        )
 
     return settings_cls(
         enabled=True,
@@ -309,46 +357,72 @@ def _validate_provider_common(
     )
 
 
-def _validate_stablecoin(environment: Mapping[str, str] | None, webhook_processing_enabled: bool) -> StablecoinSettings:
-    common = _validate_provider_common("stablecoin", environment, webhook_processing_enabled, StablecoinSettings)
+def _validate_stablecoin(
+    environment: Mapping[str, str] | None, webhook_processing_enabled: bool
+) -> StablecoinSettings:
+    common = _validate_provider_common(
+        "stablecoin", environment, webhook_processing_enabled, StablecoinSettings
+    )
 
     chain_id_raw = _text("KLYROW_STABLECOIN_CHAIN_ID", environment)
     if not chain_id_raw:
-        raise BillingConfigError("stablecoin_missing_chain_id", "stablecoin requires an explicit chain ID")
+        raise BillingConfigError(
+            "stablecoin_missing_chain_id", "stablecoin requires an explicit chain ID"
+        )
     try:
         chain_id = int(chain_id_raw)
     except ValueError:
-        raise BillingConfigError("stablecoin_missing_chain_id", "stablecoin chain ID must be an integer") from None
+        raise BillingConfigError(
+            "stablecoin_missing_chain_id", "stablecoin chain ID must be an integer"
+        ) from None
 
     contract = _text("KLYROW_STABLECOIN_USDC_CONTRACT", environment)
     if not contract:
-        raise BillingConfigError("stablecoin_missing_contract", "stablecoin requires a USDC contract/mint reference")
+        raise BillingConfigError(
+            "stablecoin_missing_contract", "stablecoin requires a USDC contract/mint reference"
+        )
 
     decimals_raw = _text("KLYROW_STABLECOIN_DECIMALS", environment)
     if not decimals_raw:
-        raise BillingConfigError("stablecoin_invalid_decimals", "stablecoin requires explicit decimals")
+        raise BillingConfigError(
+            "stablecoin_invalid_decimals", "stablecoin requires explicit decimals"
+        )
     try:
         decimals = int(decimals_raw)
     except ValueError:
         decimals = -1
     if not 0 <= decimals <= 18:
-        raise BillingConfigError("stablecoin_invalid_decimals", "stablecoin decimals must be between 0 and 18")
+        raise BillingConfigError(
+            "stablecoin_invalid_decimals", "stablecoin decimals must be between 0 and 18"
+        )
 
     threshold_raw = _text("KLYROW_STABLECOIN_CONFIRMATION_THRESHOLD", environment)
     if not threshold_raw:
-        raise BillingConfigError("stablecoin_missing_confirmation_threshold", "stablecoin requires a confirmation threshold")
+        raise BillingConfigError(
+            "stablecoin_missing_confirmation_threshold",
+            "stablecoin requires a confirmation threshold",
+        )
     try:
         threshold = int(threshold_raw)
     except ValueError:
         threshold = 0
     if threshold < 1:
-        raise BillingConfigError("stablecoin_missing_confirmation_threshold", "stablecoin confirmation threshold must be at least 1")
+        raise BillingConfigError(
+            "stablecoin_missing_confirmation_threshold",
+            "stablecoin confirmation threshold must be at least 1",
+        )
 
     network_allowlist = _csv("KLYROW_STABLECOIN_NETWORK_ALLOWLIST", environment)
     if not network_allowlist:
-        raise BillingConfigError("stablecoin_missing_network_allowlist", "stablecoin requires an approved network allowlist")
+        raise BillingConfigError(
+            "stablecoin_missing_network_allowlist",
+            "stablecoin requires an approved network allowlist",
+        )
     if str(chain_id) not in network_allowlist:
-        raise BillingConfigError("stablecoin_chain_not_allowlisted", "stablecoin chain ID is not in the approved network allowlist")
+        raise BillingConfigError(
+            "stablecoin_chain_not_allowlisted",
+            "stablecoin chain ID is not in the approved network allowlist",
+        )
 
     return StablecoinSettings(
         enabled=True,
@@ -394,7 +468,10 @@ def load_billing_settings(environment: Mapping[str, str] | None = None) -> Billi
         enabled_dependents = [key for key, value in dependents.items() if value]
         if enabled_dependents:
             names = ", ".join(FLAG_NAMES[key] for key in enabled_dependents)
-            raise BillingConfigError("billing_disabled_dependency", f"KLYROW_BILLING_ENABLED must be enabled before: {names}")
+            raise BillingConfigError(
+                "billing_disabled_dependency",
+                f"KLYROW_BILLING_ENABLED must be enabled before: {names}",
+            )
         return _DISABLED_SETTINGS
 
     webhook_processing_enabled = dependents["webhook_processing_enabled"]
@@ -419,15 +496,25 @@ def load_billing_settings(environment: Mapping[str, str] | None = None) -> Billi
 
     active_providers = [
         name
-        for name, active in (("stripe", dependents["stripe_enabled"]), ("paypal", dependents["paypal_enabled"]), ("stablecoin", dependents["stablecoin_enabled"]))
+        for name, active in (
+            ("stripe", dependents["stripe_enabled"]),
+            ("paypal", dependents["paypal_enabled"]),
+            ("stablecoin", dependents["stablecoin_enabled"]),
+        )
         if active
     ]
 
     if dependents["live_charging_enabled"] and not active_providers:
-        raise BillingConfigError("live_charging_requires_provider", "KLYROW_LIVE_CHARGING_ENABLED requires at least one enabled provider")
+        raise BillingConfigError(
+            "live_charging_requires_provider",
+            "KLYROW_LIVE_CHARGING_ENABLED requires at least one enabled provider",
+        )
 
     if webhook_processing_enabled and not active_providers:
-        raise BillingConfigError("webhook_processing_requires_provider", "KLYROW_BILLING_WEBHOOK_PROCESSING_ENABLED requires at least one configured provider verifier")
+        raise BillingConfigError(
+            "webhook_processing_requires_provider",
+            "KLYROW_BILLING_WEBHOOK_PROCESSING_ENABLED requires at least one configured provider verifier",
+        )
 
     return BillingSettings(
         enabled=True,

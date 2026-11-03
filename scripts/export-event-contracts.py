@@ -1,31 +1,86 @@
 #!/usr/bin/env python3
 """Generate Klyrow event schemas and AsyncAPI from runtime models."""
+
 import argparse
 import copy
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from apps.gateway.app.business_events import (  # noqa: E402
-    EventEnvelope,
-    KLYROW_EVENT_DATA_MODELS,
-)
 from apps.gateway.app.api_standard import components  # noqa: E402
-
+from apps.gateway.app.business_events import (  # noqa: E402
+    KLYROW_EVENT_DATA_MODELS,
+    EventEnvelope,
+)
 
 EXAMPLES = {
-    "klyrow.tenant.created": {"tenant_id":"tnt_example","name":"Example","organization_id":"org_example","enabled":True},
-    "klyrow.tenant.updated": {"tenant_id":"tnt_example","name":"Example","organization_id":"org_example","enabled":False},
-    "klyrow.subscription.changed": {"subscription_id":"sub_example","status":"ACTIVE","plan_id":"plan_email","price_id":"price_v1","version":2,"effective_at":"2026-09-13T00:00:00Z"},
-    "klyrow.usage.daily": {"date":"2026-09-12","unit":"accepted_message","quantity":123,"snapshot_at":"2026-09-13T00:00:00Z"},
-    "klyrow.kpi.daily": {"date":"2026-09-12","accepted":123,"delivered":120,"bounced":2,"complained":1,"snapshot_at":"2026-09-13T00:00:00Z"},
-    "klyrow.campaign.summary": {"campaign_id":"cmp_example","campaign_version":1,"status":"COMPLETED","audience_count":100,"delivered_count":96,"suppressed_count":3,"failed_count":1},
-    "klyrow.domain.status": {"domain_id":"dom_example","domain":"example.test","status":"VERIFIED","verified_at":"2026-09-13T00:00:00Z"},
-    "klyrow.provider.health": {"provider":"postal","status":"HEALTHY","checked_at":"2026-09-13T00:00:00Z","reason_code":None},
-    "klyrow.account.held": {"status":"HELD","reason":"PAYMENT_REVIEW","changed_at":"2026-09-13T00:00:00Z"},
-    "klyrow.account.released": {"status":"RELEASED","reason":"REVIEW_COMPLETE","changed_at":"2026-09-13T00:00:00Z"},
+    "klyrow.tenant.created": {
+        "tenant_id": "tnt_example",
+        "name": "Example",
+        "organization_id": "org_example",
+        "enabled": True,
+    },
+    "klyrow.tenant.updated": {
+        "tenant_id": "tnt_example",
+        "name": "Example",
+        "organization_id": "org_example",
+        "enabled": False,
+    },
+    "klyrow.subscription.changed": {
+        "subscription_id": "sub_example",
+        "status": "ACTIVE",
+        "plan_id": "plan_email",
+        "price_id": "price_v1",
+        "version": 2,
+        "effective_at": "2026-09-13T00:00:00Z",
+    },
+    "klyrow.usage.daily": {
+        "date": "2026-09-12",
+        "unit": "accepted_message",
+        "quantity": 123,
+        "snapshot_at": "2026-09-13T00:00:00Z",
+    },
+    "klyrow.kpi.daily": {
+        "date": "2026-09-12",
+        "accepted": 123,
+        "delivered": 120,
+        "bounced": 2,
+        "complained": 1,
+        "snapshot_at": "2026-09-13T00:00:00Z",
+    },
+    "klyrow.campaign.summary": {
+        "campaign_id": "cmp_example",
+        "campaign_version": 1,
+        "status": "COMPLETED",
+        "audience_count": 100,
+        "delivered_count": 96,
+        "suppressed_count": 3,
+        "failed_count": 1,
+    },
+    "klyrow.domain.status": {
+        "domain_id": "dom_example",
+        "domain": "example.test",
+        "status": "VERIFIED",
+        "verified_at": "2026-09-13T00:00:00Z",
+    },
+    "klyrow.provider.health": {
+        "provider": "postal",
+        "status": "HEALTHY",
+        "checked_at": "2026-09-13T00:00:00Z",
+        "reason_code": None,
+    },
+    "klyrow.account.held": {
+        "status": "HELD",
+        "reason": "PAYMENT_REVIEW",
+        "changed_at": "2026-09-13T00:00:00Z",
+    },
+    "klyrow.account.released": {
+        "status": "RELEASED",
+        "reason": "REVIEW_COMPLETE",
+        "changed_at": "2026-09-13T00:00:00Z",
+    },
 }
 
 
@@ -67,10 +122,12 @@ def klyrow_envelope_schema():
         nested = schema.pop("$defs", {})
         definitions.update(nested)
         definitions[model.__name__] = schema
-        conditions.append({
-            "if": {"properties": {"type": {"const": event_type}}, "required": ["type"]},
-            "then": {"properties": {"data": {"$ref": f"#/$defs/{model.__name__}"}}},
-        })
+        conditions.append(
+            {
+                "if": {"properties": {"type": {"const": event_type}}, "required": ["type"]},
+                "then": {"properties": {"data": {"$ref": f"#/$defs/{model.__name__}"}}},
+            }
+        )
     envelope["allOf"] = conditions
     return envelope
 
@@ -78,6 +135,7 @@ def klyrow_envelope_schema():
 def asyncapi_payload(schema):
     """Make embedded JSON Schema references resolve from the AsyncAPI root."""
     value = copy.deepcopy(schema)
+
     def visit(item):
         if isinstance(item, dict):
             if isinstance(item.get("$ref"), str) and item["$ref"].startswith("#/$defs/"):
@@ -87,6 +145,7 @@ def asyncapi_payload(schema):
         elif isinstance(item, list):
             for child in item:
                 visit(child)
+
     visit(value)
     return value
 
@@ -116,13 +175,12 @@ def documents():
         },
         "operations": {
             "publishKlyrowBusinessEvent": {
-                "action": "send", "channel": {"$ref": "#/channels/klyrow"},
+                "action": "send",
+                "channel": {"$ref": "#/channels/klyrow"},
             }
         },
         "components": {
-            "messages": {
-                "klyrow": {"name": "klyrowBusinessEventV1", "payload": payload}
-            }
+            "messages": {"klyrow": {"name": "klyrowBusinessEventV1", "payload": payload}}
         },
     }
     output = {
@@ -138,9 +196,15 @@ def documents():
     for event_type, model in KLYROW_EVENT_DATA_MODELS.items():
         schema = model.model_json_schema()
         schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
-        schema["$id"] = "https://schemas.codestra.co/events/" + event_type.replace(".", "-") + ".v1.data.schema.json"
+        schema["$id"] = (
+            "https://schemas.codestra.co/events/"
+            + event_type.replace(".", "-")
+            + ".v1.data.schema.json"
+        )
         output["schemas/json-schema/" + event_type.replace(".", "-") + ".v1.data.json"] = schema
-        output["schemas/examples/" + event_type.replace(".", "-") + ".v1.json"] = event_example(event_type)
+        output["schemas/examples/" + event_type.replace(".", "-") + ".v1.json"] = event_example(
+            event_type
+        )
     return output
 
 

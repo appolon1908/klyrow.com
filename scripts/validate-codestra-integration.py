@@ -114,7 +114,13 @@ def validate() -> None:
     ]:
         assert flag in env
 
-    for forbidden in ["CLIENT_SECRET=", "ACCESS_TOKEN=", "REFRESH_TOKEN=", "SMTP_PASSWORD=", "API_KEY="]:
+    for forbidden in [
+        "CLIENT_SECRET=",
+        "ACCESS_TOKEN=",
+        "REFRESH_TOKEN=",
+        "SMTP_PASSWORD=",
+        "API_KEY=",
+    ]:
         assert forbidden not in env
 
     for fragment in [
@@ -173,13 +179,9 @@ def validate() -> None:
     assert canonical["source_ref"] == "main"
     assert canonical["source_commit_sha"] == "61d899f98048f4465303cdcb616a4c9f5a35ceb5"
     assert canonical["source_path"] == "contracts/observability/odoo-sync.v1.json"
+    assert canonical["consumer_implementation_path"] == "app/api/v1/observability_sync.py"
     assert (
-        canonical["consumer_implementation_path"]
-        == "app/api/v1/observability_sync.py"
-    )
-    assert (
-        canonical["consumer_implementation_blob_sha"]
-        == "8748512f71d3856785abb5113e056eb975102421"
+        canonical["consumer_implementation_blob_sha"] == "8748512f71d3856785abb5113e056eb975102421"
     )
     raw_projection = (ROOT / canonical["vendored_path"]).read_bytes()
     blob_header = f"blob {len(raw_projection)}\0".encode("ascii")
@@ -197,15 +199,20 @@ def validate() -> None:
         ("/v1/observability/incidents", "observability.incidents.write"),
     }
     assert {
-        entry["operation"]
-        for entry in projection["odoo_endpoints"]
-        if entry["method"] == "POST"
+        entry["operation"] for entry in projection["odoo_endpoints"] if entry["method"] == "POST"
     } == set(canonical["odoo_operations"])
-    assert {
-        entry["operation"] for entry in canonical["middleware_operations"]
-    } == {"observability.kpis.create", "observability.incidents.upsert"}
-    assert projection["schemas"]["kpi_snapshot"]["properties"]["schema_version"]["const"] == "kyyow.observability.kpi.v1"
-    assert projection["schemas"]["incident_state"]["properties"]["schema_version"]["const"] == "kyyow.observability.incident.v1"
+    assert {entry["operation"] for entry in canonical["middleware_operations"]} == {
+        "observability.kpis.create",
+        "observability.incidents.upsert",
+    }
+    assert (
+        projection["schemas"]["kpi_snapshot"]["properties"]["schema_version"]["const"]
+        == "kyyow.observability.kpi.v1"
+    )
+    assert (
+        projection["schemas"]["incident_state"]["properties"]["schema_version"]["const"]
+        == "kyyow.observability.incident.v1"
+    )
     for gate in boundary["activation_gates"]:
         assert isinstance(gate, str) and gate.strip()
 

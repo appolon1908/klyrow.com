@@ -1,4 +1,5 @@
 """Shared capability checks after authentication establishes tenant authority."""
+
 from typing import Any
 
 from fastapi import HTTPException
@@ -59,8 +60,11 @@ def has_service_permission(ctx: dict[str, Any], permission: str) -> bool:
     Invalid resolver/claim collections fail closed rather than raising a 500.
     """
     identity_type = ctx.get("identity_type")
-    if (ctx.get("service") is not True or not isinstance(identity_type, str)
-            or identity_type.upper() not in {"SERVICE", "SERVICE_ACCOUNT"}):
+    if (
+        ctx.get("service") is not True
+        or not isinstance(identity_type, str)
+        or identity_type.upper() not in {"SERVICE", "SERVICE_ACCOUNT"}
+    ):
         return False
     granted: set[str] = set()
     for field in ("permissions", "scopes"):

@@ -1,12 +1,12 @@
 """Provider-neutral dispute and chargeback evidence authority."""
+
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Iterable
+from datetime import UTC, datetime
 
 from fastapi import HTTPException
-
 
 DISPUTE_STATES = {"OPEN", "EVIDENCE_REQUIRED", "SUBMITTED", "WON", "LOST", "CLOSED"}
 DISPUTE_TRANSITIONS = {
@@ -36,7 +36,9 @@ def validate_dispute_transition(current: str, target: str) -> None:
         raise HTTPException(409, "invalid_dispute_transition")
 
 
-def require_tenant_evidence(evidence: Iterable[DisputeEvidence], tenant_id: str) -> tuple[DisputeEvidence, ...]:
+def require_tenant_evidence(
+    evidence: Iterable[DisputeEvidence], tenant_id: str
+) -> tuple[DisputeEvidence, ...]:
     scoped = tuple(evidence)
     if any(item.tenant_id != tenant_id for item in scoped):
         raise HTTPException(404, "dispute_not_found")
@@ -44,4 +46,4 @@ def require_tenant_evidence(evidence: Iterable[DisputeEvidence], tenant_id: str)
 
 
 def evidence_timestamp(value: datetime | None = None) -> datetime:
-    return (value or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    return (value or datetime.now(UTC)).astimezone(UTC)

@@ -19,10 +19,13 @@ ISSUER = "https://auth.codestra.co/realms/codestra"
 os.environ.setdefault("KLYROW_OIDC_ISSUER", ISSUER)
 os.environ.setdefault("KLYROW_PUBLIC_URL", "https://app.klyrow.test")
 
+from apps.gateway.app.main import Base, MailIn, Tenant, User
 from apps.gateway.app import (
     auth_bff,
-    browser_security_fixes as security,
     tenancy_onboarding,
+)
+from apps.gateway.app import (
+    browser_security_fixes as security,
 )
 from apps.gateway.app.auth_bff import BrowserSession, OidcLoginTransaction
 from apps.gateway.app.browser_auth_actions import RecoveryRequest
@@ -42,7 +45,6 @@ from apps.gateway.app.browser_security_fixes import (
     platform_owner_step_up,
     set_flow_cookie,
 )
-from apps.gateway.app.main import Base, MailIn, Tenant, User
 from apps.gateway.app.platform import app
 from apps.gateway.app.tenancy import (
     AcceptIn,
@@ -107,9 +109,7 @@ def _request(
         headers.append(
             (
                 b"cookie",
-                "; ".join(
-                    f"{key}={value}" for key, value in cookies.items()
-                ).encode(),
+                "; ".join(f"{key}={value}" for key, value in cookies.items()).encode(),
             )
         )
     return Request(
@@ -144,8 +144,7 @@ def _transaction(
         nonce_ciphertext=auth_bff._encrypt("nonce-" + identifier),
         return_url="/app",
         mode=mode,
-        expires_at=auth_bff.now()
-        + timedelta(seconds=-1 if expired else 300),
+        expires_at=auth_bff.now() + timedelta(seconds=-1 if expired else 300),
     )
     session.add(item)
     session.commit()
@@ -164,12 +163,14 @@ def _token_success(monkeypatch, claims: dict | None = None) -> None:
     monkeypatch.setattr(
         auth_bff,
         "_validate_id_token",
-        lambda raw, expected_nonce=None: claims
-        or {
-            "iss": ISSUER,
-            "sub": "subject-a",
-            "aud": "klyrow-portal",
-        },
+        lambda raw, expected_nonce=None: (
+            claims
+            or {
+                "iss": ISSUER,
+                "sub": "subject-a",
+                "aud": "klyrow-portal",
+            }
+        ),
     )
 
 
@@ -202,9 +203,7 @@ def _successful_callback_dependencies(monkeypatch) -> None:
 
 def _cookies(response) -> str:
     return "\n".join(
-        value.decode()
-        for name, value in response.raw_headers
-        if name.lower() == b"set-cookie"
+        value.decode() for name, value in response.raw_headers if name.lower() == b"set-cookie"
     )
 
 
@@ -212,8 +211,7 @@ def _cookie_line(response, name: str) -> str:
     return next(
         value.decode()
         for header, value in response.raw_headers
-        if header.lower() == b"set-cookie"
-        and value.decode().startswith(f"{name}=")
+        if header.lower() == b"set-cookie" and value.decode().startswith(f"{name}=")
     )
 
 
@@ -248,9 +246,7 @@ def test_composition_replaces_each_security_sensitive_route_once() -> None:
     assert set(observed) == expected
     assert all(len(routes) == 1 for routes in observed.values())
     assert all(
-        routes[0].endpoint.__module__.endswith(
-            "browser_security_fixes"
-        )
+        routes[0].endpoint.__module__.endswith("browser_security_fixes")
         for routes in observed.values()
     )
     assert app.state.klyrow_browser_security_fixes_installed is True
@@ -262,12 +258,8 @@ def test_flow_cookie_binding_is_domain_separated_and_state_specific() -> None:
     assert flow_binding("state-a") == flow_binding("state-a")
     assert flow_binding("state-a") != flow_binding("state-b")
     assert "state-a" not in flow_binding("state-a")
-    assert parse_flow_cookie(flow_binding("state-a")) == [
-        flow_binding("state-a")
-    ]
-    encoded = encode_flow_cookie(
-        [flow_binding("state-a"), flow_binding("state-b")]
-    )
+    assert parse_flow_cookie(flow_binding("state-a")) == [flow_binding("state-a")]
+    encoded = encode_flow_cookie([flow_binding("state-a"), flow_binding("state-b")])
     assert parse_flow_cookie(encoded) == [
         flow_binding("state-a"),
         flow_binding("state-b"),
@@ -311,11 +303,7 @@ def test_missing_or_wrong_cookie_never_consumes_state(
     for cookie_value in (None, "wrong-binding"):
         request = _request(
             "/auth/callback",
-            cookies=(
-                {FLOW_COOKIE: cookie_value}
-                if cookie_value is not None
-                else None
-            ),
+            cookies=({FLOW_COOKIE: cookie_value} if cookie_value is not None else None),
         )
         with pytest.raises(HTTPException) as denied:
             oidc_callback(
@@ -458,9 +446,7 @@ def test_two_concurrent_tab_flows_can_complete_in_either_order(
     )
     _successful_callback_dependencies(monkeypatch)
 
-    both = encode_flow_cookie(
-        [flow_binding(first_state), flow_binding(second_state)]
-    )
+    both = encode_flow_cookie([flow_binding(first_state), flow_binding(second_state)])
     first_response = oidc_callback(
         _request(
             "/auth/callback",
@@ -591,9 +577,7 @@ def test_terminal_provider_error_consumes_only_its_bound_state(
         identifier="other-open",
         state=other_state,
     )
-    both = encode_flow_cookie(
-        [flow_binding(failed_state), flow_binding(other_state)]
-    )
+    both = encode_flow_cookie([flow_binding(failed_state), flow_binding(other_state)])
 
     response = oidc_callback(
         _request(
@@ -607,9 +591,7 @@ def test_terminal_provider_error_consumes_only_its_bound_state(
 
     assert response.status_code == 303
     assert response.headers["location"] == "/service-error"
-    assert parse_flow_cookie(_cookie_value(response, FLOW_COOKIE)) == [
-        flow_binding(other_state)
-    ]
+    assert parse_flow_cookie(_cookie_value(response, FLOW_COOKIE)) == [flow_binding(other_state)]
     isolated_session.refresh(failed)
     isolated_session.refresh(other)
     assert failed.used_at is not None
@@ -732,10 +714,7 @@ def test_selected_invitation_cannot_rewrite_active_member_role(
         )
 
     assert denied.value.status_code == 409
-    assert (
-        denied.value.detail
-        == "invitation_existing_member_role_change_denied"
-    )
+    assert denied.value.detail == "invitation_existing_member_role_change_denied"
     isolated_session.refresh(membership)
     isolated_session.refresh(invitation)
     assert membership.role == "ADMIN"

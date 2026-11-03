@@ -1,12 +1,13 @@
-from pathlib import Path
 import re
+from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).parents[1]
 SOURCE = (ROOT / "apps/postal-provisioner/provisioner.rb").read_text(encoding="utf-8")
-CONTRACT = yaml.safe_load((ROOT / "openapi/postal-provisioner.openapi.yaml").read_text(encoding="utf-8"))
+CONTRACT = yaml.safe_load(
+    (ROOT / "openapi/postal-provisioner.openapi.yaml").read_text(encoding="utf-8")
+)
 
 
 def test_contract_has_only_the_private_provisioner_surface():
@@ -41,12 +42,12 @@ def test_mutations_require_constant_time_bearer_authentication():
 
 
 def test_reconciliation_is_bounded_and_uses_postal_models():
-    assert 'domains.length > 100' in SOURCE
-    assert 'addresses.length > 300' in SOURCE
-    assert 'length > 16_384' in SOURCE
-    assert 'Domain.find_by!(name: name)' in SOURCE
+    assert "domains.length > 100" in SOURCE
+    assert "addresses.length > 300" in SOURCE
+    assert "length > 16_384" in SOURCE
+    assert "Domain.find_by!(name: name)" in SOURCE
     assert 'find_or_initialize_by(name: "Klyrow signed inbound adapter")' in SOURCE
-    assert 'find_or_create_by!(' in SOURCE
+    assert "find_or_create_by!(" in SOURCE
     assert "UPDATE " not in SOURCE.upper() and "INSERT INTO" not in SOURCE.upper()
 
 
@@ -60,13 +61,13 @@ def test_inbound_reconciliation_is_exact_address_bound_and_preserves_foreign_rou
     assert "INBOUND_LOCAL_PARTS.each" not in inbound
     assert re.search(r"route\.server\s*=(?!=)", inbound) is None
     assert re.search(r"route\.endpoint\s*=(?!=)", inbound) is None
-    assert 'domain.routes.create!(' in inbound
+    assert "domain.routes.create!(" in inbound
 
 
 def test_inbound_destination_is_pinned_to_the_gateway_contract():
     assert 'inbound_uri.scheme == "http"' in SOURCE
     assert 'inbound_uri.host == "gateway"' in SOURCE
-    assert 'inbound_uri.port == 8000' in SOURCE
+    assert "inbound_uri.port == 8000" in SOURCE
     assert 'inbound_uri.path == "/v1/webhooks/postal-inbound"' in SOURCE
 
 

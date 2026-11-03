@@ -2,7 +2,6 @@
 
 import httpx
 
-
 INDETERMINATE = "INDETERMINATE"
 
 

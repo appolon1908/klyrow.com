@@ -5,6 +5,7 @@ Adding operations and optional parameters is allowed. Changing existing schema
 contracts requires a new version, even when a human considers it compatible.
 This deliberate conservatism avoids silently approving unknown schema changes.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -17,6 +18,7 @@ METHODS = {"get", "post", "put", "patch", "delete", "options", "head", "trace"}
 def contract(value, document):
     """Compare reachable refs as well as the operation, with cycle protection."""
     refs = {}
+
     def collect(item):
         if isinstance(item, dict):
             ref = item.get("$ref")
@@ -33,6 +35,7 @@ def contract(value, document):
         elif isinstance(item, list):
             for child in item:
                 collect(child)
+
     collect(value)
     return {"value": value, "refs": refs}
 
@@ -64,8 +67,13 @@ def changes(old: dict, new: dict) -> list[str]:
                         failures.append(f"{label}: security scheme {name} changed or removed")
             before_parameters = item.get("parameters", []) + operation.get("parameters", [])
             after_parameters = current_item.get("parameters", []) + current.get("parameters", [])
+
             def parameter_key(parameter):
-                return parameter.get("$ref") or (parameter["in"], parameter["name"].lower() if parameter["in"] == "header" else parameter["name"])
+                return parameter.get("$ref") or (
+                    parameter["in"],
+                    parameter["name"].lower() if parameter["in"] == "header" else parameter["name"],
+                )
+
             prior = {parameter_key(p): p for p in before_parameters}
             following = {parameter_key(p): p for p in after_parameters}
             for key, parameter in prior.items():
@@ -75,7 +83,9 @@ def changes(old: dict, new: dict) -> list[str]:
                 if key not in prior and (parameter.get("required") or "$ref" in parameter):
                     failures.append(f"{label}: required or referenced parameter {key} added")
             for status, response in operation.get("responses", {}).items():
-                if contract(response, old) != contract(current.get("responses", {}).get(status), new):
+                if contract(response, old) != contract(
+                    current.get("responses", {}).get(status), new
+                ):
                     failures.append(f"{label}: response {status} changed or removed")
     return failures
 

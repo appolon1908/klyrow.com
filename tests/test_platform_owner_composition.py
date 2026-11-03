@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -44,9 +44,7 @@ def _runtime_app(monkeypatch, validator):
     @app.middleware("http")
     async def instrumentation(request, call_next):
         response = await call_next(request)
-        app.state.instrumented_responses.append(
-            (request.url.path, response.status_code)
-        )
+        app.state.instrumented_responses.append((request.url.path, response.status_code))
         response.headers.update(
             {
                 "X-Test-Instrumented": "true",
@@ -71,9 +69,7 @@ def _runtime_app(monkeypatch, validator):
     platform_owner.install_platform_owner_guard(app)
     # These tests exercise the outer defense-in-depth middleware. Focused tests
     # below invoke the request-scoped role-stability dependency directly.
-    app.dependency_overrides[
-        platform_owner.platform_owner_role_stability_guard
-    ] = lambda: None
+    app.dependency_overrides[platform_owner.platform_owner_role_stability_guard] = lambda: None
     return app
 
 
@@ -103,7 +99,7 @@ def _authority_snapshot(*, role: str = "platform_admin"):
         identity_id="owner-identity",
         role="OWNER",
         revoked_at=None,
-        expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+        expires_at=datetime.now(UTC) + timedelta(minutes=5),
     )
     user = SimpleNamespace(
         id="owner-user",
@@ -139,9 +135,7 @@ def test_production_composition_installs_exact_owner_guard() -> None:
 
 
 def test_guard_covers_every_browser_api_for_platform_admin_sessions() -> None:
-    source = Path("apps/gateway/app/platform_owner.py").read_text(
-        encoding="utf-8"
-    )
+    source = Path("apps/gateway/app/platform_owner.py").read_text(encoding="utf-8")
     assert 'PLATFORM_OWNER_PATH_PREFIXES = ("/app/api/",)' in source
     assert "PlatformOwnerConfig.from_env" in source
     assert "validate_platform_owner_claims" in source
@@ -154,8 +148,7 @@ def test_every_browser_route_gets_same_session_role_stability_dependency(
     browser_routes = [
         route
         for route in app.router.routes
-        if isinstance(route, APIRoute)
-        and route.path.startswith("/app/api/")
+        if isinstance(route, APIRoute) and route.path.startswith("/app/api/")
     ]
     assert sorted(route.path for route in browser_routes) == [
         "/app/api/admin/test",
@@ -194,10 +187,7 @@ def test_locked_browser_authority_uses_four_shared_refreshing_locks() -> None:
         identity,
     )
     assert len(session.statements) == 4
-    assert all(
-        statement._for_update_arg is not None
-        for statement in session.statements
-    )
+    assert all(statement._for_update_arg is not None for statement in session.statements)
     assert all(statement._for_update_arg.read is True for statement in session.statements)
     assert all(
         statement.get_execution_options().get("populate_existing") is True
@@ -216,15 +206,16 @@ def test_workspace_switch_uses_exclusive_session_and_identity_locks() -> None:
         exclusive_identity=True,
     )
 
-    assert [
-        statement._for_update_arg.read for statement in session.statements
-    ] == [False, True, True, False]
+    assert [statement._for_update_arg.read for statement in session.statements] == [
+        False,
+        True,
+        True,
+        False,
+    ]
 
 
 def test_workspace_switch_route_selects_exclusive_lock_modes(monkeypatch) -> None:
-    item, user, member, identity, context = _authority_snapshot(
-        role="tenant_admin"
-    )
+    item, user, member, identity, context = _authority_snapshot(role="tenant_admin")
     observed = []
 
     def locked(_session, _context, **lock_modes):
@@ -245,18 +236,14 @@ def test_workspace_switch_route_selects_exclusive_lock_modes(monkeypatch) -> Non
         s=object(),
     )
 
-    assert observed == [
-        {"exclusive_session": True, "exclusive_identity": True}
-    ]
+    assert observed == [{"exclusive_session": True, "exclusive_identity": True}]
     assert request.state.klyrow_platform_owner_authority_locked is True
 
 
 def test_normal_browser_role_is_locked_without_owner_configuration(
     monkeypatch,
 ) -> None:
-    item, user, member, identity, context = _authority_snapshot(
-        role="tenant_admin"
-    )
+    item, user, member, identity, context = _authority_snapshot(role="tenant_admin")
     session = _LockingSession(item, user, member, identity)
     observed = []
 
@@ -282,9 +269,7 @@ def test_normal_browser_role_is_locked_without_owner_configuration(
 
 
 def test_guard_refreshes_stale_handler_role_from_locked_membership() -> None:
-    item, user, member, identity, context = _authority_snapshot(
-        role="tenant_admin"
-    )
+    item, user, member, identity, context = _authority_snapshot(role="tenant_admin")
     item.role = "MEMBER"
     member.role = "MEMBER"
     context["role"] = "platform_admin"
@@ -303,9 +288,7 @@ def test_guard_refreshes_stale_handler_role_from_locked_membership() -> None:
 
 
 def test_normal_role_still_requires_current_base_authority() -> None:
-    item, user, _member, identity, _context = _authority_snapshot(
-        role="tenant_admin"
-    )
+    item, user, _member, identity, _context = _authority_snapshot(role="tenant_admin")
     item.role = "MEMBER"
 
     with pytest.raises(PlatformOwnerError) as denied:
@@ -377,9 +360,7 @@ def test_non_admin_route_still_validates_a_current_platform_role(
 
 
 def test_admin_guard_denies_non_platform_role_before_handler() -> None:
-    item, user, member, identity, context = _authority_snapshot(
-        role="tenant_admin"
-    )
+    item, user, member, identity, context = _authority_snapshot(role="tenant_admin")
     session = _LockingSession(item, user, member, identity)
 
     with pytest.raises(HTTPException) as denied:
@@ -395,9 +376,7 @@ def test_admin_guard_denies_non_platform_role_before_handler() -> None:
 
 
 def test_same_transaction_lock_contract_is_explicit_in_source() -> None:
-    source = Path("apps/gateway/app/platform_owner.py").read_text(
-        encoding="utf-8"
-    )
+    source = Path("apps/gateway/app/platform_owner.py").read_text(encoding="utf-8")
     assert source.count(".with_for_update(") == 4
     assert ".with_for_update(read=not exclusive_session)" in source
     assert ".with_for_update(read=not exclusive_identity)" in source
@@ -406,24 +385,17 @@ def test_same_transaction_lock_contract_is_explicit_in_source() -> None:
     assert "platform_owner_role_stability_guard" in source
     assert "_install_browser_route_dependencies" in source
     assert "route.dependant.dependencies.insert" in source
-    assert (
-        "request.state.klyrow_platform_owner_authority_locked = True"
-        in source
-    )
+    assert "request.state.klyrow_platform_owner_authority_locked = True" in source
 
 
 def test_unbound_step_up_redirect_is_hidden_and_fails_closed() -> None:
-    source = Path("apps/gateway/app/platform_owner.py").read_text(
-        encoding="utf-8"
-    )
+    source = Path("apps/gateway/app/platform_owner.py").read_text(encoding="utf-8")
     assert '@router.get("/auth/step-up", include_in_schema=False)' in source
     assert "platform_owner_step_up_flow_binding_required" in source
     assert "_authorization_url(" not in source
 
     with pytest.raises(HTTPException) as denied:
-        platform_owner.platform_owner_step_up(
-            _ctx={"sub": "owner-candidate"}
-        )
+        platform_owner.platform_owner_step_up(_ctx={"sub": "owner-candidate"})
 
     assert denied.value.status_code == 503
     assert denied.value.detail == "platform_owner_step_up_flow_binding_required"
@@ -490,9 +462,7 @@ def test_owner_lookup_runs_through_threadpool(monkeypatch) -> None:
         )
 
     assert response.status_code == 200
-    assert offloaded == [
-        (platform_owner._validate_raw_session, ("opaque-session",))
-    ]
+    assert offloaded == [(platform_owner._validate_raw_session, ("opaque-session",))]
 
 
 def test_runtime_guard_allows_a_validated_owner_to_reach_handler(

@@ -77,9 +77,7 @@ def test_email_match_alone_never_grants_owner_authority() -> None:
 
 def test_database_identity_and_token_identity_must_both_match() -> None:
     assert (
-        failure_detail(
-            lambda: validate(claims(), identity_subject="different-database-subject")
-        )
+        failure_detail(lambda: validate(claims(), identity_subject="different-database-subject"))
         == "platform_owner_identity_mismatch"
     )
 
@@ -171,11 +169,19 @@ def test_incomplete_or_noncanonical_configuration_fails_closed() -> None:
         config(KLYROW_PLATFORM_OWNER_ISSUER="https://example.invalid/realms/codestra")
 
 
-@pytest.mark.parametrize("mailbox", [
-    "owner@gmail", "@example.com", "owner@", "owner@@example.com",
-    "owner name@example.com", "Owner <owner@example.com>", "owner@example..com",
-    "owner@example.com\\r\\nBcc:other@example.com",
-])
+@pytest.mark.parametrize(
+    "mailbox",
+    [
+        "owner@gmail",
+        "@example.com",
+        "owner@",
+        "owner@@example.com",
+        "owner name@example.com",
+        "Owner <owner@example.com>",
+        "owner@example..com",
+        "owner@example.com\\r\\nBcc:other@example.com",
+    ],
+)
 def test_owner_configuration_requires_a_complete_mailbox(mailbox):
     with pytest.raises(PlatformOwnerError, match="platform_owner_email_misconfigured"):
         config(KLYROW_PLATFORM_OWNER_EMAIL=mailbox)

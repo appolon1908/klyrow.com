@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Upload ciphertext to Backblaze B2 and verify exact-version downloads."""
+
 import hashlib
 import json
 import os
-from pathlib import Path
 import re
 import stat
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 
 
 class BackupError(Exception):
@@ -42,8 +43,10 @@ def settings(environ):
     root = Path(environ.get("KLYROW_BACKUP_B2_CONFIG_DIR", "/etc/codestra/backup"))
     if not root.is_absolute():
         raise BackupError("config_path_invalid")
-    values = {name: private_value(root / ("b2-" + name)) for name in (
-        "access-key-id", "secret-access-key", "endpoint", "region", "bucket")}
+    values = {
+        name: private_value(root / ("b2-" + name))
+        for name in ("access-key-id", "secret-access-key", "endpoint", "region", "bucket")
+    }
     region = values["region"]
     if not re.fullmatch(r"[a-z]+-[a-z]+-[0-9]{3}", region):
         raise BackupError("region_invalid")
@@ -59,12 +62,17 @@ def settings(environ):
         raise BackupError("source_sha_required")
     # Explicit credentials only; no ambient profiles, proxies or endpoint overrides.
     env = {
-        "PATH": "/usr/local/bin:/usr/bin:/bin", "LANG": "C.UTF-8",
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "LANG": "C.UTF-8",
         "AWS_ACCESS_KEY_ID": values["access-key-id"],
         "AWS_SECRET_ACCESS_KEY": values["secret-access-key"],
-        "AWS_DEFAULT_REGION": region, "AWS_EC2_METADATA_DISABLED": "true",
-        "AWS_CONFIG_FILE": "/dev/null", "AWS_SHARED_CREDENTIALS_FILE": "/dev/null",
-        "AWS_PAGER": "", "AWS_MAX_ATTEMPTS": "3", "AWS_RETRY_MODE": "standard",
+        "AWS_DEFAULT_REGION": region,
+        "AWS_EC2_METADATA_DISABLED": "true",
+        "AWS_CONFIG_FILE": "/dev/null",
+        "AWS_SHARED_CREDENTIALS_FILE": "/dev/null",
+        "AWS_PAGER": "",
+        "AWS_MAX_ATTEMPTS": "3",
+        "AWS_RETRY_MODE": "standard",
     }
     return values["endpoint"], values["bucket"], prefix, source, env
 
@@ -72,9 +80,23 @@ def settings(environ):
 def aws(endpoint, env, *args):
     try:
         result = subprocess.run(
-            ["aws", "--endpoint-url", endpoint, "--cli-connect-timeout", "15",
-             "--cli-read-timeout", "120", "s3api", *args],
-            env=env, capture_output=True, text=True, timeout=900, check=False)
+            [
+                "aws",
+                "--endpoint-url",
+                endpoint,
+                "--cli-connect-timeout",
+                "15",
+                "--cli-read-timeout",
+                "120",
+                "s3api",
+                *args,
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=900,
+            check=False,
+        )
         if result.returncode:
             # Never echo CLI errors: they can contain request details or credentials.
             code = "b2_request_failed"
@@ -93,17 +115,43 @@ def aws(endpoint, env, *args):
 
 def put_verified(endpoint, env, bucket, key, file, temp, call=aws):
     expected = digest(file)
-    response = call(endpoint, env, "put-object", "--bucket", bucket, "--key", key,
-                    "--body", str(file), "--server-side-encryption", "AES256",
-                    "--metadata", json.dumps({"sha256": expected}))
+    response = call(
+        endpoint,
+        env,
+        "put-object",
+        "--bucket",
+        bucket,
+        "--key",
+        key,
+        "--body",
+        str(file),
+        "--server-side-encryption",
+        "AES256",
+        "--metadata",
+        json.dumps({"sha256": expected}),
+    )
     version = response.get("VersionId")
     if not isinstance(version, str) or not version or version == "null":
         raise BackupError("b2_version_missing")
     downloaded = temp / "readback"
-    result = call(endpoint, env, "get-object", "--bucket", bucket, "--key", key,
-                  "--version-id", version, str(downloaded))
-    if (result.get("VersionId") != version or result.get("ServerSideEncryption") != "AES256"
-            or not downloaded.is_file() or digest(downloaded) != expected):
+    result = call(
+        endpoint,
+        env,
+        "get-object",
+        "--bucket",
+        bucket,
+        "--key",
+        key,
+        "--version-id",
+        version,
+        str(downloaded),
+    )
+    if (
+        result.get("VersionId") != version
+        or result.get("ServerSideEncryption") != "AES256"
+        or not downloaded.is_file()
+        or digest(downloaded) != expected
+    ):
         raise BackupError("b2_readback_mismatch")
     downloaded.unlink()
     return {"key": key, "version_id": version, "sha256": expected}
@@ -112,15 +160,20 @@ def put_verified(endpoint, env, bucket, key, file, temp, call=aws):
 def archive(file, environ, call=aws):
     file = Path(file)
     checksum = Path(str(file) + ".sha256")
-    if (file.is_symlink() or checksum.is_symlink() or not file.is_file()
-            or not checksum.is_file() or not re.fullmatch(r"[A-Za-z0-9_.-]+\.tar\.gz\.gpg", file.name)):
+    if (
+        file.is_symlink()
+        or checksum.is_symlink()
+        or not file.is_file()
+        or not checksum.is_file()
+        or not re.fullmatch(r"[A-Za-z0-9_.-]+\.tar\.gz\.gpg", file.name)
+    ):
         raise BackupError("encrypted_archive_required")
     if not 1 < file.stat().st_size <= 5_000_000_000:
         raise BackupError("archive_size_unsupported")
     with file.open("rb") as stream:
         header = stream.read(1)[0]
     # Public-key encrypted session-key packet; reject plaintext and legacy symmetric archives.
-    if not header & 0x80 or ((header & 0x3f) if header & 0x40 else ((header >> 2) & 0x0f)) != 1:
+    if not header & 0x80 or ((header & 0x3F) if header & 0x40 else ((header >> 2) & 0x0F)) != 1:
         raise BackupError("public_key_ciphertext_required")
     expected = digest(file)
     if checksum.read_text() != f"{expected}  {file.name}\n":
@@ -137,9 +190,16 @@ def archive(file, environ, call=aws):
         sidecar = put_verified(endpoint, env, bucket, key + ".sha256", checksum, temp, call)
         if sidecar["sha256"] != hashlib.sha256(f"{expected}  {file.name}\n".encode()).hexdigest():
             raise BackupError("checksum_changed")
-        receipt = {"storage": "backblaze_b2", "bucket": bucket, "source_sha": source,
-                   "archive": stored, "checksum": sidecar, "readback": "PASS",
-                   "client_encryption": "OpenPGP", "server_encryption": "AES256"}
+        receipt = {
+            "storage": "backblaze_b2",
+            "bucket": bucket,
+            "source_sha": source,
+            "archive": stored,
+            "checksum": sidecar,
+            "readback": "PASS",
+            "client_encryption": "OpenPGP",
+            "server_encryption": "AES256",
+        }
         receipt_file = temp / "receipt.json"
         receipt_file.write_text(json.dumps(receipt, sort_keys=True) + "\n")
         put_verified(endpoint, env, bucket, key + ".receipt.json", receipt_file, temp, call)

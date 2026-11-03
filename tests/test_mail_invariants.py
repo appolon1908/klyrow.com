@@ -11,14 +11,15 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-import pytest
 import httpx
+import pytest
 from cryptography.fernet import Fernet
 from fastapi import HTTPException
 from sqlalchemy import UniqueConstraint
 
-from apps.gateway.app import main, provider, security_smtp_worker, smtp_relay
-from apps.gateway.app.main import Base, DB, Suppression, Tenant, engine
+from apps.gateway.app.main import DB, Base, Suppression, Tenant, engine
+from apps.gateway.app import main, provider, smtp_relay
+from apps.gateway.app.guards import stream_priority
 from apps.gateway.app.provider import (
     ProviderDomain,
     ProviderMessage,
@@ -32,7 +33,6 @@ from apps.gateway.app.provider_outcome import (
     provider_outcome_is_ambiguous,
     reconcile_before_retry,
 )
-from apps.gateway.app.guards import stream_priority
 from apps.gateway.app.security_payload import (
     decrypt_security_payload,
     encrypted_security_payload,
@@ -44,7 +44,6 @@ from tests.mail_path_clients import (
     MailPathClients,
     seed_mail_paths,
 )
-
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "apps" / "gateway" / "app"
@@ -91,14 +90,18 @@ def test_p4_every_accepted_send_writes_the_canonical_usage_event_in_transaction(
 
 
 def test_p5_no_tenant_dkim_record_is_simulated():
-    offenders = [path for path in APP.rglob("*.py") if "SIMULATED" in path.read_text(encoding="utf-8")]
+    offenders = [
+        path for path in APP.rglob("*.py") if "SIMULATED" in path.read_text(encoding="utf-8")
+    ]
     assert offenders == []
 
 
 def test_p6_inbound_cannot_route_without_an_authentication_verdict():
     source = _source("provider.py")
     assert "auth_verdict" in source
-    assert all(field in source for field in ("spf_result", "dkim_result", "dmarc_result", "arc_result"))
+    assert all(
+        field in source for field in ("spf_result", "dkim_result", "dmarc_result", "arc_result")
+    )
     assert "dmarc_fail_action" in source
 
 
@@ -107,9 +110,15 @@ def test_p7_ambiguous_provider_outcome_reconciles_before_retry():
     assert "INDETERMINATE" in sources
     assert "reconcile_before_retry" in sources
     assert provider_outcome_is_ambiguous(httpx.ReadTimeout("unknown provider outcome"))
-    assert not reconcile_before_retry(state=INDETERMINATE, provider_message_id=None, provider_absence_confirmed=False)
-    assert reconcile_before_retry(state=INDETERMINATE, provider_message_id=None, provider_absence_confirmed=True)
-    assert not reconcile_before_retry(state=INDETERMINATE, provider_message_id="postal-accepted", provider_absence_confirmed=True)
+    assert not reconcile_before_retry(
+        state=INDETERMINATE, provider_message_id=None, provider_absence_confirmed=False
+    )
+    assert reconcile_before_retry(
+        state=INDETERMINATE, provider_message_id=None, provider_absence_confirmed=True
+    )
+    assert not reconcile_before_retry(
+        state=INDETERMINATE, provider_message_id="postal-accepted", provider_absence_confirmed=True
+    )
 
 
 def test_p8_every_marketing_message_has_one_click_unsubscribe_headers():
@@ -135,7 +144,12 @@ def test_p10_security_and_transactional_precede_marketing():
     sources = _source("main.py") + _source("provider.py") + _source("security_smtp_worker.py")
     assert "stream_priority" in sources
     assert "SECURITY" in sources and "TRANSACTIONAL" in sources and "MARKETING" in sources
-    assert stream_priority("SECURITY") < stream_priority("TRANSACTIONAL") < stream_priority("MARKETING") < stream_priority("BULK")
+    assert (
+        stream_priority("SECURITY")
+        < stream_priority("TRANSACTIONAL")
+        < stream_priority("MARKETING")
+        < stream_priority("BULK")
+    )
 
 
 def test_p11_warmup_limits_are_enforced_before_every_submission():
@@ -200,9 +214,10 @@ def test_p12_suppressed_recipient_is_rejected_at_smtp_rcpt():
     assert asyncio.run(
         relay.handle_MAIL(None, smtp_session, envelope, "sender@p12.example", [])
     ).startswith("250")
-    assert asyncio.run(
-        relay.handle_RCPT(None, smtp_session, envelope, "blocked@example.net", [])
-    ) == "550 5.7.1 recipient suppressed"
+    assert (
+        asyncio.run(relay.handle_RCPT(None, smtp_session, envelope, "blocked@example.net", []))
+        == "550 5.7.1 recipient suppressed"
+    )
     assert envelope.rcpt_tos == []
 
 
@@ -212,12 +227,15 @@ def test_p12_suppressed_recipient_is_rejected_at_smtp_rcpt():
 )
 def test_p13_sandbox_delivery_is_confined_to_allowlist_or_sink(path):
     assert main.SAFE_MODE is True
-    assert effective_sandbox(
-        stream="TRANSACTIONAL",
-        tenant_sandbox_mode=False,
-        tenant_sending_disabled=False,
-        environment={},
-    ) is True
+    assert (
+        effective_sandbox(
+            stream="TRANSACTIONAL",
+            tenant_sandbox_mode=False,
+            tenant_sending_disabled=False,
+            environment={},
+        )
+        is True
+    )
     main.rate_buckets.clear()
     seed_mail_paths()
     main.app.dependency_overrides[main.auth] = lambda: CONTEXT
@@ -290,7 +308,7 @@ def test_p17_provider_message_idempotency_and_correlation_are_unique():
 def test_p18_attachment_path_components_are_rejected():
     raw = (
         b"From: sender@example.net\r\nTo: recipient@example.net\r\n"
-        b"Content-Disposition: attachment; filename=\"../secret.txt\"\r\n\r\nx"
+        b'Content-Disposition: attachment; filename="../secret.txt"\r\n\r\nx'
     )
     with pytest.raises(HTTPException, match="unsafe_attachment_filename"):
         parse_inbound(raw, 100_000, 10_000)
@@ -309,12 +327,15 @@ def test_p20_middleware_recipient_reference_is_sha256_and_not_cleartext():
     emit_source = inspect.getsource(main.emit_middleware)
     assert '"recipient_reference"' in emit_source
     assert '"sha256:"+hashlib.sha256' in emit_source
-    assert '"recipient":' not in emit_source.split("if event_type.startswith", 1)[1].split("else:", 1)[0]
+    assert (
+        '"recipient":'
+        not in emit_source.split("if event_type.startswith", 1)[1].split("else:", 1)[0]
+    )
 
 
 def test_tenant_worker_preserves_authenticated_provider_acceptance_after_submit():
     worker = _source("tenant_postal_delivery.py")
     success_path = worker.split("with DB() as session:", 2)[2]
-    assert 'item.provider_message_id = provider_id' in success_path
+    assert "item.provider_message_id = provider_id" in success_path
     assert 'set_core_message_status(message, "provider_accepted")' in success_path
     assert 'item.state == "cancelled"' not in success_path

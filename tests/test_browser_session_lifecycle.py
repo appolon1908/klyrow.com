@@ -1,14 +1,14 @@
 import os
 import uuid
-from datetime import timedelta, timezone
+from datetime import UTC, timedelta
 
 from fastapi import Request
 from fastapi.testclient import TestClient
 
+from apps.gateway.app.main import DB, Base, Tenant, User, engine, ph, sha
 from apps.gateway.app import auth_bff
-from apps.gateway.app.auth_bff import BrowserSession, SESSION_COOKIE
+from apps.gateway.app.auth_bff import SESSION_COOKIE, BrowserSession
 from apps.gateway.app.browser_auth_actions import stable_csrf_token
-from apps.gateway.app.main import Base, DB, Tenant, User, engine, ph, sha
 from apps.gateway.app.platform import app
 from apps.gateway.app.tenancy import OidcIdentity, TenantMember
 
@@ -16,7 +16,7 @@ ISSUER = "https://auth.codestra.co/realms/codestra"
 
 
 def _utc(value):
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    return value if value.tzinfo else value.replace(tzinfo=UTC)
 
 
 def _client():
@@ -157,9 +157,11 @@ def test_refresh_rotation_preserves_original_absolute_deadline():
         parent = session.get(BrowserSession, fixture["session_id"])
         identity = session.get(OidcIdentity, fixture["identity_id"])
         user = session.get(User, fixture["user_id"])
-        membership = session.query(TenantMember).filter_by(
-            tenant_id=fixture["tenant_id"], user_id=fixture["user_id"]
-        ).one()
+        membership = (
+            session.query(TenantMember)
+            .filter_by(tenant_id=fixture["tenant_id"], user_id=fixture["user_id"])
+            .one()
+        )
         deadline = _utc(parent.expires_at)
         child, _raw, _csrf = auth_bff._new_session(
             session,

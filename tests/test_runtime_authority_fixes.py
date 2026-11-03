@@ -7,9 +7,9 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
+from apps.gateway.app.main import sha
 from apps.gateway.app import operations
 from apps.gateway.app import runtime_authority_fixes as fixes
-from apps.gateway.app.main import sha
 
 
 class FakeMessage:
@@ -67,9 +67,7 @@ class CompatibilitySession:
             return self.legacy
         if self.calls == 3:
             return self.persisted_message_id
-        raise AssertionError(
-            "send flow advanced past expected compatibility lookups"
-        )
+        raise AssertionError("send flow advanced past expected compatibility lookups")
 
 
 def legacy_record(

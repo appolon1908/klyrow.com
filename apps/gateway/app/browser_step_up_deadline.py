@@ -8,27 +8,26 @@ never outlive the locked parent session.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, Request
 from sqlalchemy.orm import Session
 
+from .main import User
 from . import auth_bff, browser_security_fixes
 from .auth_bff import BrowserSession
-from .main import User
 from .tenancy import OidcIdentity, TenantMember
 
 _ORIGINAL_STAGE_NEW_SESSION = browser_security_fixes._stage_new_session
 _INSTALLED = False
 
 
-def _as_utc(value: Optional[datetime]) -> Optional[datetime]:
+def _as_utc(value: datetime | None) -> datetime | None:
     if value is None:
         return None
     if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def stage_new_session_with_parent_deadline(
@@ -38,7 +37,7 @@ def stage_new_session_with_parent_deadline(
     user: User,
     membership: TenantMember,
     tokens: dict,
-    rotated_from_id: Optional[str] = None,
+    rotated_from_id: str | None = None,
 ):
     """Stage a replacement whose expiry is capped by its locked parent."""
 
@@ -89,9 +88,7 @@ def install_step_up_deadline_guard(app) -> None:
         False,
     ):
         return
-    browser_security_fixes._stage_new_session = (
-        stage_new_session_with_parent_deadline
-    )
+    browser_security_fixes._stage_new_session = stage_new_session_with_parent_deadline
     app.state.klyrow_step_up_deadline_guard_installed = True
     _INSTALLED = True
 

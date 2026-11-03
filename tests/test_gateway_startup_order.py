@@ -4,10 +4,9 @@ Reloading `apps.gateway.app.main` in-process re-registers Prometheus metrics
 against the global default registry and raises spuriously, so process-boundary
 behavior (import success/failure) is exercised via a fresh subprocess instead.
 """
+
 import subprocess
 import sys
-
-import pytest
 
 
 def _run_import(env_overrides: dict[str, str]) -> subprocess.CompletedProcess:
@@ -122,10 +121,10 @@ def test_worker_scheduling_hooks_are_registered_after_billing_validation():
 
 def test_existing_runtime_smoke_endpoints_remain_reachable():
     """Existing email/runtime startup behavior stays green after the Mission 01 gate."""
-    import apps.gateway.app.main as main_module
     from fastapi.testclient import TestClient
+
+    import apps.gateway.app.main as main_module
 
     client = TestClient(main_module.app)
     response = client.get("/v1/health")
     assert response.status_code == 200
-

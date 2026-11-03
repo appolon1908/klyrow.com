@@ -6,7 +6,6 @@ import dns.resolver
 import pytest
 from sqlalchemy import select
 
-from test_middleware_email_contract import gateway
 from apps.gateway.app import saas
 
 
@@ -50,17 +49,20 @@ def test_ptr_queries_all_address_octets_and_persists_evidence(gateway, monkeypat
         assert snapshot.tenant_id == "tenant-a" and snapshot.ptr is True
 
 
-@pytest.mark.parametrize("records, expected", [
-    (["MAIL.EXAMPLE.COM."], True),
-    (["mail.example.com"], True),
-    (["unrelated.example.", "mail.example.com."], True),
-    (["mail.example.com.attacker.invalid."], False),
-    (["evilmail.example.com."], False),
-    (["unrelated.example."], False),
-    ([], False),
-    (dns.resolver.NXDOMAIN(), False),
-    (dns.resolver.LifetimeTimeout(), False),
-])
+@pytest.mark.parametrize(
+    "records, expected",
+    [
+        (["MAIL.EXAMPLE.COM."], True),
+        (["mail.example.com"], True),
+        (["unrelated.example.", "mail.example.com."], True),
+        (["mail.example.com.attacker.invalid."], False),
+        (["evilmail.example.com."], False),
+        (["unrelated.example."], False),
+        ([], False),
+        (dns.resolver.NXDOMAIN(), False),
+        (dns.resolver.LifetimeTimeout(), False),
+    ],
+)
 def test_ptr_requires_exact_normalized_mail_host(gateway, monkeypatch, records, expected):
     client, _, _ = gateway
     dns_answers(monkeypatch, records)

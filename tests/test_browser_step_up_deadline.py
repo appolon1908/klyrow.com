@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -81,14 +81,11 @@ def _stage(session, *, rotated_from_id="parent-session"):
 
 def test_canonical_composition_installs_step_up_deadline_guard() -> None:
     assert app.state.klyrow_step_up_deadline_guard_installed is True
-    assert (
-        browser_security_fixes._stage_new_session
-        is stage_new_session_with_parent_deadline
-    )
+    assert browser_security_fixes._stage_new_session is stage_new_session_with_parent_deadline
 
 
 def test_rotated_child_cannot_outlive_parent(monkeypatch) -> None:
-    fixed_now = datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)
+    fixed_now = datetime(2026, 9, 5, 12, 0, tzinfo=UTC)
     parent_expiry = fixed_now + timedelta(minutes=5)
     child = SimpleNamespace(expires_at=fixed_now + timedelta(hours=8))
     observed = _install_fake_stage(monkeypatch, child)
@@ -106,14 +103,12 @@ def test_rotated_child_cannot_outlive_parent(monkeypatch) -> None:
 
 
 def test_shorter_child_deadline_is_preserved(monkeypatch) -> None:
-    fixed_now = datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)
+    fixed_now = datetime(2026, 9, 5, 12, 0, tzinfo=UTC)
     child_expiry = fixed_now + timedelta(minutes=2)
     child = SimpleNamespace(expires_at=child_expiry)
     _install_fake_stage(monkeypatch, child)
     monkeypatch.setattr(auth_bff, "now", lambda: fixed_now)
-    session = _ParentSession(
-        _parent(expires_at=fixed_now + timedelta(minutes=5))
-    )
+    session = _ParentSession(_parent(expires_at=fixed_now + timedelta(minutes=5)))
 
     item, _raw, _csrf = _stage(session)
 
@@ -123,7 +118,7 @@ def test_shorter_child_deadline_is_preserved(monkeypatch) -> None:
 def test_normal_login_keeps_standard_session_ttl_without_parent_lookup(
     monkeypatch,
 ) -> None:
-    child_expiry = datetime(2026, 9, 5, 20, 0, tzinfo=timezone.utc)
+    child_expiry = datetime(2026, 9, 5, 20, 0, tzinfo=UTC)
     child = SimpleNamespace(expires_at=child_expiry)
     observed = _install_fake_stage(monkeypatch, child)
     session = _ParentSession(forbid_get=True)
@@ -137,19 +132,17 @@ def test_normal_login_keeps_standard_session_ttl_without_parent_lookup(
 @pytest.mark.parametrize(
     ("parent", "now"),
     [
-        (None, datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)),
+        (None, datetime(2026, 9, 5, 12, 0, tzinfo=UTC)),
         (
-            _parent(
-                expires_at=datetime(2026, 9, 5, 11, 59, tzinfo=timezone.utc)
-            ),
-            datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc),
+            _parent(expires_at=datetime(2026, 9, 5, 11, 59, tzinfo=UTC)),
+            datetime(2026, 9, 5, 12, 0, tzinfo=UTC),
         ),
         (
             _parent(
-                expires_at=datetime(2026, 9, 5, 12, 5, tzinfo=timezone.utc),
-                revoked_at=datetime(2026, 9, 5, 11, 58, tzinfo=timezone.utc),
+                expires_at=datetime(2026, 9, 5, 12, 5, tzinfo=UTC),
+                revoked_at=datetime(2026, 9, 5, 11, 58, tzinfo=UTC),
             ),
-            datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc),
+            datetime(2026, 9, 5, 12, 0, tzinfo=UTC),
         ),
     ],
 )
@@ -171,14 +164,12 @@ def test_missing_expired_or_revoked_parent_fails_closed(
 
 
 def test_naive_database_deadline_is_normalized_to_utc(monkeypatch) -> None:
-    fixed_now = datetime(2026, 9, 5, 12, 0, tzinfo=timezone.utc)
+    fixed_now = datetime(2026, 9, 5, 12, 0, tzinfo=UTC)
     naive_parent_expiry = datetime(2026, 9, 5, 12, 5)
     child = SimpleNamespace(expires_at=fixed_now + timedelta(hours=8))
     _install_fake_stage(monkeypatch, child)
     monkeypatch.setattr(auth_bff, "now", lambda: fixed_now)
 
-    item, _raw, _csrf = _stage(
-        _ParentSession(_parent(expires_at=naive_parent_expiry))
-    )
+    item, _raw, _csrf = _stage(_ParentSession(_parent(expires_at=naive_parent_expiry)))
 
-    assert item.expires_at == naive_parent_expiry.replace(tzinfo=timezone.utc)
+    assert item.expires_at == naive_parent_expiry.replace(tzinfo=UTC)

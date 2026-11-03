@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from cryptography.fernet import Fernet
 import pytest
+from cryptography.fernet import Fernet
 
 from apps.gateway.app.security_payload import (
     LEGACY_PAYLOAD_VERSION,

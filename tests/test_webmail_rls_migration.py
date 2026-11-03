@@ -17,8 +17,15 @@ def test_webmail_rls_migration_covers_all_browser_mail_tenant_tables():
 
 
 def test_webmail_rls_uses_the_existing_least_privilege_runtime_role_contract():
-    least_privilege = Path("migrations/2026090208_runtime_database_least_privilege.sql").read_text(encoding="utf-8")
-    billing_rls = Path("migrations/2026092101_billing_rls_runtime_roles.sql").read_text(encoding="utf-8")
+    least_privilege = Path("migrations/2026090208_runtime_database_least_privilege.sql").read_text(
+        encoding="utf-8"
+    )
+    billing_rls = Path("migrations/2026092101_billing_rls_runtime_roles.sql").read_text(
+        encoding="utf-8"
+    )
     assert "klyrow_runtime" in least_privilege
     assert "NOBYPASSRLS" in least_privilege or "NOBYPASSRLS" in billing_rls
-    assert "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO klyrow_runtime" in least_privilege
+    assert (
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO klyrow_runtime"
+        in least_privilege
+    )

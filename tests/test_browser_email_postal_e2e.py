@@ -1,22 +1,38 @@
 import asyncio
 import json
-import os
-from datetime import datetime, timedelta, timezone
-from urllib.parse import parse_qs, urlparse
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
+from urllib.parse import parse_qs, urlparse
 
-import pytest
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from apps.gateway.app.main import Base, DB, EmailOutbox, Message, ProductionCanaryGate, Tenant, engine
-from apps.gateway.app.billing import BillingSubscription
+from apps.gateway.app.main import (
+    DB,
+    Base,
+    EmailOutbox,
+    Message,
+    ProductionCanaryGate,
+    Tenant,
+    engine,
+)
+from apps.gateway.app import (
+    agent_mailboxes,
+    auth_bff,
+    messaging,
+)
 from apps.gateway.app import main as gateway
-from apps.gateway.app import agent_mailboxes, auth_bff, messaging, postal_provisioning as provisioning, tenant_postal_delivery as delivery
-from apps.gateway.app.postal_provisioning import PostalTenantMapping, encrypt_provider_secret
+from apps.gateway.app import (
+    postal_provisioning as provisioning,
+)
+from apps.gateway.app import (
+    tenant_postal_delivery as delivery,
+)
+from apps.gateway.app.billing import BillingSubscription
 from apps.gateway.app.platform import app
-
+from apps.gateway.app.postal_provisioning import PostalTenantMapping, encrypt_provider_secret
 
 ISSUER = "https://auth.codestra.co/realms/codestra"
 
@@ -63,7 +79,14 @@ def test_login_dashboard_domain_sender_compose_outbox_postal(monkeypatch):
     login = client.get("/auth/login?return_to=/app", follow_redirects=False)
     assert login.status_code == 302
     state = parse_qs(urlparse(login.headers["location"]).query)["state"][0]
-    monkeypatch.setattr(auth_bff, "_exchange_code", lambda *_args, **_kwargs: {"id_token": "e2e-id-token", "refresh_token": "e2e-refresh-token"})
+    monkeypatch.setattr(
+        auth_bff,
+        "_exchange_code",
+        lambda *_args, **_kwargs: {
+            "id_token": "e2e-id-token",
+            "refresh_token": "e2e-refresh-token",
+        },
+    )
     monkeypatch.setattr(
         auth_bff,
         "_validate_id_token",
@@ -85,7 +108,16 @@ def test_login_dashboard_domain_sender_compose_outbox_postal(monkeypatch):
     csrf = session.json()["csrf_token"]
     tenant_id = session.json()["tenant_id"]
     with DB() as database:
-        database.add(BillingSubscription(id="browser-e2e-subscription",tenant_id=tenant_id,plan_id="browser-e2e-plan",price_id="browser-e2e-price",status="ACTIVE",period_end=datetime.now(timezone.utc)+timedelta(days=30)))
+        database.add(
+            BillingSubscription(
+                id="browser-e2e-subscription",
+                tenant_id=tenant_id,
+                plan_id="browser-e2e-plan",
+                price_id="browser-e2e-price",
+                status="ACTIVE",
+                period_end=datetime.now(UTC) + timedelta(days=30),
+            )
+        )
         database.commit()
     dashboard = client.get("/app/api/dashboard")
     assert dashboard.status_code == 200
@@ -181,8 +213,11 @@ def test_login_dashboard_domain_sender_compose_outbox_postal(monkeypatch):
             captured.update(url=url, headers=headers or {}, payload=json)
             return PostalResponse()
 
-    with patch.object(delivery.asyncio, "sleep", new=AsyncMock(side_effect=[None, asyncio.CancelledError()])), patch.object(
-        delivery.httpx, "AsyncClient", return_value=PostalClient()
+    with (
+        patch.object(
+            delivery.asyncio, "sleep", new=AsyncMock(side_effect=[None, asyncio.CancelledError()])
+        ),
+        patch.object(delivery.httpx, "AsyncClient", return_value=PostalClient()),
     ):
         with pytest.raises(asyncio.CancelledError):
             asyncio.run(provisioning.tenant_email_outbox_loop())
@@ -213,27 +248,78 @@ def test_tenant_worker_quarantines_ambiguous_provider_submission(monkeypatch):
     monkeypatch.setenv("KLYROW_CANARY_ALLOWED_CAMPAIGN", "AMBIGUOUS-CANARY")
     monkeypatch.setenv("KLYROW_CANARY_MAX_DELIVERIES", "1")
     monkeypatch.setattr(delivery, "SAFE_MODE", False)
-    payload={"to":["sink@example.net"],"from":"send@e2e.example","subject":"ambiguous","plain_body":"fixture","stream":"transactional","campaign_id":"AMBIGUOUS-CANARY"}
+    payload = {
+        "to": ["sink@example.net"],
+        "from": "send@e2e.example",
+        "subject": "ambiguous",
+        "plain_body": "fixture",
+        "stream": "transactional",
+        "campaign_id": "AMBIGUOUS-CANARY",
+    }
     with DB() as session:
-        session.add(Tenant(id="ambiguous-tenant",name="Ambiguous",quota=10))
-        session.add(PostalTenantMapping(tenant_id="ambiguous-tenant",state="READY",api_key_ciphertext=encrypt_provider_secret("tenant-provider-key")))
-        session.add(ProductionCanaryGate(gate_key=gateway.canary_gate_key(),reserved_deliveries=1,claimed_deliveries=0))
-        session.add(Message(id="ambiguous-message",tenant_id="ambiguous-tenant",recipient="sink@example.net",sender="send@e2e.example",subject="ambiguous",status="queued"))
-        session.add(EmailOutbox(id="ambiguous-outbox",tenant_id="ambiguous-tenant",message_id="ambiguous-message",payload=json.dumps(payload),state="pending",attempts=0))
+        session.add(Tenant(id="ambiguous-tenant", name="Ambiguous", quota=10))
+        session.add(
+            PostalTenantMapping(
+                tenant_id="ambiguous-tenant",
+                state="READY",
+                api_key_ciphertext=encrypt_provider_secret("tenant-provider-key"),
+            )
+        )
+        session.add(
+            ProductionCanaryGate(
+                gate_key=gateway.canary_gate_key(), reserved_deliveries=1, claimed_deliveries=0
+            )
+        )
+        session.add(
+            Message(
+                id="ambiguous-message",
+                tenant_id="ambiguous-tenant",
+                recipient="sink@example.net",
+                sender="send@e2e.example",
+                subject="ambiguous",
+                status="queued",
+            )
+        )
+        session.add(
+            EmailOutbox(
+                id="ambiguous-outbox",
+                tenant_id="ambiguous-tenant",
+                message_id="ambiguous-message",
+                payload=json.dumps(payload),
+                state="pending",
+                attempts=0,
+            )
+        )
         session.commit()
 
     class AmbiguousClient:
-        async def __aenter__(self):return self
-        async def __aexit__(self,*_args):return False
-        async def post(self,*_args,**_kwargs):
-            raise httpx.ReadTimeout("provider acknowledgement unavailable",request=httpx.Request("POST","https://postal.test/api/v1/send/message"))
+        async def __aenter__(self):
+            return self
 
-    with patch.object(delivery.asyncio,"sleep",new=AsyncMock(side_effect=[None,asyncio.CancelledError()])),patch.object(delivery.httpx,"AsyncClient",return_value=AmbiguousClient()):
+        async def __aexit__(self, *_args):
+            return False
+
+        async def post(self, *_args, **_kwargs):
+            raise httpx.ReadTimeout(
+                "provider acknowledgement unavailable",
+                request=httpx.Request("POST", "https://postal.test/api/v1/send/message"),
+            )
+
+    with (
+        patch.object(
+            delivery.asyncio, "sleep", new=AsyncMock(side_effect=[None, asyncio.CancelledError()])
+        ),
+        patch.object(delivery.httpx, "AsyncClient", return_value=AmbiguousClient()),
+    ):
         with pytest.raises(asyncio.CancelledError):
             asyncio.run(delivery.tenant_email_outbox_loop())
 
     with DB() as session:
-        outbox=session.get(EmailOutbox,"ambiguous-outbox")
-        assert outbox.state=="INDETERMINATE" and outbox.attempts==1 and outbox.next_attempt_at is None
-        assert session.get(Message,"ambiguous-message").status=="indeterminate"
-        assert session.get(ProductionCanaryGate,gateway.canary_gate_key()).claimed_deliveries==1
+        outbox = session.get(EmailOutbox, "ambiguous-outbox")
+        assert (
+            outbox.state == "INDETERMINATE"
+            and outbox.attempts == 1
+            and outbox.next_attempt_at is None
+        )
+        assert session.get(Message, "ambiguous-message").status == "indeterminate"
+        assert session.get(ProductionCanaryGate, gateway.canary_gate_key()).claimed_deliveries == 1

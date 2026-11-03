@@ -303,9 +303,7 @@ def test_one_row_reconciliation_yields_to_usage_after_classifying_blocked_event(
     assert isolated_session.get(ProviderEvent, blocked.id).last_error == (
         BLOCKED_RECONCILIATION_MARKER
     )
-    assert isolated_session.get(ProviderUsageEvent, usage.id).state == (
-        "DEAD_LETTER"
-    )
+    assert isolated_session.get(ProviderUsageEvent, usage.id).state == ("DEAD_LETTER")
 
     second = reconcile_provider_outbox_dead_letters(
         isolated_session,
@@ -319,6 +317,4 @@ def test_one_row_reconciliation_yields_to_usage_after_classifying_blocked_event(
     assert second["events_blocked"] == 0
     assert second["usage_requeued"] == 1
     assert isolated_session.get(ProviderUsageEvent, usage.id).state == "RETRY"
-    assert isolated_session.get(ProviderEvent, blocked.id).state == (
-        "DEAD_LETTER"
-    )
+    assert isolated_session.get(ProviderEvent, blocked.id).state == ("DEAD_LETTER")

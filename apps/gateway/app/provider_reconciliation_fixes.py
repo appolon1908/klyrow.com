@@ -54,8 +54,7 @@ def middleware_inbound_eligible(route: Any, disposition: str) -> bool:
     """Allow only accepted mail bound to an explicit/allowlisted Odoo route."""
 
     return (
-        disposition == "ACCEPT"
-        and middleware_destination_kind(route) in EXPLICIT_ODOO_DESTINATIONS
+        disposition == "ACCEPT" and middleware_destination_kind(route) in EXPLICIT_ODOO_DESTINATIONS
     )
 
 
@@ -283,9 +282,7 @@ def _upgrade_legacy_inbound_event(
         "attachments": [],
         "attachment_contents": [],
     }
-    occurred_at = str(
-        existing.get("occurred_at") or event.created_at.isoformat()
-    )
+    occurred_at = str(existing.get("occurred_at") or event.created_at.isoformat())
     payload_hash = str(
         existing.get("payload_hash")
         or provider.hashlib.sha256(event.payload_json.encode()).hexdigest()
@@ -380,18 +377,14 @@ def _upgrade_lifecycle_event(
         sender = provider_message.sender
         recipient = provider_message.recipient
         correlation_id = provider_message.correlation_id or event.id
-        provider_message_id = (
-            provider_message.provider_message_id or provider_message.id
-        )
+        provider_message_id = provider_message.provider_message_id or provider_message.id
         stream = str(provider_message.stream or "TRANSACTIONAL").lower()
         status = str(provider_message.status or event.kind.rsplit(".", 1)[-1]).lower()
     else:
         sender = core_message.sender
         recipient = core_message.recipient
         correlation_id = (
-            getattr(outbox, "correlation_id", None)
-            or existing.get("correlation_id")
-            or event.id
+            getattr(outbox, "correlation_id", None) or existing.get("correlation_id") or event.id
         )
         provider_message_id = (
             getattr(outbox, "provider_message_id", None)
@@ -447,8 +440,7 @@ def _upgrade_lifecycle_event(
         "recipient": recipient,
         "sender": sender,
         "recipient_reference": (
-            "sha256:"
-            + provider.hashlib.sha256(str(recipient).lower().encode()).hexdigest()
+            "sha256:" + provider.hashlib.sha256(str(recipient).lower().encode()).hexdigest()
         ),
         "status": status,
         "canonical_status": status,
@@ -498,8 +490,7 @@ def _event_ordering():
     return (
         case(
             (
-                provider.ProviderEvent.last_error
-                == BLOCKED_RECONCILIATION_MARKER,
+                provider.ProviderEvent.last_error == BLOCKED_RECONCILIATION_MARKER,
                 1,
             ),
             else_=0,
@@ -519,18 +510,12 @@ def _load_events(
 ) -> list[Any]:
     if limit <= 0:
         return []
-    statement = select(provider.ProviderEvent).where(
-        *_due_event_predicate(tenant_id, current)
-    )
+    statement = select(provider.ProviderEvent).where(*_due_event_predicate(tenant_id, current))
     if excluded_ids:
-        statement = statement.where(
-            provider.ProviderEvent.id.not_in(sorted(excluded_ids))
-        )
+        statement = statement.where(provider.ProviderEvent.id.not_in(sorted(excluded_ids)))
     return list(
         session.scalars(
-            statement.order_by(*_event_ordering())
-            .limit(limit)
-            .with_for_update(skip_locked=True)
+            statement.order_by(*_event_ordering()).limit(limit).with_for_update(skip_locked=True)
         ).all()
     )
 
@@ -666,9 +651,7 @@ def reconcile_provider_outbox_dead_letters(
         result["examined"] = int(result["examined"]) + 1
         upgraded = None
         if event.kind == "inbound.received":
-            decision, upgraded = provider._upgrade_legacy_inbound_event(
-                session, event
-            )
+            decision, upgraded = provider._upgrade_legacy_inbound_event(session, event)
         elif event.kind in core.SMTP_EVENT_MAP:
             decision, upgraded = _upgrade_lifecycle_event(session, event)
         else:
@@ -740,8 +723,7 @@ def reconcile_provider_outbox_dead_letters(
         .where(
             provider.ProviderEvent.state == "DEAD_LETTER",
             provider.ProviderEvent.tenant_id == tenant_id,
-            provider.ProviderEvent.last_error
-            == BLOCKED_RECONCILIATION_MARKER,
+            provider.ProviderEvent.last_error == BLOCKED_RECONCILIATION_MARKER,
         ),
     )
 
@@ -767,9 +749,7 @@ def install_provider_reconciliation_fixes() -> None:
     provider.middleware_destination_kind = middleware_destination_kind
     provider.middleware_inbound_eligible = middleware_inbound_eligible
     provider._upgrade_legacy_inbound_event = _upgrade_legacy_inbound_event
-    provider.reconcile_provider_outbox_dead_letters = (
-        reconcile_provider_outbox_dead_letters
-    )
+    provider.reconcile_provider_outbox_dead_letters = reconcile_provider_outbox_dead_letters
     _INSTALLED = True
 
 

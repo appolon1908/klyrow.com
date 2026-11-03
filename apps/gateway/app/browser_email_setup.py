@@ -3,11 +3,12 @@
 This deliberately reuses the public messaging domain/sender primitives so the
 browser dashboard and API clients share one authorization and validation path.
 """
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from .auth_bff import BrowserSession, browser_context, csrf_guard
 from .main import db
+from .auth_bff import BrowserSession, browser_context, csrf_guard
 from .messaging import (
     DomainClaimIn,
     SenderIn,
@@ -24,6 +25,7 @@ router = APIRouter(tags=["Browser email setup"])
 def _management_required(ctx: dict) -> None:
     if ctx.get("role") not in {"OWNER", "ADMIN"}:
         from fastapi import HTTPException
+
         raise HTTPException(403, "tenant_management_denied")
 
 

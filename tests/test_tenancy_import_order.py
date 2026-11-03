@@ -1,14 +1,16 @@
 """Tenant models can be imported before the application composition root."""
 
 import os
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 
-@pytest.mark.parametrize("first_module", ["tenancy", "auth_bff", "platform_owner", "browser_observability"])
+@pytest.mark.parametrize(
+    "first_module", ["tenancy", "auth_bff", "platform_owner", "browser_observability"]
+)
 def test_early_tenancy_import_preserves_core_admin_authentication(first_module):
     code = f"""
 import importlib
@@ -39,18 +41,25 @@ response = TestClient(app).get(observability_path)
 assert response.status_code == 401, response.text
 """
     env = {
-        key: value for key, value in os.environ.items()
+        key: value
+        for key, value in os.environ.items()
         if not key.startswith(("KLYROW_", "CODESTRA_"))
     }
     env.update(
-        KLYROW_ENV="development", KLYROW_DATABASE_URL="sqlite://",
-        KLYROW_SAFE_MODE="true", KLYROW_EMBEDDED_WORKERS="false",
-        LIVE_EMAIL_DELIVERY="false", EXTERNAL_EMAIL_DELIVERY="false",
+        KLYROW_ENV="development",
+        KLYROW_DATABASE_URL="sqlite://",
+        KLYROW_SAFE_MODE="true",
+        KLYROW_EMBEDDED_WORKERS="false",
+        LIVE_EMAIL_DELIVERY="false",
+        EXTERNAL_EMAIL_DELIVERY="false",
         PRODUCTION_PROVIDER_ROUTING="false",
     )
     result = subprocess.run(
         [sys.executable, "-c", code],
-        cwd=Path(__file__).resolve().parents[1], env=env,
-        capture_output=True, text=True, timeout=30,
+        cwd=Path(__file__).resolve().parents[1],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
     )
     assert result.returncode == 0, result.stdout + result.stderr

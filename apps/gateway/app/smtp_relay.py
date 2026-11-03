@@ -5,18 +5,17 @@ import json
 import os
 import ssl
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from email import policy
 from email.parser import BytesParser
 
-from aiosmtpd.smtp import AuthResult, LoginPassword, SMTP
+from aiosmtpd.smtp import SMTP, AuthResult, LoginPassword
 from argon2.exceptions import VerifyMismatchError
 from fastapi import HTTPException
 from sqlalchemy import func, select
 
-from .guards import authorize_send, enforce_consent
-from .guards import enforce_suppression
 from .main import DB, Tenant
+from .guards import authorize_send, enforce_consent, enforce_suppression
 from .provider import (
     ProviderAudit,
     ProviderDomain,
@@ -38,7 +37,7 @@ from .smtp_policy import (
 
 
 def utcnow():
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _credential_policy(db, credential):
@@ -49,9 +48,7 @@ def _credential_policy(db, credential):
     sandbox = effective_sandbox(
         stream=stream,
         tenant_sandbox_mode=True if tenant_policy is None else tenant_policy.sandbox_mode,
-        tenant_sending_disabled=True
-        if tenant_policy is None
-        else tenant_policy.sending_disabled,
+        tenant_sending_disabled=True if tenant_policy is None else tenant_policy.sending_disabled,
     )
     return stream, sandbox, tenant_policy
 
@@ -72,7 +69,7 @@ def authenticate(_server, _session, _envelope, _mechanism, auth_data):
             return AuthResult(success=False, handled=False)
         expiry = credential.expires_at
         if expiry and expiry.tzinfo is None:
-            expiry = expiry.replace(tzinfo=timezone.utc)
+            expiry = expiry.replace(tzinfo=UTC)
         if expiry and expiry <= utcnow():
             return AuthResult(success=False, handled=False)
         try:
@@ -123,10 +120,7 @@ class GovernedRelay:
                 or domain.status not in {"VERIFIED", "SENDING_ENABLED"}
                 or not tenant
                 or not tenant.enabled
-                or (
-                    tenant_policy
-                    and tenant_policy.reputation_state == "SUSPENDED"
-                )
+                or (tenant_policy and tenant_policy.reputation_state == "SUSPENDED")
             ):
                 return "550 5.7.1 sender not authorized"
         envelope.mail_from = normalized_address
@@ -179,10 +173,7 @@ class GovernedRelay:
         raw = envelope.original_content
         original_raw_digest = hashlib.sha256(raw).hexdigest()
         parsed = BytesParser(policy=policy.default).parsebytes(raw)
-        message_id = (
-            parsed.get("Message-ID")
-            or "<" + uuid.uuid4().hex + "@mail.klyrow.com>"
-        )
+        message_id = parsed.get("Message-ID") or "<" + uuid.uuid4().hex + "@mail.klyrow.com>"
         subject = str(parsed.get("Subject") or "")[:998]
         with DB() as db:
             credential = db.get(SmtpCredential, session.auth_data)
@@ -213,10 +204,7 @@ class GovernedRelay:
                     )
                     or 0
                 )
-                if (
-                    hourly >= tenant_policy.hourly_limit
-                    or daily >= tenant_policy.daily_limit
-                ):
+                if hourly >= tenant_policy.hourly_limit or daily >= tenant_policy.daily_limit:
                     return "452 4.7.0 tenant quota exceeded"
 
             identity = db.scalar(
@@ -268,6 +256,7 @@ class GovernedRelay:
 
             if stream == "MARKETING":
                 from .preferences import one_click_unsubscribe_headers
+
                 headers = one_click_unsubscribe_headers(credential.tenant_id, envelope.rcpt_tos[0])
                 for name, value in headers.items():
                     if parsed.get(name) is not None:
@@ -294,6 +283,7 @@ class GovernedRelay:
 
             from .billing import UsageEvent
             from .guards import billing_identity
+
             try:
                 subscription_id, price_id = billing_identity(
                     db, credential.tenant_id, sandbox=sandbox
@@ -324,8 +314,7 @@ class GovernedRelay:
                         prior_live_security = (
                             db.scalar(
                                 select(func.count(ProviderMessage.id)).where(
-                                    ProviderMessage.tenant_id
-                                    == credential.tenant_id,
+                                    ProviderMessage.tenant_id == credential.tenant_id,
                                     ProviderMessage.stream == "SECURITY",
                                     ProviderMessage.sandbox.is_(False),
                                 )
@@ -383,9 +372,7 @@ class GovernedRelay:
 async def run():
     context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     context.minimum_version = ssl.TLSVersion.TLSv1_2
-    context.load_cert_chain(
-        os.environ["KLYROW_SMTP_TLS_CERT"], os.environ["KLYROW_SMTP_TLS_KEY"]
-    )
+    context.load_cert_chain(os.environ["KLYROW_SMTP_TLS_CERT"], os.environ["KLYROW_SMTP_TLS_KEY"])
     loop = asyncio.get_running_loop()
     server = await loop.create_server(
         lambda: SMTP(

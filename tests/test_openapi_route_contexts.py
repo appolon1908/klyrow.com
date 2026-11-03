@@ -34,6 +34,4 @@ def test_effective_route_audit_follows_nested_included_routers() -> None:
             "operation",
         )
     ]
-    assert runtime_route_fingerprint(rows) == runtime_route_fingerprint(
-        runtime_routes(app)
-    )
+    assert runtime_route_fingerprint(rows) == runtime_route_fingerprint(runtime_routes(app))

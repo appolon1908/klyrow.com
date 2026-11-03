@@ -1,4 +1,5 @@
 """No-network tests for Klyrow's opt-in SES transport."""
+
 import asyncio
 import smtplib
 from email import policy
@@ -11,14 +12,23 @@ from apps.gateway.app import ses_transport
 
 
 def payload(recipient="success@simulator.amazonses.com", sender="noreply@codestra.agency"):
-    return {"stream": "transactional", "from": sender, "to": [recipient],
-            "subject": "Synthetic integration", "plain_body": "SES simulator only.",
-            "html_body": "<p>Simulator</p>"}
+    return {
+        "stream": "transactional",
+        "from": sender,
+        "to": [recipient],
+        "subject": "Synthetic integration",
+        "plain_body": "SES simulator only.",
+        "html_body": "<p>Simulator</p>",
+    }
 
 
 def allow_simulator(monkeypatch, tmp_path):
-    for name in ("KLYROW_PRODUCTION_GATE_APPROVED", "LIVE_EMAIL_DELIVERY",
-                 "EXTERNAL_EMAIL_DELIVERY", "PRODUCTION_PROVIDER_ROUTING"):
+    for name in (
+        "KLYROW_PRODUCTION_GATE_APPROVED",
+        "LIVE_EMAIL_DELIVERY",
+        "EXTERNAL_EMAIL_DELIVERY",
+        "PRODUCTION_PROVIDER_ROUTING",
+    ):
         monkeypatch.setenv(name, "true")
     monkeypatch.setenv("KLYROW_SAFE_MODE", "false")
     monkeypatch.setenv("KLYROW_EMAIL_TRANSPORT", "ses")
@@ -41,20 +51,28 @@ def smtp_messages(monkeypatch):
     class FakeSMTP:
         def __init__(self, *args, **kwargs):
             pass
+
         def __enter__(self):
             return self
+
         def __exit__(self, *_args):
             pass
+
         def ehlo(self):
             pass
+
         def starttls(self, context):
             pass
+
         def login(self, username, password):
             pass
+
         def mail(self, sender):
             return 250, b"Ok"
+
         def rcpt(self, recipient):
             return 250, b"Ok"
+
         def data(self, body):
             messages.append(body)
             return 250, b"Ok synthetic-provider-id-123456"
@@ -66,8 +84,10 @@ def smtp_messages(monkeypatch):
 def test_smtp_data_uses_crlf_for_multipart_message(monkeypatch, tmp_path, smtp_messages):
     allow_simulator(monkeypatch, tmp_path)
     data = payload()
-    data.update(plain_body="First line\nSecond line\r\nThird line",
-                html_body="<p>First line</p>\n<p>Second line</p>")
+    data.update(
+        plain_body="First line\nSecond line\r\nThird line",
+        html_body="<p>First line</p>\n<p>Second line</p>",
+    )
     ses_transport._submit_smtp(data, correlation_id="synthetic")
     wire = smtp_messages[0]
     assert b"\r\n\r\n" in wire
@@ -93,17 +113,23 @@ def test_smtp_preserves_governed_reply_headers(monkeypatch, tmp_path, smtp_messa
     assert message["X-SES-CONFIGURATION-SET"] == "codestra-klyrow-transactional"
 
 
-@pytest.mark.parametrize("parent", [
-    "<" + "a" * 64 + "@example.com>",
-    "<" + "a" * 983 + "@example.com>",
-    "<abc=?utf-8?q?def?=@example.com>",
-])
+@pytest.mark.parametrize(
+    "parent",
+    [
+        "<" + "a" * 64 + "@example.com>",
+        "<" + "a" * 983 + "@example.com>",
+        "<abc=?utf-8?q?def?=@example.com>",
+    ],
+)
 def test_long_reply_ids_remain_literal_on_wire(monkeypatch, tmp_path, smtp_messages, parent):
     allow_simulator(monkeypatch, tmp_path)
     references = [f"<{index}{'b' * 70}@example.com>" for index in range(30)]
     data = payload()
-    data["headers"] = {"Message-ID": parent, "In-Reply-To": parent,
-                       "References": " ".join(references)}
+    data["headers"] = {
+        "Message-ID": parent,
+        "In-Reply-To": parent,
+        "References": " ".join(references),
+    }
     ses_transport._submit_smtp(data, correlation_id="synthetic")
     wire = smtp_messages[0]
     raw_headers = wire.split(b"\r\n\r\n", 1)[0]
@@ -129,21 +155,24 @@ def test_unrepresentable_reply_ids_rejected_before_network(monkeypatch, tmp_path
         ses_transport._submit_smtp(data, correlation_id="synthetic")
 
 
-@pytest.mark.parametrize("headers", [
-    {"X-SES-CONFIGURATION-SET": "other"},
-    {"X-SES-MESSAGE-TAGS": "environment=production"},
-    {"From": "attacker@example.com"},
-    {"To": "customer@example.com"},
-    {"References": "<parent@example.com>\r\nBcc: attacker@example.com"},
-    {"In-Reply-To": "bad\nheader"},
-    {"Message-ID": ""},
-    {"References": "x" * 4097},
-    {"References": "<one@example.com>" + " " * 1000 + "<two@example.com>"},
-    {"References": None},
-    {"References": 123},
-    None,
-    [],
-])
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"X-SES-CONFIGURATION-SET": "other"},
+        {"X-SES-MESSAGE-TAGS": "environment=production"},
+        {"From": "attacker@example.com"},
+        {"To": "customer@example.com"},
+        {"References": "<parent@example.com>\r\nBcc: attacker@example.com"},
+        {"In-Reply-To": "bad\nheader"},
+        {"Message-ID": ""},
+        {"References": "x" * 4097},
+        {"References": "<one@example.com>" + " " * 1000 + "<two@example.com>"},
+        {"References": None},
+        {"References": 123},
+        None,
+        [],
+    ],
+)
 def test_invalid_reply_headers_rejected_before_network(monkeypatch, tmp_path, headers):
     allow_simulator(monkeypatch, tmp_path)
 
@@ -157,10 +186,16 @@ def test_invalid_reply_headers_rejected_before_network(monkeypatch, tmp_path, he
         ses_transport._submit_smtp(data, correlation_id="synthetic")
 
 
-@pytest.mark.parametrize("blocked", [
-    "KLYROW_SAFE_MODE", "KLYROW_PRODUCTION_GATE_APPROVED", "LIVE_EMAIL_DELIVERY",
-    "EXTERNAL_EMAIL_DELIVERY", "PRODUCTION_PROVIDER_ROUTING",
-])
+@pytest.mark.parametrize(
+    "blocked",
+    [
+        "KLYROW_SAFE_MODE",
+        "KLYROW_PRODUCTION_GATE_APPROVED",
+        "LIVE_EMAIL_DELIVERY",
+        "EXTERNAL_EMAIL_DELIVERY",
+        "PRODUCTION_PROVIDER_ROUTING",
+    ],
+)
 def test_all_five_delivery_gates(monkeypatch, tmp_path, blocked):
     allow_simulator(monkeypatch, tmp_path)
     monkeypatch.setenv(blocked, "true" if blocked == "KLYROW_SAFE_MODE" else "false")
@@ -168,13 +203,16 @@ def test_all_five_delivery_gates(monkeypatch, tmp_path, blocked):
         ses_transport._submit_smtp(payload(), correlation_id="synthetic")
 
 
-@pytest.mark.parametrize(("update", "expected"), [
-    ({"KLYROW_EMAIL_TRANSPORT": "postal"}, "not_selected"),
-    ({"KLYROW_SES_REGION": "us-east-2"}, "region_not_approved"),
-    ({"KLYROW_SES_CONFIGURATION_SET": "other"}, "configuration_set_not_approved"),
-    ({"KLYROW_SES_CANARY_ONLY": "invalid"}, "canary_flag_invalid"),
-    ({"KLYROW_SES_CANARY_ONLY": "false"}, "live_release_not_approved"),
-])
+@pytest.mark.parametrize(
+    ("update", "expected"),
+    [
+        ({"KLYROW_EMAIL_TRANSPORT": "postal"}, "not_selected"),
+        ({"KLYROW_SES_REGION": "us-east-2"}, "region_not_approved"),
+        ({"KLYROW_SES_CONFIGURATION_SET": "other"}, "configuration_set_not_approved"),
+        ({"KLYROW_SES_CANARY_ONLY": "invalid"}, "canary_flag_invalid"),
+        ({"KLYROW_SES_CANARY_ONLY": "false"}, "live_release_not_approved"),
+    ],
+)
 def test_bad_configuration_denied(monkeypatch, tmp_path, update, expected):
     allow_simulator(monkeypatch, tmp_path)
     for name, value in update.items():
@@ -183,14 +221,20 @@ def test_bad_configuration_denied(monkeypatch, tmp_path, update, expected):
         ses_transport._submit_smtp(payload(), correlation_id="synthetic")
 
 
-@pytest.mark.parametrize(("item", "expected"), [
-    ({"to": ["customer@example.com"]}, "ses_simulator_only"),
-    ({"from": "attacker@example.com"}, "sender_domain_not_approved"),
-    ({"stream": "marketing"}, "marketing_not_authorized"),
-    ({"to": ["success@simulator.amazonses.com", "other@example.com"]}, "single_recipient_required"),
-    ({"subject": "Bad\nHeader"}, "subject_invalid"),
-    ({"plain_body": "", "html_body": ""}, "body_required"),
-])
+@pytest.mark.parametrize(
+    ("item", "expected"),
+    [
+        ({"to": ["customer@example.com"]}, "ses_simulator_only"),
+        ({"from": "attacker@example.com"}, "sender_domain_not_approved"),
+        ({"stream": "marketing"}, "marketing_not_authorized"),
+        (
+            {"to": ["success@simulator.amazonses.com", "other@example.com"]},
+            "single_recipient_required",
+        ),
+        ({"subject": "Bad\nHeader"}, "subject_invalid"),
+        ({"plain_body": "", "html_body": ""}, "body_required"),
+    ],
+)
 def test_unauthorized_payload_denied_before_network(monkeypatch, tmp_path, item, expected):
     allow_simulator(monkeypatch, tmp_path)
     data = payload()
@@ -222,25 +266,33 @@ def test_valid_simulator_uses_tls_auth_and_configuration_header(monkeypatch, tmp
     class FakeSMTP:
         def __init__(self, host, port, timeout):
             events.append(("open", host, port, timeout))
+
         def __enter__(self):
             return self
+
         def __exit__(self, *_args):
             events.append(("close",))
+
         def ehlo(self):
             events.append(("ehlo",))
+
         def starttls(self, context):
             assert context is not None
             events.append(("starttls",))
+
         def login(self, user, password):
             assert user == "SYNTHETICKEY00000001"
             assert password == "synthetic-test-password-only"
             events.append(("login",))
+
         def mail(self, sender):
             events.append(("mail", sender))
             return 250, b"Ok"
+
         def rcpt(self, recipient):
             events.append(("rcpt", recipient))
             return 250, b"Ok"
+
         def data(self, body):
             text = body.decode("utf-8")
             assert "X-SES-CONFIGURATION-SET: codestra-klyrow-transactional" in text
@@ -250,8 +302,7 @@ def test_valid_simulator_uses_tls_auth_and_configuration_header(monkeypatch, tmp
             return 250, b"Ok synthetic-provider-id-123456"
 
     monkeypatch.setattr(smtplib, "SMTP", FakeSMTP)
-    provider_id = asyncio.run(
-        ses_transport.send_ses_message(payload(), correlation_id="synthetic"))
+    provider_id = asyncio.run(ses_transport.send_ses_message(payload(), correlation_id="synthetic"))
     assert provider_id == "synthetic-provider-id-123456"
     assert events[0] == ("open", "email-smtp.us-east-1.amazonaws.com", 587, 12)
     assert [x[0] for x in events].index("starttls") < [x[0] for x in events].index("login")
@@ -265,20 +316,28 @@ def test_rejected_ses_data_not_marked_accepted(monkeypatch, tmp_path):
     class FakeSMTP:
         def __init__(self, *args, **kwargs):
             pass
+
         def __enter__(self):
             return self
+
         def __exit__(self, *_args):
             pass
+
         def ehlo(self):
             pass
+
         def starttls(self, context):
             pass
+
         def login(self, username, password):
             pass
+
         def mail(self, sender):
             return 250, b"Ok"
+
         def rcpt(self, recipient):
             return 250, b"Ok"
+
         def data(self, body):
             return 451, b"Temporary failure"
 
@@ -302,4 +361,7 @@ def test_postal_default_retained():
 def test_ses_event_provider_attribution():
     source = Path("apps/gateway/app/main.py").read_text()
     assert '"provider":os.getenv("KLYROW_EMAIL_TRANSPORT","postal")' in source
-    assert '"provider":str(payload.get("provider") or os.getenv("KLYROW_EMAIL_TRANSPORT","postal"))' in source
+    assert (
+        '"provider":str(payload.get("provider") or os.getenv("KLYROW_EMAIL_TRANSPORT","postal"))'
+        in source
+    )

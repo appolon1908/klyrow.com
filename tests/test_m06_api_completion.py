@@ -5,14 +5,26 @@ message events/batch aliases, template versions, campaign test send,
 webhook delivery introspection/replay/rotate-secret, and the customer-facing
 suppression check. Mirrors the existing test_messaging.py / test_api.py style.
 """
+
 import socket
 from unittest.mock import patch
 
-from fastapi.testclient import TestClient
-from fastapi import HTTPException
 import pytest
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
-from apps.gateway.app.main import AllowedSender, Base, DB, Domain, Tenant, User, app, engine, ph, rate_buckets
+from apps.gateway.app.main import (
+    DB,
+    AllowedSender,
+    Base,
+    Domain,
+    Tenant,
+    User,
+    app,
+    engine,
+    ph,
+    rate_buckets,
+)
 
 client = TestClient(app)
 tokens = {}
@@ -21,8 +33,8 @@ tokens = {}
 @pytest.mark.parametrize("role", ["BILLING", "SUPPORT", "READ_ONLY"])
 @pytest.mark.parametrize("operation", ["replay", "rotate"])
 def test_webhook_mutations_require_management_before_database_access(role, operation):
-    from apps.gateway.app.messaging import webhook_delivery_replay, webhook_rotate_secret
     from apps.gateway.app.capabilities import mutation_permission
+    from apps.gateway.app.messaging import webhook_delivery_replay, webhook_rotate_secret
 
     context = {"tenant": "a", "role": role}
     # No session is supplied: authorization must reject before any data access.
@@ -43,17 +55,32 @@ def setup_module():
     with DB() as s:
         for tid in ("a", "b"):
             s.add(Tenant(id=tid, name=tid, quota=10000))
-            s.add(User(id=tid, tenant_id=tid, email=f"{tid}@example.com",
-                       password_hash=ph.hash("long-enough-password"), role="tenant_admin"))
-            s.add(Domain(id=tid, tenant_id=tid, domain=f"{tid}.example.com", token=tid, verified=True))
-            s.add(AllowedSender(id=tid, tenant_id=tid, address=f"sender@{tid}.example.com", role="support"))
+            s.add(
+                User(
+                    id=tid,
+                    tenant_id=tid,
+                    email=f"{tid}@example.com",
+                    password_hash=ph.hash("long-enough-password"),
+                    role="tenant_admin",
+                )
+            )
+            s.add(
+                Domain(id=tid, tenant_id=tid, domain=f"{tid}.example.com", token=tid, verified=True)
+            )
+            s.add(
+                AllowedSender(
+                    id=tid, tenant_id=tid, address=f"sender@{tid}.example.com", role="support"
+                )
+            )
         s.commit()
 
 
 def headers(tid):
     if tid in tokens:
         return tokens[tid]
-    response = client.post("/v1/auth/login", json={"email": f"{tid}@example.com", "password": "long-enough-password"})
+    response = client.post(
+        "/v1/auth/login", json={"email": f"{tid}@example.com", "password": "long-enough-password"}
+    )
     assert response.status_code == 200
     tokens[tid] = {"Authorization": "Bearer " + response.json()["access_token"]}
     return tokens[tid]
@@ -61,7 +88,12 @@ def headers(tid):
 
 def test_message_events_alias_matches_canonical_route():
     h = {**headers("a"), "Idempotency-Key": "m06-events-alias"}
-    payload = {"to": "events-alias@example.net", "sender": "sender@a.example.com", "subject": "hi", "html": "<p>hi</p>"}
+    payload = {
+        "to": "events-alias@example.net",
+        "sender": "sender@a.example.com",
+        "subject": "hi",
+        "html": "<p>hi</p>",
+    }
     sent = client.post("/v1/messages", headers=h, json=payload)
     assert sent.status_code == 202
     mid = sent.json()["id"]
@@ -74,11 +106,25 @@ def test_message_events_alias_matches_canonical_route():
 def test_messages_batch_alias_delegates_to_bulk_send():
     payload = {
         "messages": [
-            {"to": "batch-1@example.net", "sender": "sender@a.example.com", "subject": "b1", "html": "<p>b1</p>"},
-            {"to": "batch-2@example.net", "sender": "sender@a.example.com", "subject": "b2", "html": "<p>b2</p>"},
+            {
+                "to": "batch-1@example.net",
+                "sender": "sender@a.example.com",
+                "subject": "b1",
+                "html": "<p>b1</p>",
+            },
+            {
+                "to": "batch-2@example.net",
+                "sender": "sender@a.example.com",
+                "subject": "b2",
+                "html": "<p>b2</p>",
+            },
         ]
     }
-    response = client.post("/v1/messages/batch", headers={**headers("a"), "Idempotency-Key": "m06-batch-1"}, json=payload)
+    response = client.post(
+        "/v1/messages/batch",
+        headers={**headers("a"), "Idempotency-Key": "m06-batch-1"},
+        json=payload,
+    )
     assert response.status_code == 202
     assert response.json()["accepted"] == 2
     # Without an Idempotency-Key it fails exactly like /v1/email/bulk does.
@@ -88,34 +134,62 @@ def test_messages_batch_alias_delegates_to_bulk_send():
 
 def test_campaign_test_send_is_truthful_fixture_and_idempotent():
     h = headers("a")
-    created = client.post("/v1/campaigns", headers={**h, "Idempotency-Key": "m06-campaign-1"},
-                           json={"name": "M06 campaign", "subject": "Subject"})
+    created = client.post(
+        "/v1/campaigns",
+        headers={**h, "Idempotency-Key": "m06-campaign-1"},
+        json={"name": "M06 campaign", "subject": "Subject"},
+    )
     assert created.status_code == 201
     cid = created.json()["id"]
     first = client.post(f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-test-1"})
     assert first.status_code == 200
     assert first.json()["provider_submission"] is False and first.json()["internal_sink"] is True
-    replay = client.post(f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-test-1"})
+    replay = client.post(
+        f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-test-1"}
+    )
     assert replay.status_code == 200 and replay.json() == first.json()
-    assert client.post(f"/v1/campaigns/{cid}/test", headers={**headers("b"), "Idempotency-Key": "m06-test-2"}).status_code == 404
-    cancelled = client.post(f"/v1/campaigns/{cid}/cancel", headers={**h, "Idempotency-Key": "m06-cancel-1"})
+    assert (
+        client.post(
+            f"/v1/campaigns/{cid}/test", headers={**headers("b"), "Idempotency-Key": "m06-test-2"}
+        ).status_code
+        == 404
+    )
+    cancelled = client.post(
+        f"/v1/campaigns/{cid}/cancel", headers={**h, "Idempotency-Key": "m06-cancel-1"}
+    )
     assert cancelled.status_code == 200
-    terminal = client.post(f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-test-3"})
+    terminal = client.post(
+        f"/v1/campaigns/{cid}/test", headers={**h, "Idempotency-Key": "m06-test-3"}
+    )
     assert terminal.status_code == 409 and terminal.json()["detail"] == "campaign_terminal"
 
 
 def test_template_versions_list_and_detail():
     h = headers("a")
-    created = client.post("/v1/templates", headers=h, json={
-        "slug": "m06-welcome", "name": "Welcome", "subject": "Hello {{name}}",
-        "html_body": "<h1>Hello {{name}}</h1>", "text_body": "Hello {{name}}", "variables": ["name"],
-    })
+    created = client.post(
+        "/v1/templates",
+        headers=h,
+        json={
+            "slug": "m06-welcome",
+            "name": "Welcome",
+            "subject": "Hello {{name}}",
+            "html_body": "<h1>Hello {{name}}</h1>",
+            "text_body": "Hello {{name}}",
+            "variables": ["name"],
+        },
+    )
     assert created.status_code == 201
     tid = created.json()["id"]
-    updated = client.put(f"/v1/templates/{tid}", headers=h, json={
-        "subject": "Welcome {{name}}", "html_body": "<p>Welcome {{name}}</p>",
-        "text_body": "Welcome {{name}}", "variables": ["name"],
-    })
+    updated = client.put(
+        f"/v1/templates/{tid}",
+        headers=h,
+        json={
+            "subject": "Welcome {{name}}",
+            "html_body": "<p>Welcome {{name}}</p>",
+            "text_body": "Welcome {{name}}",
+            "variables": ["name"],
+        },
+    )
     assert updated.json()["version"] == 2
     versions = client.get(f"/v1/templates/{tid}/versions", headers=h)
     assert versions.status_code == 200
@@ -130,26 +204,49 @@ def test_template_versions_list_and_detail():
 
 def test_suppression_check_reports_reason_and_absence():
     h = headers("a")
-    created = client.post("/v1/suppressions", headers=h, json={"email": "blocked@example.net", "reason": "hard_bounce"})
+    created = client.post(
+        "/v1/suppressions",
+        headers=h,
+        json={"email": "blocked@example.net", "reason": "hard_bounce"},
+    )
     assert created.status_code == 201
     hit = client.get("/v1/suppressions/check", headers=h, params={"email": "Blocked@Example.NET"})
     assert hit.status_code == 200
-    assert hit.json() == {"email": "blocked@example.net", "suppressed": True, "reason": "hard_bounce"}
+    assert hit.json() == {
+        "email": "blocked@example.net",
+        "suppressed": True,
+        "reason": "hard_bounce",
+    }
     miss = client.get("/v1/suppressions/check", headers=h, params={"email": "clean@example.net"})
     assert miss.json() == {"email": "clean@example.net", "suppressed": False, "reason": None}
-    assert client.get("/v1/suppressions/check", headers=headers("b"), params={"email": "blocked@example.net"}).json()["suppressed"] is False
+    assert (
+        client.get(
+            "/v1/suppressions/check", headers=headers("b"), params={"email": "blocked@example.net"}
+        ).json()["suppressed"]
+        is False
+    )
 
 
 def test_webhook_deliveries_replay_and_rotate_secret():
     h = headers("a")
     # Keep the real URL/IP policy while making this lifecycle test independent of DNS.
-    addresses = [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))]
+    addresses = [
+        (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", 443))
+    ]
     with patch("apps.gateway.app.main.socket.getaddrinfo", return_value=addresses):
-        webhook = client.post("/v1/webhook-subscriptions", headers=h, json={"url": "https://example.com/m06-events", "events": ["message.delivered"]})
+        webhook = client.post(
+            "/v1/webhook-subscriptions",
+            headers=h,
+            json={"url": "https://example.com/m06-events", "events": ["message.delivered"]},
+        )
     assert webhook.status_code == 201, webhook.text
     wid = webhook.json()["id"]
     original_secret = webhook.json()["secret"]
-    event = {"event_id": "m06-delivery-0001", "event_type": "message.delivered", "payload": {"message_id": "m"}}
+    event = {
+        "event_id": "m06-delivery-0001",
+        "event_type": "message.delivered",
+        "payload": {"message_id": "m"},
+    }
     attempt = client.post(f"/v1/webhook-subscriptions/{wid}/test", headers=h, json=event)
     assert attempt.status_code == 202
     delivery_id = attempt.json()["id"]

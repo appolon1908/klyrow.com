@@ -1,7 +1,6 @@
 import runpy
 from pathlib import Path
 
-
 ROOT = Path(__file__).parents[1]
 SCRIPT = ROOT / "scripts/ops/verify-klyrow-sending-domains"
 EVIDENCE = ROOT / "evidence/runtime/verified-sending-domains-20260827.json"

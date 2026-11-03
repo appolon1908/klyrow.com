@@ -3,7 +3,6 @@
 import os
 from collections.abc import Mapping
 
-
 DISABLED_EMAIL_CONTROLS = {
     "KLYROW_SAFE_MODE": True,
     "KLYROW_PRODUCTION_GATE_APPROVED": False,
@@ -38,7 +37,9 @@ def email_activation_status(environment: Mapping[str, str] | None = None) -> dic
             controls[name] = None
         else:
             controls[name] = value == "true"
-    blockers = [name for name, expected in LIVE_EMAIL_CONTROLS.items() if controls[name] != expected]
+    blockers = [
+        name for name, expected in LIVE_EMAIL_CONTROLS.items() if controls[name] != expected
+    ]
     enabled = not missing and not invalid and not blockers
     return {
         "scope": "process_general_email",

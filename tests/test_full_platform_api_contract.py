@@ -1,36 +1,36 @@
+from datetime import UTC, datetime
 from pathlib import Path
-from datetime import datetime, timezone
 
+import pytest
+from fastapi import HTTPException
 from openapi_spec_validator import validate
+from sqlalchemy.exc import IntegrityError
 
 from apps.gateway.app.main import MiddlewareCommandOperation, app
 from apps.gateway.app.operations import IntegrationOutbox
 from apps.gateway.app.production_api import (
-    ContactPatch,
     CampaignDispatchConfiguration,
     CampaignPatch,
     CampaignSchedule,
+    ContactPatch,
     MauticCommand,
     SuppressionIn,
-    _authorize_operation_read,
     _authorize_operation_mutation,
+    _authorize_operation_read,
     _require_permission,
-    contact_delete,
-    contact_patch,
     campaign_cancel,
     campaign_dispatch_configuration,
     campaign_patch,
     campaign_schedule,
-    message_cancel,
+    contact_delete,
+    contact_patch,
     mautic_command,
+    message_cancel,
     postal_health,
     suppression_create,
     suppression_delete,
     system_readiness,
 )
-import pytest
-from fastapi import HTTPException
-from sqlalchemy.exc import IntegrityError
 
 
 def test_required_production_routes_are_documented():
@@ -95,9 +95,7 @@ def test_required_production_routes_are_documented():
         ("post", "/v1/webhooks/postal-inbound"),
     }
     missing = sorted(
-        f"{method.upper()} {path}"
-        for method, path in required
-        if method not in paths.get(path, {})
+        f"{method.upper()} {path}" for method, path in required if method not in paths.get(path, {})
     )
     assert missing == []
 
@@ -127,21 +125,13 @@ def test_production_migration_is_required_by_the_model():
     attachments = Path("migrations/2026090202_webmail_attachments.sql").read_text()
     assert "CREATE TABLE IF NOT EXISTS webmail_attachments" in attachments
     assert "octet_length(content) = size" in attachments
-    result_authority = Path(
-        "migrations/2026090203_integration_result_authority.sql"
-    ).read_text()
+    result_authority = Path("migrations/2026090203_integration_result_authority.sql").read_text()
     assert "uq_integration_result_source_key" in result_authority
     assert "UNIQUE (tenant_id, source, result_key)" in result_authority
-    storage = Path(
-        "migrations/2026090204_webmail_inbound_storage_authority.sql"
-    ).read_text()
+    storage = Path("migrations/2026090204_webmail_inbound_storage_authority.sql").read_text()
     assert "storage_used_bytes" in storage
-    assert (
-        "DROP CONSTRAINT IF EXISTS uq_webmail_attachment_message_digest_name" in storage
-    )
-    outcomes = Path(
-        "migrations/2026090205_middleware_command_outcome_authority.sql"
-    ).read_text()
+    assert "DROP CONSTRAINT IF EXISTS uq_webmail_attachment_message_digest_name" in storage
+    outcomes = Path("migrations/2026090205_middleware_command_outcome_authority.sql").read_text()
     assert "unknown_outcome" in outcomes
     assert "processing" in outcomes and "submitted" in outcomes
     outbox_authority = Path(
@@ -231,9 +221,7 @@ def test_campaign_mutations_require_campaign_management_permission():
     with pytest.raises(HTTPException) as configuration_denied:
         campaign_dispatch_configuration(
             "campaign-a",
-            CampaignDispatchConfiguration(
-                sender_id="sender-a", template_id="template-a"
-            ),
+            CampaignDispatchConfiguration(sender_id="sender-a", template_id="template-a"),
             context,
             None,
         )
@@ -241,7 +229,7 @@ def test_campaign_mutations_require_campaign_management_permission():
     with pytest.raises(HTTPException) as schedule_denied:
         campaign_schedule(
             "campaign-a",
-            CampaignSchedule(scheduled_at=datetime.now(timezone.utc)),
+            CampaignSchedule(scheduled_at=datetime.now(UTC)),
             context,
             None,
         )
@@ -285,9 +273,7 @@ def test_postal_health_counts_are_tenant_scoped(monkeypatch):
     session = RecordingSession()
     postal_health({"tenant": "tenant-a"}, session)
     assert len(session.statements) == 2
-    assert all(
-        "email_outbox.tenant_id" in statement for statement in session.statements
-    )
+    assert all("email_outbox.tenant_id" in statement for statement in session.statements)
 
 
 def test_system_readiness_passes_authenticated_tenant_to_postal(monkeypatch):
@@ -302,9 +288,7 @@ def test_system_readiness_passes_authenticated_tenant_to_postal(monkeypatch):
         return {"configured": True, "status": "ok"}
 
     monkeypatch.setattr("apps.gateway.app.production_api.postal_health", fake_postal)
-    response = system_readiness(
-        {"tenant": "tenant-a", "sub": "operator"}, ReadinessSession()
-    )
+    response = system_readiness({"tenant": "tenant-a", "sub": "operator"}, ReadinessSession())
     assert observed["tenant"] == "tenant-a"
     assert response["status"] == "ready"
 
@@ -324,8 +308,8 @@ def test_concurrent_mautic_idempotency_insert_returns_durable_winner():
         def add(self, item):
             if isinstance(item, IntegrationOutbox):
                 item.state = item.state or "PENDING"
-                item.created_at = item.created_at or datetime.now(timezone.utc)
-                item.updated_at = item.updated_at or datetime.now(timezone.utc)
+                item.created_at = item.created_at or datetime.now(UTC)
+                item.updated_at = item.updated_at or datetime.now(UTC)
                 self.winner = item
 
         def commit(self):
@@ -343,7 +327,7 @@ def test_concurrent_mautic_idempotency_insert_returns_durable_winner():
             aggregate_id="contact-1",
             payload={"email": "safe@example.test"},
             request_id="request-0001",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         ),
         {"tenant": "tenant-a", "sub": "operator", "role": "platform_admin"},
         session,
