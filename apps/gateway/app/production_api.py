@@ -78,7 +78,9 @@ from .tenancy import (
     Organization,
     RoleIn,
     TenantMember,
+    assert_role_assignable,
     manage,
+    resolve_actor_role,
     role_change,
 )
 
@@ -703,7 +705,7 @@ def organization_member_add(
     s: Session = Depends(db),
 ) -> dict[str, Any]:
     organization = organization_detail(organization_id, ctx, s)
-    manage({**ctx, "tenant": organization.tenant_id}, s)
+    actor = manage({**ctx, "tenant": organization.tenant_id}, s)
     user = s.get(User, body.user_id)
     if user is None:
         raise HTTPException(404, "user_not_found")
@@ -715,6 +717,11 @@ def organization_member_add(
             TenantMember.tenant_id == organization.tenant_id,
             TenantMember.user_id == user.id,
         )
+    )
+    assert_role_assignable(
+        resolve_actor_role(ctx, actor),
+        role,
+        current_role=item.role if item is not None and item.active else None,
     )
     if item is None:
         item = TenantMember(

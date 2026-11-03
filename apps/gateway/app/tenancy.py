@@ -296,11 +296,60 @@ def manage(ctx, s):
     return m
 
 
+ROLE_RANK = {
+    "OWNER": 100,
+    "ADMIN": 80,
+    "DEVELOPER": 50,
+    "BILLING": 40,
+    "MARKETING": 30,
+    "SUPPORT": 30,
+    "ANALYST": 20,
+    "READ_ONLY": 10,
+}
+
+
 def validate_role(role):
     role = role.upper()
     if role not in ROLE_PERMISSIONS:
         raise HTTPException(422, "invalid_tenant_role")
     return role
+
+
+def assert_role_assignable(
+    actor_role: str, target_role: str, *, current_role: str | None = None
+) -> None:
+    """Refuse privilege escalation when a member assigns or changes a role.
+
+    - Only an OWNER may grant the OWNER role (invitation or role change).
+    - An ADMIN may only assign roles strictly below ADMIN.
+    - An ADMIN may not change the role of a member who currently holds OWNER.
+    - OWNER (and the platform_admin pseudo-role) may assign any role.
+    """
+
+    actor = str(actor_role or "").upper()
+    target = str(target_role or "").upper()
+    current = str(current_role or "").upper() if current_role else None
+    if actor in {"OWNER", "PLATFORM_ADMIN"}:
+        return
+    if target == "OWNER":
+        raise HTTPException(403, "role_escalation_forbidden")
+    if actor == "ADMIN":
+        if current == "OWNER":
+            raise HTTPException(403, "role_escalation_forbidden")
+        if ROLE_RANK.get(target, 0) >= ROLE_RANK["ADMIN"]:
+            raise HTTPException(403, "role_escalation_forbidden")
+        return
+    raise HTTPException(403, "role_escalation_forbidden")
+
+
+def resolve_actor_role(ctx, actor_member) -> str:
+    """Resolve the acting role: the tenant membership wins; platform_admin has no membership."""
+
+    if actor_member is not None:
+        return str(actor_member.role or "").upper()
+    if ctx.get("role") == "platform_admin":
+        return "PLATFORM_ADMIN"
+    return str(ctx.get("role") or "").upper()
 
 
 def validate_scopes(scopes):
@@ -443,8 +492,9 @@ def switch(tenant_id: str, ctx=Depends(auth), s: Session = Depends(db)):
 
 @router.post("/team/invitations", status_code=201)
 def invite(x: InviteIn, ctx=Depends(auth), s: Session = Depends(db)):
-    manage(ctx, s)
+    actor = manage(ctx, s)
     role = validate_role(x.role)
+    assert_role_assignable(resolve_actor_role(ctx, actor), role)
     raw = secrets.token_urlsafe(32)
     item = TenantInvitation(
         id=str(uuid.uuid4()),
@@ -512,7 +562,7 @@ def accept(x: AcceptIn, s: Session = Depends(db)):
 
 @router.patch("/team/members/{user_id}")
 def role_change(user_id: str, x: RoleIn, ctx=Depends(auth), s: Session = Depends(db)):
-    manage(ctx, s)
+    actor = manage(ctx, s)
     m = s.scalar(
         select(TenantMember).where(
             TenantMember.tenant_id == ctx["tenant"], TenantMember.user_id == user_id
@@ -520,9 +570,11 @@ def role_change(user_id: str, x: RoleIn, ctx=Depends(auth), s: Session = Depends
     )
     if not m:
         raise HTTPException(404, "member_not_found")
-    if m.role == "OWNER" and x.role.upper() != "OWNER":
+    role = validate_role(x.role)
+    assert_role_assignable(resolve_actor_role(ctx, actor), role, current_role=m.role)
+    if m.role == "OWNER" and role != "OWNER":
         raise HTTPException(409, "owner_transfer_required")
-    m.role = validate_role(x.role)
+    m.role = role
     audit(s, ctx, "tenant.member.role_changed")
     s.commit()
     return {"user_id": user_id, "role": m.role}

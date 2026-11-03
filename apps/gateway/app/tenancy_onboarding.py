@@ -37,7 +37,14 @@ from .main import (
 from . import auth_bff
 from .auth_bff import BrowserSession, browser_context, csrf_guard
 from .saas import Onboarding, UsageLedger
-from .tenancy import OidcIdentity, Organization, TenantInvitation, TenantMember, validate_role
+from .tenancy import (
+    OidcIdentity,
+    Organization,
+    TenantInvitation,
+    TenantMember,
+    assert_role_assignable,
+    validate_role,
+)
 
 router = APIRouter(tags=["Browser workspace"])
 now = lambda: datetime.now(UTC)
@@ -641,6 +648,7 @@ def browser_invite(
 ):
     _require_management(ctx)
     role = validate_role(payload.role)
+    assert_role_assignable(ctx["role"], role)
     raw = secrets.token_urlsafe(32)
     item = TenantInvitation(
         id=str(uuid.uuid4()),
@@ -744,6 +752,7 @@ def browser_update_member(
     if not member:
         raise HTTPException(404, "member_not_found")
     role = validate_role(payload.role)
+    assert_role_assignable(ctx["role"], role, current_role=member.role)
     if member.role == "OWNER" and role != "OWNER" and _active_owner_count(s, ctx["tenant"]) <= 1:
         raise HTTPException(409, "last_owner_protected")
     member.role = role
