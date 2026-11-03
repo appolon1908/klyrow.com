@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
 import os
 from datetime import UTC
 from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
@@ -15,7 +12,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .main import SECRET, Tenant, User, auth_rate, db, sha
+from .main import Tenant, User, auth_rate, db, sha
 from . import auth_bff
 from .auth_bff import BrowserSession, OidcLoginTransaction
 from .tenancy import OidcIdentity, TenantInvitation, TenantMember
@@ -47,17 +44,6 @@ def browser_session_idle_seconds() -> int:
     except ValueError as exc:
         raise RuntimeError("KLYROW_BROWSER_SESSION_IDLE_SECONDS must be an integer") from exc
     return max(300, min(configured, auth_bff._session_ttl()))
-
-
-def stable_csrf_token(session_id: str) -> str:
-    """Derive one unguessable CSRF token for the lifetime of a browser session."""
-
-    digest = hmac.new(
-        SECRET.encode(),
-        ("klyrow-browser-csrf-v1:" + session_id).encode(),
-        hashlib.sha256,
-    ).digest()
-    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
 
 def _aware(value):
@@ -150,7 +136,7 @@ def _get_browser_session_with_authority(
     return item
 
 
-def _new_session_with_stable_csrf(
+def _new_session_with_parent_deadline(
     session: Session,
     request: Request,
     identity: OidcIdentity,
@@ -159,7 +145,11 @@ def _new_session_with_stable_csrf(
     tokens: dict,
     rotated_from_id: str | None = None,
 ):
-    """Create/rotate a session without extending its original absolute deadline."""
+    """Create/rotate a session without extending its original absolute deadline.
+
+    The random per-session CSRF token is minted (or inherited from the rotated
+    parent) by ``auth_bff._new_session`` itself; nothing here derives it.
+    """
 
     absolute_deadline = None
     if rotated_from_id:
@@ -176,7 +166,7 @@ def _new_session_with_stable_csrf(
         user_id=user.id,
         tenant_id=membership.tenant_id,
     )
-    item, raw, _csrf = _ORIGINAL_NEW_SESSION(
+    item, raw, csrf = _ORIGINAL_NEW_SESSION(
         session,
         request,
         identity,
@@ -187,9 +177,7 @@ def _new_session_with_stable_csrf(
     )
     if absolute_deadline and _aware(item.expires_at) > absolute_deadline:
         item.expires_at = absolute_deadline
-    csrf = stable_csrf_token(item.id)
-    item.csrf_hash = sha(csrf)
-    session.commit()
+        session.commit()
     return item, raw, csrf
 
 
@@ -235,7 +223,7 @@ def install_auth_extensions() -> None:
         if getattr(route, "path", "") in replacement_paths:
             auth_bff.router.routes.remove(route)
     auth_bff._get_browser_session = _get_browser_session_with_authority
-    auth_bff._new_session = _new_session_with_stable_csrf
+    auth_bff._new_session = _new_session_with_parent_deadline
     _INSTALLED = True
 
 
@@ -286,11 +274,10 @@ def oidc_callback(
         enqueue_postal_provisioning(session, membership.tenant_id)
     else:
         identity, user, membership = auth_bff._identity_context(session, claims)
-    item, raw, _csrf = auth_bff._new_session(session, request, identity, user, membership, tokens)
+    _item, raw, _csrf = auth_bff._new_session(session, request, identity, user, membership, tokens)
     response = RedirectResponse(auth_bff._safe_return_to(transaction.return_url), status_code=303)
     auth_bff._set_session_cookie(response, raw)
     response.headers["Cache-Control"] = "no-store"
-    response.headers["X-Klyrow-Session-Id"] = item.id
     return response
 
 
@@ -309,11 +296,7 @@ def session_status(request: Request, session: Session = Depends(db)):
                 headers={"Cache-Control": "no-store"},
             )
         raise
-    csrf = stable_csrf_token(item.id)
-    expected_hash = sha(csrf)
-    if not hmac.compare_digest(item.csrf_hash, expected_hash):
-        item.csrf_hash = expected_hash
-        session.commit()
+    csrf = auth_bff._session_csrf(session, item)
     return JSONResponse(
         auth_bff._session_body(session, item, csrf),
         headers={"Cache-Control": "no-store"},

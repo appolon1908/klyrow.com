@@ -289,11 +289,12 @@ def _stage_new_session(
     """Stage a browser session without crossing the callback commit boundary."""
 
     raw = secrets.token_urlsafe(48)
-    csrf = secrets.token_urlsafe(32)
+    csrf = auth_bff._inherited_csrf(session, rotated_from_id) or secrets.token_urlsafe(32)
     item = BrowserSession(
         id=str(uuid.uuid4()),
         token_hash=sha(raw),
         csrf_hash=sha(csrf),
+        csrf_ciphertext=auth_bff._encrypt(csrf),
         identity_id=identity.id,
         user_id=user.id,
         tenant_id=membership.tenant_id,
@@ -697,7 +698,7 @@ def oidc_callback(
             )
 
         _stage_postal_provisioning(session, membership.tenant_id)
-        item, raw, _csrf = _stage_new_session(
+        _item, raw, _csrf = _stage_new_session(
             session,
             request,
             identity,
@@ -720,7 +721,6 @@ def oidc_callback(
     auth_bff._set_session_cookie(response, raw)
     remove_flow_cookie(response, request, state)
     response.headers["Cache-Control"] = "no-store"
-    response.headers["X-Klyrow-Session-Id"] = item.id
     return response
 
 

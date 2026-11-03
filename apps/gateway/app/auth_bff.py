@@ -15,6 +15,7 @@ from urllib.parse import urlencode, urlsplit
 
 import httpx
 import jwt
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -131,6 +132,7 @@ class BrowserSession(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     token_hash: Mapped[str] = mapped_column(String, unique=True, index=True)
     csrf_hash: Mapped[str] = mapped_column(String)
+    csrf_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
     identity_id: Mapped[str] = mapped_column(String, index=True)
     user_id: Mapped[str] = mapped_column(String, index=True)
     tenant_id: Mapped[str] = mapped_column(String, index=True)
@@ -371,6 +373,37 @@ def _identity_context(s: Session, claims: dict) -> tuple[OidcIdentity, User, Ten
     return identity, user, membership
 
 
+def _inherited_csrf(s: Session, rotated_from_id: str | None) -> str | None:
+    """Return the parent's random CSRF token so it survives session rotation."""
+
+    if not rotated_from_id:
+        return None
+    parent = s.get(BrowserSession, rotated_from_id)
+    if parent is None or not parent.csrf_ciphertext:
+        return None
+    try:
+        return _decrypt(parent.csrf_ciphertext)
+    except (ValueError, InvalidTag):
+        return None
+
+
+def _session_csrf(s: Session, item: BrowserSession) -> str:
+    """Return the session's stored random CSRF token, minting one for legacy rows."""
+
+    if item.csrf_ciphertext:
+        try:
+            csrf = _decrypt(item.csrf_ciphertext)
+        except (ValueError, InvalidTag):
+            csrf = None
+        if csrf and hmac.compare_digest(item.csrf_hash, sha(csrf)):
+            return csrf
+    csrf = secrets.token_urlsafe(32)
+    item.csrf_hash = sha(csrf)
+    item.csrf_ciphertext = _encrypt(csrf)
+    s.commit()
+    return csrf
+
+
 def _new_session(
     s: Session,
     request: Request,
@@ -381,11 +414,12 @@ def _new_session(
     rotated_from_id: str | None = None,
 ) -> tuple[BrowserSession, str, str]:
     raw = secrets.token_urlsafe(48)
-    csrf = secrets.token_urlsafe(32)
+    csrf = _inherited_csrf(s, rotated_from_id) or secrets.token_urlsafe(32)
     item = BrowserSession(
         id=str(uuid.uuid4()),
         token_hash=sha(raw),
         csrf_hash=sha(csrf),
+        csrf_ciphertext=_encrypt(csrf),
         identity_id=identity.id,
         user_id=user.id,
         tenant_id=membership.tenant_id,
@@ -532,7 +566,6 @@ def oidc_callback(request: Request, code: str, state: str, s: Session = Depends(
     response = RedirectResponse(_safe_return_to(tx.return_url), status_code=303)
     _set_session_cookie(response, raw)
     response.headers["Cache-Control"] = "no-store"
-    response.headers["X-Klyrow-Session-Id"] = item.id
     return response
 
 
@@ -546,9 +579,7 @@ def session_status(request: Request, s: Session = Depends(db)):
                 {"authenticated": False}, status_code=200, headers={"Cache-Control": "no-store"}
             )
         raise
-    csrf = secrets.token_urlsafe(32)
-    item.csrf_hash = sha(csrf)
-    s.commit()
+    csrf = _session_csrf(s, item)
     return JSONResponse(_session_body(s, item, csrf), headers={"Cache-Control": "no-store"})
 
 

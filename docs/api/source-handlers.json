@@ -52,70 +52,70 @@
     "declared_path": "/auth/login",
     "file": "apps/gateway/app/auth_bff.py",
     "handler": "login_start",
-    "line": 502,
+    "line": 536,
     "method": "GET"
   },
   {
     "declared_path": "/auth/signup",
     "file": "apps/gateway/app/auth_bff.py",
     "handler": "signup_start",
-    "line": 507,
+    "line": 541,
     "method": "GET"
   },
   {
     "declared_path": "/auth/google",
     "file": "apps/gateway/app/auth_bff.py",
     "handler": "google_start",
-    "line": 512,
+    "line": 546,
     "method": "GET"
   },
   {
     "declared_path": "/auth/callback",
     "file": "apps/gateway/app/auth_bff.py",
     "handler": "oidc_callback",
-    "line": 517,
+    "line": 551,
     "method": "GET"
   },
   {
     "declared_path": "/auth/session",
     "file": "apps/gateway/app/auth_bff.py",
     "handler": "session_status",
-    "line": 540,
+    "line": 573,
     "method": "GET"
   },
   {
     "declared_path": "/auth/refresh",
     "file": "apps/gateway/app/auth_bff.py",
     "handler": "refresh_session",
-    "line": 556,
+    "line": 587,
     "method": "POST"
   },
   {
     "declared_path": "/auth/sessions",
     "file": "apps/gateway/app/auth_bff.py",
     "handler": "list_sessions",
-    "line": 610,
+    "line": 641,
     "method": "GET"
   },
   {
     "declared_path": "/auth/sessions/{session_id}",
     "file": "apps/gateway/app/auth_bff.py",
     "handler": "revoke_session",
-    "line": 633,
+    "line": 664,
     "method": "DELETE"
   },
   {
     "declared_path": "/auth/logout",
     "file": "apps/gateway/app/auth_bff.py",
     "handler": "logout",
-    "line": 647,
+    "line": 678,
     "method": "POST"
   },
   {
     "declared_path": "/auth/logout-all",
     "file": "apps/gateway/app/auth_bff.py",
     "handler": "logout_all",
-    "line": 672,
+    "line": 703,
     "method": "POST"
   },
   {
@@ -598,63 +598,63 @@
     "declared_path": "/auth/callback",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "oidc_callback",
-    "line": 247,
+    "line": 235,
     "method": "GET"
   },
   {
     "declared_path": "/auth/session",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "session_status",
-    "line": 298,
+    "line": 285,
     "method": "GET"
   },
   {
     "declared_path": "/auth/sessions",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "list_user_sessions",
-    "line": 324,
+    "line": 307,
     "method": "GET"
   },
   {
     "declared_path": "/auth/sessions/{session_id}",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "revoke_user_session",
-    "line": 350,
+    "line": 333,
     "method": "DELETE"
   },
   {
     "declared_path": "/auth/logout-all",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "logout_all_user_sessions",
-    "line": 363,
+    "line": 346,
     "method": "POST"
   },
   {
     "declared_path": "/auth/actions/recover",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "begin_recovery",
-    "line": 386,
+    "line": 369,
     "method": "POST"
   },
   {
     "declared_path": "/auth/actions/update-password",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "begin_password_update",
-    "line": 406,
+    "line": 389,
     "method": "POST"
   },
   {
     "declared_path": "/auth/actions/verify-email",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "begin_email_verification",
-    "line": 421,
+    "line": 404,
     "method": "POST"
   },
   {
     "declared_path": "/auth/actions/invitation",
     "file": "apps/gateway/app/browser_auth_actions.py",
     "handler": "validate_invitation",
-    "line": 436,
+    "line": 419,
     "method": "POST"
   },
   {
@@ -794,28 +794,28 @@
     "declared_path": "/auth/login",
     "file": "apps/gateway/app/browser_security_fixes.py",
     "handler": "login_start",
-    "line": 579,
+    "line": 580,
     "method": "GET"
   },
   {
     "declared_path": "/auth/signup",
     "file": "apps/gateway/app/browser_security_fixes.py",
     "handler": "signup_start",
-    "line": 593,
+    "line": 594,
     "method": "GET"
   },
   {
     "declared_path": "/auth/google",
     "file": "apps/gateway/app/browser_security_fixes.py",
     "handler": "google_start",
-    "line": 607,
+    "line": 608,
     "method": "GET"
   },
   {
     "declared_path": "/auth/callback",
     "file": "apps/gateway/app/browser_security_fixes.py",
     "handler": "oidc_callback",
-    "line": 649,
+    "line": 650,
     "method": "GET"
   },
   {

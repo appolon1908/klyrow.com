@@ -145,6 +145,7 @@
       "id",
       "token_hash",
       "csrf_hash",
+      "csrf_ciphertext",
       "identity_id",
       "user_id",
       "tenant_id",

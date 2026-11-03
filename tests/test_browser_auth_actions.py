@@ -1,4 +1,5 @@
 import os
+import secrets
 import uuid
 from datetime import timedelta
 from urllib.parse import parse_qs, urlparse
@@ -11,7 +12,6 @@ from apps.gateway.app.main import DB, Base, Tenant, User, engine, ph, sha
 from apps.gateway.app.platform import app
 from apps.gateway.app import auth_bff
 from apps.gateway.app.auth_bff import SESSION_COOKIE, BrowserSession, OidcLoginTransaction
-from apps.gateway.app.browser_auth_actions import stable_csrf_token
 from apps.gateway.app.tenancy import OidcIdentity, TenantInvitation, TenantMember
 
 ISSUER = "https://auth.codestra.co/realms/codestra"
@@ -32,7 +32,7 @@ def _browser_principal_session(*, disable: str | None = None):
     identity_id = f"identity-browser-{suffix}"
     session_id = f"session-browser-{suffix}"
     raw = "browser_" + uuid.uuid4().hex
-    csrf = stable_csrf_token(session_id)
+    csrf = secrets.token_urlsafe(32)
     with DB() as session:
         user = User(
             id=user_id,
@@ -65,6 +65,7 @@ def _browser_principal_session(*, disable: str | None = None):
                 id=session_id,
                 token_hash=sha(raw),
                 csrf_hash=sha(csrf),
+                csrf_ciphertext=auth_bff._encrypt(csrf),
                 identity_id=identity_id,
                 user_id=user_id,
                 tenant_id=tenant_id,
@@ -85,12 +86,12 @@ def _browser_principal_session(*, disable: str | None = None):
 
 
 def test_session_reads_keep_one_csrf_token_until_session_rotation():
-    client, session_id, _csrf = _browser_principal_session()
+    client, _session_id, csrf = _browser_principal_session()
     first = client.get("/auth/session")
     second = client.get("/auth/session")
     assert first.status_code == second.status_code == 200
     assert first.json()["csrf_token"] == second.json()["csrf_token"]
-    assert first.json()["csrf_token"] == stable_csrf_token(session_id)
+    assert first.json()["csrf_token"] == csrf
     logout = client.post("/auth/logout", headers={"X-Klyrow-CSRF": first.json()["csrf_token"]})
     assert logout.status_code == 200
 
